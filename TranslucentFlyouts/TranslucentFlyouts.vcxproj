@@ -119,7 +119,7 @@
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <Optimization>MaxSpeed</Optimization>
+      <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
@@ -139,7 +139,7 @@
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <Optimization>MaxSpeed</Optimization>
+      <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
@@ -158,6 +158,7 @@
   <ItemGroup>
     <ClInclude Include="AcrylicHelper.h" />
     <ClInclude Include="DetoursHelper.h" />
+    <ClInclude Include="tfapi.h" />
     <ClInclude Include="TranslucentFlyoutsLib.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="ThemeHelper.h" />

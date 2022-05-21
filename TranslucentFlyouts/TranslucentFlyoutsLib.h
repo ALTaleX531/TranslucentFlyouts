@@ -18,11 +18,11 @@ private:
 	static Detours SetMenuItemBitmapsHook;
 	static Detours InsertMenuItemWHook;
 	static Detours SetMenuItemInfoWHook;
-
-	static BYTE bAlpha;
-	static DWORD dwEffect;
+private:
+	__declspec(thread) static HWND hWnd;
 private:
 	static inline bool VerifyCaller(PVOID pvCaller, LPCWSTR pszCallerModuleName);
+	static inline void SetFlyout(HWND hWnd);
 private:
 	static HRESULT WINAPI MyDrawThemeBackground(
 	    HTHEME  hTheme,

@@ -9,47 +9,26 @@ public:
 
 	static inline bool IsAllowTransparent()
 	{
-		HKEY hKey = nullptr;
-		LONG lResult;
-		BYTE bResult = true;
+		DWORD dwResult = 0;
 		DWORD dwSize = sizeof(DWORD);
-		lResult = RegOpenKeyEx(HKEY_CURRENT_USER, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", 0, KEY_READ, &hKey);
-		if (lResult == ERROR_SUCCESS)
-		{
-			RegQueryValueEx(hKey, L"EnableTransparency", NULL, nullptr, &bResult, &dwSize);
-			RegCloseKey(hKey);
-		}
-		return bResult;
+		RegGetValue(HKEY_CURRENT_USER, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", L"EnableTransparency", RRF_RT_REG_DWORD, nullptr, &dwResult, &dwSize);
+		return dwResult == 1;
 	}
 
 	static inline bool IsAppLightTheme()
 	{
-		HKEY hKey = nullptr;
-		LONG lResult;
-		BYTE bResult = true;
+		DWORD dwResult = 0;
 		DWORD dwSize = sizeof(DWORD);
-		lResult = RegOpenKeyEx(HKEY_CURRENT_USER, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", 0, KEY_READ, &hKey);
-		if (lResult == ERROR_SUCCESS)
-		{
-			RegQueryValueEx(hKey, L"AppsUseLightTheme", NULL, nullptr, &bResult, &dwSize);
-			RegCloseKey(hKey);
-		}
-		return bResult;
+		RegGetValue(HKEY_CURRENT_USER, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", L"AppsUseLightTheme", RRF_RT_REG_DWORD, nullptr, &dwResult, &dwSize);
+		return dwResult == 1;
 	}
 
 	static inline bool IsSystemLightTheme()
 	{
-		HKEY hKey = nullptr;
-		LONG lResult;
-		BYTE bResult = true;
+		DWORD dwResult = 0;
 		DWORD dwSize = sizeof(DWORD);
-		lResult = RegOpenKeyEx(HKEY_CURRENT_USER, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", 0, KEY_READ, &hKey);
-		if (lResult == ERROR_SUCCESS)
-		{
-			RegQueryValueEx(hKey, L"SystemUsesLightTheme", NULL, nullptr, &bResult, &dwSize);
-			RegCloseKey(hKey);
-		}
-		return bResult;
+		RegGetValue(HKEY_CURRENT_USER, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", L"SystemUsesLightTheme", RRF_RT_REG_DWORD, nullptr, &dwResult, &dwSize);
+		return dwResult == 1;
 	}
 
 	static inline HRESULT WINAPI GetThemeClass(const HTHEME& hTheme, LPCWSTR pszClassName, const int cchClassName)
@@ -85,6 +64,11 @@ public:
 	static inline bool IsValidFlyout(const HWND& hWnd)
 	{
 		WCHAR szClass[MAX_PATH + 1];
+		//微软内部判断窗口是否是弹出菜单的方法
+		if (GetClassLong(hWnd, GCW_ATOM) == 32768)
+		{
+			return true;
+		}
 		GetClassName(hWnd, szClass, MAX_PATH);
 		return (
 		           IsTopLevelWindow(hWnd) and
