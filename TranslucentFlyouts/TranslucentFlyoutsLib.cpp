@@ -107,7 +107,8 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 			{
 				AcrylicHelper::SetEffect(
 				    hWnd,
-				    GetCurrentFlyoutEffect()
+				    GetCurrentFlyoutEffect(),
+					GetCurrentFlyoutBorder()
 				);
 				SetFlyout(NULL);
 			}
@@ -128,7 +129,9 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 			    iPartId == MENU_POPUPBACKGROUND or
 			    iPartId == MENU_POPUPGUTTER or
 			    (
-			        iPartId == MENU_POPUPITEM and iStateId != MPI_HOT
+			        GetCurrentFlyoutColorizeOption() == 0 ?
+			        (iPartId == MENU_POPUPITEM and iStateId != MPI_HOT) :
+			        (iPartId == MENU_POPUPITEM)
 			    ) or
 			    iPartId == MENU_POPUPBORDERS
 			)
@@ -647,7 +650,6 @@ LRESULT CALLBACK TranslucentFlyoutsLib::WndProc(HWND hWnd, UINT Message, WPARAM 
 				BufferedPaintInit();
 				//SetWindowSubclass(hWnd, SubclassProc, 0, 0);
 			}
-
 			break;
 		}
 
@@ -658,7 +660,6 @@ LRESULT CALLBACK TranslucentFlyoutsLib::WndProc(HWND hWnd, UINT Message, WPARAM 
 				BufferedPaintUnInit();
 				//RemoveWindowSubclass(hWnd, SubclassProc, 0);
 			}
-
 			break;
 		}
 		default:

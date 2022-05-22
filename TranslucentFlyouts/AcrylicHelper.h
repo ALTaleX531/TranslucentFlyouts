@@ -77,14 +77,14 @@ private:
 
 	typedef BOOL(WINAPI* pfnSetWindowCompositionAttribute)(HWND, WINDOWCOMPOSITIONATTRIBUTEDATA*);
 public:
-	static void SetEffect(HWND hwnd, DWORD dwEffect)
+	static void SetEffect(HWND hwnd, DWORD dwEffect, DWORD bBorderOption)
 	{
 		static const pfnSetWindowCompositionAttribute SetWindowCompositionAttribute =
 		    (pfnSetWindowCompositionAttribute)GetProcAddress(
 		        GetModuleHandle(TEXT("User32")),
 		        "SetWindowCompositionAttribute"
 		    );
-		ACCENT_POLICY policy = {static_cast<ACCENT_STATE>(dwEffect), ACCENT_ALL_BORDER, 0x1, 0};
+		ACCENT_POLICY policy = {static_cast<ACCENT_STATE>(dwEffect), static_cast<ACCENT_FLAG>(bBorderOption), 0x1, 0};
 		WINDOWCOMPOSITIONATTRIBUTEDATA data = {WCA_ACCENT_POLICY, &policy, sizeof(ACCENT_POLICY)};
 		SetWindowCompositionAttribute(hwnd, &data);
 	}
