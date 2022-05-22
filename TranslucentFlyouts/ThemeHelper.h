@@ -5,13 +5,13 @@ class ThemeHelper
 {
 public:
 	typedef HRESULT(WINAPI * pfnGetThemeClass)(HTHEME hTheme, LPCWSTR pszClassName, int cchClassName);
-	typedef BOOL(WINAPI*pfnIsTopLevelWindow)(HWND);
+	typedef BOOL(WINAPI*pfnIsTopLevelWindow)(HWND hWnd);
 
 	static inline bool IsAllowTransparent()
 	{
 		DWORD dwResult = 0;
 		DWORD dwSize = sizeof(DWORD);
-		RegGetValue(HKEY_CURRENT_USER, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", L"EnableTransparency", RRF_RT_REG_DWORD, nullptr, &dwResult, &dwSize);
+		RegGetValue(HKEY_CURRENT_USER, TEXT("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize"), TEXT("EnableTransparency"), RRF_RT_REG_DWORD, nullptr, &dwResult, &dwSize);
 		return dwResult == 1;
 	}
 
@@ -19,7 +19,7 @@ public:
 	{
 		DWORD dwResult = 0;
 		DWORD dwSize = sizeof(DWORD);
-		RegGetValue(HKEY_CURRENT_USER, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", L"AppsUseLightTheme", RRF_RT_REG_DWORD, nullptr, &dwResult, &dwSize);
+		RegGetValue(HKEY_CURRENT_USER, TEXT("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize"), TEXT("AppsUseLightTheme"), RRF_RT_REG_DWORD, nullptr, &dwResult, &dwSize);
 		return dwResult == 1;
 	}
 
@@ -27,7 +27,7 @@ public:
 	{
 		DWORD dwResult = 0;
 		DWORD dwSize = sizeof(DWORD);
-		RegGetValue(HKEY_CURRENT_USER, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", L"SystemUsesLightTheme", RRF_RT_REG_DWORD, nullptr, &dwResult, &dwSize);
+		RegGetValue(HKEY_CURRENT_USER, TEXT("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize"), TEXT("SystemUsesLightTheme"), RRF_RT_REG_DWORD, nullptr, &dwResult, &dwSize);
 		return dwResult == 1;
 	}
 
@@ -53,7 +53,7 @@ public:
 
 	static inline BOOL IsTopLevelWindow(const HWND& hWnd)
 	{
-		static const pfnIsTopLevelWindow IsTopLevelWindow = (pfnIsTopLevelWindow)GetProcAddress(GetModuleHandle(L"User32"), "IsTopLevelWindow");
+		static const pfnIsTopLevelWindow IsTopLevelWindow = (pfnIsTopLevelWindow)GetProcAddress(GetModuleHandle(TEXT("User32")), "IsTopLevelWindow");
 		if (IsTopLevelWindow)
 		{
 			return IsTopLevelWindow(hWnd);
@@ -63,21 +63,22 @@ public:
 
 	static inline bool IsValidFlyout(const HWND& hWnd)
 	{
-		WCHAR szClass[MAX_PATH + 1];
-		//微软内部判断窗口是否是弹出菜单的方法
+		WCHAR szClass[MAX_PATH + 1] = {};
+		// 微软内部判断窗口是否是弹出菜单的方法
 		if (GetClassLong(hWnd, GCW_ATOM) == 32768)
 		{
 			return true;
 		}
 		GetClassName(hWnd, szClass, MAX_PATH);
-		return (
-		           IsTopLevelWindow(hWnd) and
-		           (
-		               !wcscmp(szClass, L"#32768") or
-		               !wcscmp(szClass, L"ViewControlClass") or
-		               (!wcscmp(szClass, L"DropDown") and !FindWindowEx(hWnd, nullptr, L"ListviewPopup", L"Suggest"))
-		           )
-		       );
+		return
+		    (
+		        IsTopLevelWindow(hWnd) and
+		        (
+		            !_tcscmp(szClass, TEXT("#32768")) or
+		            !_tcscmp(szClass, TEXT("ViewControlClass")) or
+		            !_tcscmp(szClass, TEXT("DropDown"))
+		        )
+		    );
 	}
 
 	static inline void Clear(HDC hdc, LPCRECT lpRect)
@@ -136,26 +137,13 @@ public:
 		DeleteObject(hPen);
 	}
 
-	static inline bool IsUsing32BPP(HDC hdc)
-	{
-		HBITMAP hBitmap = (HBITMAP)GetCurrentObject(hdc, OBJ_BITMAP);
-		if (hBitmap)
-		{
-			DIBSECTION ds = {};
-			if (GetObject(hBitmap, sizeof(ds), &ds) == sizeof(ds) and ds.dsBm.bmBitsPixel == 32 and ds.dsBmih.biCompression == BI_RGB)
-			{
-				return true;
-			}
-		}
-		return false;
-	}
-
+	[[deprecated]]
 	static inline bool IsPixelContainAlpha(const DIBSECTION& ds)
 	{
 		int i = 0;
 		BYTE* pbPixel = nullptr;
 		bool bHasAlpha = false;
-		
+
 		if (ds.dsBm.bmBitsPixel != 32 or ds.dsBmih.biCompression != BI_RGB)
 		{
 			return false;
@@ -177,6 +165,7 @@ public:
 		return true;
 	}
 
+	[[deprecated]]
 	static bool IsBitmapSupportAlpha(HBITMAP hBitmap)
 	{
 		bool bResult = false;
@@ -208,6 +197,7 @@ public:
 		return bResult;
 	}
 
+	[[deprecated]]
 	static void Convert24To32BPP(HBITMAP hBitmap)
 	{
 		HDC hdc = CreateCompatibleDC(NULL);
@@ -236,5 +226,48 @@ public:
 		}
 
 		DeleteDC(hdc);
+	}
+
+	static void PrepareAlpha(HBITMAP hBitmap)
+	{
+		HDC hdc = CreateCompatibleDC(NULL);
+		BITMAPINFO BitmapInfo = {sizeof(BitmapInfo.bmiHeader)};
+
+		if (hdc)
+		{
+			if (GetDIBits(hdc, hBitmap, 0, 0, NULL, &BitmapInfo, DIB_RGB_COLORS))
+			{
+				BYTE *pvBits = new BYTE[BitmapInfo.bmiHeader.biSizeImage];
+
+				BitmapInfo.bmiHeader.biCompression = BI_RGB;
+				BitmapInfo.bmiHeader.biBitCount = 32;
+
+				if (pvBits and GetDIBits(hdc, hBitmap, 0, BitmapInfo.bmiHeader.biHeight, (LPVOID)pvBits, &BitmapInfo, DIB_RGB_COLORS))
+				{
+					bool bHasAlpha = false;
+					for (UINT i = 0; i < BitmapInfo.bmiHeader.biSizeImage; i += 4)
+					{
+						if (pvBits[i + 3] == 0xff)
+						{
+							bHasAlpha = true;
+							break;
+						}
+					}
+					if (!bHasAlpha)
+					{
+						for (UINT i = 0; i < BitmapInfo.bmiHeader.biSizeImage; i += 4)
+						{
+							pvBits[i] = (pvBits[i] * 256) >> 8;
+							pvBits[i + 1] = (pvBits[i + 1] * 256) >> 8;
+							pvBits[i + 2] = (pvBits[i + 2] * 256) >> 8;
+							pvBits[i + 3] = 255;
+						}
+					}
+					SetDIBits(hdc, hBitmap, 0, BitmapInfo.bmiHeader.biHeight, pvBits, &BitmapInfo, DIB_RGB_COLORS);
+				}
+				delete[] pvBits;
+			}
+			DeleteDC(hdc);
+		}
 	}
 };

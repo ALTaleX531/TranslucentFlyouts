@@ -2,9 +2,9 @@
 #include "pch.h"
 #include "..\Detours\detours.h"
 #ifdef _WIN64
-	#pragma comment(lib, "..\\Detours\\x64\\detours.lib")
+	#pragma comment(lib, "..\\Libraries\\x64\\detours.lib")
 #else
-	#pragma comment(lib, "..\\Detours\\x86\\detours.lib")
+	#pragma comment(lib, "..\\Libraries\\x86\\detours.lib")
 #endif // _WIN64
 
 #define CallOldFunction(detours, caller, ...) ((decltype(caller)*)(detours.GetOldFunction()))(__VA_ARGS__)

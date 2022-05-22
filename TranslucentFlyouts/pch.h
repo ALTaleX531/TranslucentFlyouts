@@ -16,6 +16,7 @@
 #include <dwmapi.h>
 #include <intrin.h>
 #include <stdio.h>
+#include <tchar.h>
 
 #pragma comment(lib, "comctl32.lib")
 #pragma comment(lib, "uxtheme.lib")

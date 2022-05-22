@@ -60,6 +60,7 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 	// 手动确认是否是透明的
 	auto IsThemeBackgroundPartiallyTransparent = [&](const HTHEME & hTheme, const int& iPartId, const int& iStateId) -> bool
 	{
+		bool bResult = false;
 		HDC hMemDC = nullptr;
 		RECT Rect = {0, 0, 1, 1};
 		BP_PAINTPARAMS PaintParams = {sizeof(BP_PAINTPARAMS), BPPF_ERASE | BPPF_NOCLIP, nullptr, nullptr};
@@ -88,13 +89,13 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 				{
 					if (pvPixel->rgbReserved != 0xff)
 					{
-						return true;
+						bResult = true;
 					}
 				}
 			}
 			EndBufferedPaint(hPaintBuffer, FALSE);
 		}
-		return false;
+		return bResult;
 	};
 	HRESULT hr = S_OK;
 
@@ -102,17 +103,14 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 	{
 		if (hWnd and IsWindow(hWnd))
 		{
-			//WCHAR p[261];
-			//swprintf_s(p, L"iPartId: %d, Defined: %d", iPartId, IsThemePartDefined(hTheme, iPartId, 0));
-			//OutputDebugString(p);
-			//if (iPartId != MENU_POPUPBACKGROUND)
+			if (iPartId != MENU_POPUPBACKGROUND)
 			{
 				AcrylicHelper::SetEffect(
-					hWnd,
-					GetCurrentFlyoutEffect()
+				    hWnd,
+				    GetCurrentFlyoutEffect()
 				);
+				SetFlyout(NULL);
 			}
-			SetFlyout(NULL);
 		}
 
 		if (
@@ -250,8 +248,6 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeTextEx(
 	            !(pOptions->dwFlags & DTT_COMPOSITED)
 	        )
 	    )
-	    and
-	    !ThemeHelper::IsUsing32BPP(hdc)
 	)
 	{
 		HDC hMemDC = nullptr;
@@ -528,14 +524,8 @@ BOOL WINAPI TranslucentFlyoutsLib::MySetMenuItemBitmaps(
 
 	if (ThemeHelper::IsAllowTransparent())
 	{
-		if (!ThemeHelper::IsBitmapSupportAlpha(hBitmapUnchecked))
-		{
-			ThemeHelper::Convert24To32BPP(hBitmapUnchecked);
-		}
-		if (!ThemeHelper::IsBitmapSupportAlpha(hBitmapChecked))
-		{
-			ThemeHelper::Convert24To32BPP(hBitmapChecked);
-		}
+		ThemeHelper::PrepareAlpha(hBitmapUnchecked);
+		ThemeHelper::PrepareAlpha(hBitmapChecked);
 	}
 
 	bResult = CallOldFunction(
@@ -561,18 +551,9 @@ BOOL WINAPI TranslucentFlyoutsLib::MyInsertMenuItemW(
 
 	if (ThemeHelper::IsAllowTransparent() and lpmii and (lpmii->fMask & MIIM_CHECKMARKS or lpmii->fMask & MIIM_BITMAP))
 	{
-		if (!ThemeHelper::IsBitmapSupportAlpha(lpmii->hbmpItem))
-		{
-			ThemeHelper::Convert24To32BPP(lpmii->hbmpItem);
-		}
-		if (!ThemeHelper::IsBitmapSupportAlpha(lpmii->hbmpUnchecked))
-		{
-			ThemeHelper::Convert24To32BPP(lpmii->hbmpUnchecked);
-		}
-		if (!ThemeHelper::IsBitmapSupportAlpha(lpmii->hbmpChecked))
-		{
-			ThemeHelper::Convert24To32BPP(lpmii->hbmpChecked);
-		}
+		ThemeHelper::PrepareAlpha(lpmii->hbmpItem);
+		ThemeHelper::PrepareAlpha(lpmii->hbmpUnchecked);
+		ThemeHelper::PrepareAlpha(lpmii->hbmpChecked);
 	}
 	bResult = CallOldFunction(
 	              InsertMenuItemWHook,
@@ -596,18 +577,9 @@ BOOL WINAPI TranslucentFlyoutsLib::MySetMenuItemInfoW(
 
 	if (ThemeHelper::IsAllowTransparent() and lpmii and (lpmii->fMask & MIIM_CHECKMARKS or lpmii->fMask & MIIM_BITMAP))
 	{
-		if (!ThemeHelper::IsBitmapSupportAlpha(lpmii->hbmpItem))
-		{
-			ThemeHelper::Convert24To32BPP(lpmii->hbmpItem);
-		}
-		if (!ThemeHelper::IsBitmapSupportAlpha(lpmii->hbmpUnchecked))
-		{
-			ThemeHelper::Convert24To32BPP(lpmii->hbmpUnchecked);
-		}
-		if (!ThemeHelper::IsBitmapSupportAlpha(lpmii->hbmpChecked))
-		{
-			ThemeHelper::Convert24To32BPP(lpmii->hbmpChecked);
-		}
+		ThemeHelper::PrepareAlpha(lpmii->hbmpItem);
+		ThemeHelper::PrepareAlpha(lpmii->hbmpUnchecked);
+		ThemeHelper::PrepareAlpha(lpmii->hbmpChecked);
 	}
 	bResult = CallOldFunction(
 	              SetMenuItemInfoWHook,
@@ -648,7 +620,15 @@ LRESULT CALLBACK TranslucentFlyoutsLib::WndProc(HWND hWnd, UINT Message, WPARAM 
 	{
 		case WM_CREATE:
 		{
-			if (ThemeHelper::IsValidFlyout(hWnd) and ThemeHelper::IsAllowTransparent())
+			/*WCHAR p[261];
+			GetClassName(hWnd, p, MAX_PATH);
+			OutputDebugString(L"current:");
+			OutputDebugString(p);
+			GetClassName(GetParent(hWnd), p, MAX_PATH);
+			OutputDebugString(L"parent:");
+			OutputDebugString(p);*/
+
+			if (ThemeHelper::IsAllowTransparent() and ThemeHelper::IsValidFlyout(hWnd))
 			{
 				SetFlyout(hWnd);
 				RedrawWindow(
@@ -657,13 +637,12 @@ LRESULT CALLBACK TranslucentFlyoutsLib::WndProc(HWND hWnd, UINT Message, WPARAM 
 				    RDW_INTERNALPAINT
 				);
 			}
-
 			break;
 		}
 
 		case WM_NCCREATE:
 		{
-			if (ThemeHelper::IsValidFlyout(hWnd) and ThemeHelper::IsAllowTransparent())
+			if (ThemeHelper::IsAllowTransparent() and ThemeHelper::IsValidFlyout(hWnd))
 			{
 				BufferedPaintInit();
 				//SetWindowSubclass(hWnd, SubclassProc, 0, 0);
@@ -674,7 +653,7 @@ LRESULT CALLBACK TranslucentFlyoutsLib::WndProc(HWND hWnd, UINT Message, WPARAM 
 
 		case WM_NCDESTROY:
 		{
-			if (ThemeHelper::IsValidFlyout(hWnd) and ThemeHelper::IsAllowTransparent())
+			if (ThemeHelper::IsAllowTransparent() and ThemeHelper::IsValidFlyout(hWnd))
 			{
 				BufferedPaintUnInit();
 				//RemoveWindowSubclass(hWnd, SubclassProc, 0);

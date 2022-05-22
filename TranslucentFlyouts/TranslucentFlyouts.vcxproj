@@ -156,6 +156,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\Detours\detours.h" />
     <ClInclude Include="AcrylicHelper.h" />
     <ClInclude Include="DetoursHelper.h" />
     <ClInclude Include="tfapi.h" />

@@ -18,6 +18,7 @@ private:
 	static Detours SetMenuItemBitmapsHook;
 	static Detours InsertMenuItemWHook;
 	static Detours SetMenuItemInfoWHook;
+	static Detours DrawFocusRectHook;
 private:
 	__declspec(thread) static HWND hWnd;
 private:
