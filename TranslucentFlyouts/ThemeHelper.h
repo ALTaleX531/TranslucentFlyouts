@@ -169,7 +169,7 @@ public:
 
 					for (UINT i = 0; i < BitmapInfo.bmiHeader.biSizeImage; i += 4)
 					{
-						if (pvBits[i + 3] == 255)
+						if (pvBits[i + 3] != 0)
 						{
 							bHasAlpha = true;
 							break;
