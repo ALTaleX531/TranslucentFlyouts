@@ -79,7 +79,7 @@ private:
 public:
 	static void SetEffect(HWND hwnd, DWORD dwEffect, DWORD bBorderOption)
 	{
-		static const pfnSetWindowCompositionAttribute SetWindowCompositionAttribute =
+		static const auto& SetWindowCompositionAttribute =
 		    (pfnSetWindowCompositionAttribute)GetProcAddress(
 		        GetModuleHandle(TEXT("User32")),
 		        "SetWindowCompositionAttribute"

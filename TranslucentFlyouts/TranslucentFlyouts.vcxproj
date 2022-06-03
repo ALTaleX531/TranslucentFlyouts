@@ -156,10 +156,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\Detours\detours.h" />
     <ClInclude Include="AcrylicHelper.h" />
     <ClInclude Include="DetoursHelper.h" />
-    <ClInclude Include="tfapi.h" />
+    <ClInclude Include="tflapi.h" />
     <ClInclude Include="TranslucentFlyoutsLib.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="ThemeHelper.h" />
@@ -167,6 +166,7 @@
   <ItemGroup>
     <ClCompile Include="DetoursHelper.cpp" />
     <ClCompile Include="dllmain.cpp" />
+    <ClCompile Include="tflapi.cpp" />
     <ClCompile Include="TranslucentFlyoutsLib.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

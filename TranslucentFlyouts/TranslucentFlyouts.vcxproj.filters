@@ -30,10 +30,7 @@
     <ClInclude Include="TranslucentFlyoutsLib.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="tfapi.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Detours\detours.h">
+    <ClInclude Include="tflapi.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
@@ -48,6 +45,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="TranslucentFlyoutsLib.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="tflapi.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

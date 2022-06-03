@@ -8,7 +8,11 @@ public:
 	static void Startup();
 	static void Shutdown();
 	static LRESULT CALLBACK SubclassProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
-	static LRESULT CALLBACK WndProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam);
+	static void CALLBACK HandleWinEvent(
+	    HWINEVENTHOOK hWinEventHook, DWORD dwEvent, HWND hWnd,
+	    LONG idObject, LONG idChild,
+	    DWORD dwEventThread, DWORD dwmsEventTime
+	);
 private:
 	static Detours DrawThemeBackgroundHook;
 	static Detours DrawThemeTextExHook;
@@ -19,7 +23,7 @@ private:
 	static Detours InsertMenuItemWHook;
 	static Detours SetMenuItemInfoWHook;
 private:
-	__declspec(thread) static HWND hWnd;
+	thread_local static HWND hWnd;
 private:
 	static inline bool VerifyCaller(PVOID pvCaller, LPCWSTR pszCallerModuleName);
 	static inline void SetFlyout(HWND hWnd);
