@@ -99,14 +99,78 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 	};
 	HRESULT hr = S_OK;
 
-	if (ThemeHelper::IsAllowTransparent() and ThemeHelper::VerifyThemeData(hTheme, TEXT("Toolbar")) and iPartId == 0 and iStateId == 0)
+	if (ThemeHelper::IsAllowTransparent() and ThemeHelper::VerifyThemeData(hTheme, TEXT("Tooltip")) and iPartId == TTP_STANDARD)
+	{
+		if (
+		    !::IsThemeBackgroundPartiallyTransparent(hTheme, iPartId, iStateId) or
+		    !IsThemeBackgroundPartiallyTransparent(hTheme, iPartId, iStateId)
+		)
+		{
+			RECT Rect = *pRect;
+			if (pClipRect)
+			{
+				::IntersectRect(&Rect, pRect, pClipRect);
+			}
+
+			HDC hMemDC = nullptr;
+			BLENDFUNCTION BlendFunction = {AC_SRC_OVER, 0, (BYTE)GetCurrentFlyoutOpacity(), AC_SRC_ALPHA};
+			BP_PAINTPARAMS PaintParams = {sizeof(BP_PAINTPARAMS), BPPF_ERASE, nullptr, &BlendFunction};
+			HPAINTBUFFER hPaintBuffer = BeginBufferedPaint(hdc, &Rect, BPBF_TOPDOWNDIB, &PaintParams, &hMemDC);
+
+			if (hPaintBuffer and hMemDC)
+			{
+				ThemeHelper::Clear(hdc, &Rect);
+
+				hr = CallOldFunction(
+				         DrawThemeBackgroundHook,
+				         MyDrawThemeBackground,
+				         hTheme,
+				         hMemDC,
+				         iPartId,
+				         iStateId,
+				         pRect,
+				         pClipRect
+				     );
+
+				BufferedPaintSetAlpha(hPaintBuffer, &Rect, 255);
+				EndBufferedPaint(hPaintBuffer, TRUE);
+			}
+			else
+			{
+				hr = CallOldFunction(
+				         DrawThemeBackgroundHook,
+				         MyDrawThemeBackground,
+				         hTheme,
+				         hdc,
+				         iPartId,
+				         iStateId,
+				         pRect,
+				         pClipRect
+				     );
+			}
+		}
+		else
+		{
+			hr = CallOldFunction(
+			         DrawThemeBackgroundHook,
+			         MyDrawThemeBackground,
+			         hTheme,
+			         hdc,
+			         iPartId,
+			         iStateId,
+			         pRect,
+			         pClipRect
+			     );
+		}
+	}
+	else if (ThemeHelper::IsAllowTransparent() and ThemeHelper::VerifyThemeData(hTheme, TEXT("Toolbar")) and iPartId == 0 and iStateId == 0)
 	{
 		RECT Rect = *pRect;
 		if (pClipRect)
 		{
 			::IntersectRect(&Rect, pRect, pClipRect);
 		}
-		
+
 		HDC hMemDC = nullptr;
 		BLENDFUNCTION BlendFunction = {AC_SRC_OVER, 0, (BYTE)GetCurrentFlyoutOpacity(), AC_SRC_ALPHA};
 		BP_PAINTPARAMS PaintParams = {sizeof(BP_PAINTPARAMS), BPPF_ERASE, nullptr, &BlendFunction};
@@ -117,18 +181,31 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 			ThemeHelper::Clear(hdc, &Rect);
 
 			hr = CallOldFunction(
-				DrawThemeBackgroundHook,
-				MyDrawThemeBackground,
-				hTheme,
-				hMemDC,
-				iPartId,
-				iStateId,
-				pRect,
-				pClipRect
-			);
+			         DrawThemeBackgroundHook,
+			         MyDrawThemeBackground,
+			         hTheme,
+			         hMemDC,
+			         iPartId,
+			         iStateId,
+			         pRect,
+			         pClipRect
+			     );
 
 			BufferedPaintSetAlpha(hPaintBuffer, &Rect, 255);
 			EndBufferedPaint(hPaintBuffer, TRUE);
+		}
+		else
+		{
+			hr = CallOldFunction(
+			         DrawThemeBackgroundHook,
+			         MyDrawThemeBackground,
+			         hTheme,
+			         hdc,
+			         iPartId,
+			         iStateId,
+			         pRect,
+			         pClipRect
+			     );
 		}
 	}
 	else if (ThemeHelper::IsAllowTransparent() and ThemeHelper::VerifyThemeData(hTheme, TEXT("Menu")))
@@ -188,6 +265,7 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 					         pClipRect
 					     );
 
+					BufferedPaintSetAlpha(hPaintBuffer, &Rect, 255);
 					EndBufferedPaint(hPaintBuffer, TRUE);
 				}
 				else
@@ -274,7 +352,7 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeTextEx(
     HDC           hdc,
     int           iPartId,
     int           iStateId,
-    LPCWSTR       pszText,
+    LPCTSTR       pszText,
     int           cchText,
     DWORD         dwTextFlags,
     LPRECT        pRect,
@@ -284,7 +362,7 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeTextEx(
 	HRESULT hr = S_OK;
 	if (
 	    ThemeHelper::IsAllowTransparent() and
-	    (ThemeHelper::VerifyThemeData(hTheme, TEXT("Menu")) or ThemeHelper::VerifyThemeData(hTheme, TEXT("Toolbar"))) and
+	    (ThemeHelper::VerifyThemeData(hTheme, TEXT("Menu")) or ThemeHelper::VerifyThemeData(hTheme, TEXT("Toolbar")) or ThemeHelper::VerifyThemeData(hTheme, TEXT("Tooltip"))) and
 	    pOptions and
 	    (
 	        !pOptions or
@@ -371,7 +449,7 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeText(
     HDC     hdc,
     int     iPartId,
     int     iStateId,
-    LPCWSTR pszText,
+    LPCTSTR pszText,
     int     cchText,
     DWORD   dwTextFlags,
     DWORD   dwTextFlags2,
@@ -382,7 +460,7 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeText(
 	// dwTextFlags ²»Ö§³ÖDT_CALCRECT
 	HRESULT hr = S_OK;
 
-	if (ThemeHelper::IsAllowTransparent() and (ThemeHelper::VerifyThemeData(hTheme, TEXT("Menu")) or ThemeHelper::VerifyThemeData(hTheme, TEXT("Toolbar"))))
+	if (ThemeHelper::IsAllowTransparent() and (ThemeHelper::VerifyThemeData(hTheme, TEXT("Menu")) or ThemeHelper::VerifyThemeData(hTheme, TEXT("Toolbar")) or ThemeHelper::VerifyThemeData(hTheme, TEXT("Tooltip"))))
 	{
 		DTTOPTS Options = {sizeof(DTTOPTS)};
 		RECT Rect = *pRect;
@@ -420,7 +498,7 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeText(
 
 int WINAPI TranslucentFlyoutsLib::MyDrawTextW(
     HDC     hdc,
-    LPCWSTR lpchText,
+    LPCTSTR lpchText,
     int     cchText,
     LPRECT  lprc,
     UINT    format
@@ -429,7 +507,7 @@ int WINAPI TranslucentFlyoutsLib::MyDrawTextW(
 	int nResult = 0;
 	thread_local static int nLastResult = 0;
 
-	if (!ThemeHelper::IsAllowTransparent())
+	if (!ThemeHelper::IsAllowTransparent() or GetBkMode(hdc) != TRANSPARENT)
 	{
 		nResult =
 		    CallOldFunction(
@@ -442,7 +520,7 @@ int WINAPI TranslucentFlyoutsLib::MyDrawTextW(
 		        format
 		    );
 	}
-	else if ((VerifyCaller(_ReturnAddress(), TEXT("Uxtheme")) or VerifyCaller(_ReturnAddress(), TEXT("Comctl32")) or (format & DT_CALCRECT)))
+	else if ((VerifyCaller(_ReturnAddress(), TEXT("Uxtheme")) or (format & DT_CALCRECT)))
 	{
 		nLastResult =
 		    nResult =
@@ -640,7 +718,7 @@ BOOL WINAPI TranslucentFlyoutsLib::MySetMenuItemInfoW(
 	return bResult;
 }
 
-bool TranslucentFlyoutsLib::VerifyCaller(PVOID pvCaller, LPCWSTR pszCallerModuleName)
+bool TranslucentFlyoutsLib::VerifyCaller(PVOID pvCaller, LPCTSTR pszCallerModuleName)
 {
 	HMODULE hModule = DetourGetContainingModule(pvCaller);
 	return hModule == GetModuleHandle(pszCallerModuleName);
@@ -662,7 +740,7 @@ LRESULT CALLBACK TranslucentFlyoutsLib::SubclassProc(HWND hWnd, UINT Message, WP
 				LPNMCUSTOMDRAW lpNMCustomDraw = (LPNMCUSTOMDRAW)lParam;
 				/*OutputDebugString(L"NM_CUSTOMDRAW");
 				{
-					WCHAR p[261];
+					TCHAR p[261];
 					swprintf_s(p, L"lpNMCustomDraw->dwDrawStage: %d", lpNMCustomDraw->dwDrawStage);
 					OutputDebugString(p);
 				}*/
@@ -725,14 +803,26 @@ void CALLBACK TranslucentFlyoutsLib::HandleWinEvent(
 				//RemoveWindowSubclass(hWnd, SubclassProc, 0);
 			}
 		}
+
+		if (dwEvent == EVENT_OBJECT_SHOW)
+		{
+			if (ThemeHelper::IsAllowTransparent() and ThemeHelper::IsTooltipClass(hWnd))
+			{
+				AcrylicHelper::SetEffect(
+				    hWnd,
+				    GetCurrentFlyoutEffect(),
+				    GetCurrentFlyoutBorder()
+				);
+			}
+		}
 	}
 	/*case WM_NCHITTEST:
 		{
-			WCHAR p[261] = {'n','u','l','l'};
-			ATOM prop = (ATOM)GetProp(hWnd, (LPCWSTR)0xA910);
+			TCHAR p[261] = {'n','u','l','l'};
+			ATOM prop = (ATOM)GetProp(hWnd, (LPCTSTR)0xA910);
 			GetAtomName(prop, p, 260);
 			OutputDebugString(p);
-			prop = (ATOM)GetProp(hWnd, (LPCWSTR)0xA911);
+			prop = (ATOM)GetProp(hWnd, (LPCTSTR)0xA911);
 			GetAtomName(prop, p, 260);
 			OutputDebugString(p);
 			break;

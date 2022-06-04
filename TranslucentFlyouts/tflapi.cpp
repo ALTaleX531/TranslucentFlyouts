@@ -19,7 +19,7 @@ extern "C"
 			bResult = (
 			              (
 			                  g_hHook = SetWinEventHook(
-			                                EVENT_OBJECT_CREATE, EVENT_OBJECT_DESTROY,
+			                                EVENT_OBJECT_CREATE, EVENT_OBJECT_SHOW,
 			                                g_hModule,
 			                                TranslucentFlyoutsLib::HandleWinEvent,
 			                                0, 0,
@@ -28,7 +28,10 @@ extern "C"
 			              ) != 0 ? TRUE : FALSE
 			          );
 			SendNotifyMessage(HWND_BROADCAST, WM_NULL, 0, 0);
-
+		}
+		else
+		{
+			SetLastError(ERROR_ALREADY_EXISTS);
 		}
 		return bResult;
 	}
@@ -41,6 +44,10 @@ extern "C"
 			bResult = UnhookWinEvent(g_hHook);
 			g_hHook = nullptr;
 			SendNotifyMessage(HWND_BROADCAST, WM_NULL, 0, 0);
+		}
+		else
+		{
+			SetLastError(ERROR_INVALID_PARAMETER);
 		}
 		return bResult;
 	}
@@ -183,12 +190,12 @@ extern "C"
 	{
 		HKEY hKey = nullptr;
 		LRESULT lResult = NO_ERROR;
-		lResult = RegOpenKeyEx(HKEY_CURRENT_USER, TEXT("SOFTWARE\\TranslucentFlyouts"), 0, KEY_SET_VALUE | KEY_ENUMERATE_SUB_KEYS | KEY_WOW64_64KEY, &hKey);
+		lResult = RegOpenKeyEx(HKEY_CURRENT_USER, nullptr, 0, GENERIC_WRITE | KEY_WOW64_64KEY, &hKey);
 		if (lResult != NO_ERROR)
 		{
 			return FALSE;
 		}
-		lResult = RegDeleteTree(hKey, nullptr);
+		lResult = RegDeleteTree(hKey, TEXT("SOFTWARE\\TranslucentFlyouts"));
 		if (lResult != NO_ERROR)
 		{
 			return FALSE;

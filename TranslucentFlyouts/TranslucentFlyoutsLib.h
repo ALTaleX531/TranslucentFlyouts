@@ -25,7 +25,7 @@ private:
 private:
 	thread_local static HWND hWnd;
 private:
-	static inline bool VerifyCaller(PVOID pvCaller, LPCWSTR pszCallerModuleName);
+	static inline bool VerifyCaller(PVOID pvCaller, LPCTSTR pszCallerModuleName);
 	static inline void SetFlyout(HWND hWnd);
 private:
 	static HRESULT WINAPI MyDrawThemeBackground(
@@ -41,7 +41,7 @@ private:
 	    HDC           hdc,
 	    int           iPartId,
 	    int           iStateId,
-	    LPCWSTR       pszText,
+	    LPCTSTR       pszText,
 	    int           cchText,
 	    DWORD         dwTextFlags,
 	    LPRECT        pRect,
@@ -52,7 +52,7 @@ private:
 	    HDC     hdc,
 	    int     iPartId,
 	    int     iStateId,
-	    LPCWSTR pszText,
+	    LPCTSTR pszText,
 	    int     cchText,
 	    DWORD   dwTextFlags,
 	    DWORD   dwTextFlags2,
@@ -60,7 +60,7 @@ private:
 	);
 	static int WINAPI MyDrawTextW(
 	    HDC     hdc,
-	    LPCWSTR lpchText,
+	    LPCTSTR lpchText,
 	    int     cchText,
 	    LPRECT  lprc,
 	    UINT    format

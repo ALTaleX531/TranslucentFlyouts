@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28307.1972
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TranslucentFlyouts", "TranslucentFlyouts\TranslucentFlyouts.vcxproj", "{97391729-9A04-40B0-9C0F-98FA395127AB}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TranslucentFlyoutsLib", "TranslucentFlyouts\TranslucentFlyouts.vcxproj", "{97391729-9A04-40B0-9C0F-98FA395127AB}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TranslucentFlyoutsGUI", "TranslucentFlyoutsGUI\TranslucentFlyoutsGUI.vcxproj", "{489340DF-DCA9-4B42-B082-32C23EFB6E04}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,14 @@ Global
 		{97391729-9A04-40B0-9C0F-98FA395127AB}.Release|x64.Build.0 = Release|x64
 		{97391729-9A04-40B0-9C0F-98FA395127AB}.Release|x86.ActiveCfg = Release|Win32
 		{97391729-9A04-40B0-9C0F-98FA395127AB}.Release|x86.Build.0 = Release|Win32
+		{489340DF-DCA9-4B42-B082-32C23EFB6E04}.Debug|x64.ActiveCfg = Debug|x64
+		{489340DF-DCA9-4B42-B082-32C23EFB6E04}.Debug|x64.Build.0 = Debug|x64
+		{489340DF-DCA9-4B42-B082-32C23EFB6E04}.Debug|x86.ActiveCfg = Debug|Win32
+		{489340DF-DCA9-4B42-B082-32C23EFB6E04}.Debug|x86.Build.0 = Debug|Win32
+		{489340DF-DCA9-4B42-B082-32C23EFB6E04}.Release|x64.ActiveCfg = Release|x64
+		{489340DF-DCA9-4B42-B082-32C23EFB6E04}.Release|x64.Build.0 = Release|x64
+		{489340DF-DCA9-4B42-B082-32C23EFB6E04}.Release|x86.ActiveCfg = Release|Win32
+		{489340DF-DCA9-4B42-B082-32C23EFB6E04}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

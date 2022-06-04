@@ -4,8 +4,8 @@
 class ThemeHelper
 {
 public:
-	typedef HRESULT(WINAPI*pfnGetThemeClass)(HTHEME hTheme, LPCWSTR pszClassName, int cchClassName);
-	typedef BOOL(WINAPI*pfnIsThemeClassDefined)(HTHEME hTheme, LPCWSTR pszAppName, LPCWSTR pszClassName, BOOL bMatchClass);
+	typedef HRESULT(WINAPI*pfnGetThemeClass)(HTHEME hTheme, LPCTSTR pszClassName, int cchClassName);
+	typedef BOOL(WINAPI*pfnIsThemeClassDefined)(HTHEME hTheme, LPCTSTR pszAppName, LPCTSTR pszClassName, BOOL bMatchClass);
 	typedef BOOL(WINAPI*pfnIsTopLevelWindow)(HWND hWnd);
 
 	static inline bool IsAllowTransparent()
@@ -16,7 +16,7 @@ public:
 		return dwResult == 1;
 	}
 
-	static inline HRESULT WINAPI GetThemeClass(const HTHEME& hTheme, LPCWSTR pszClassName, const int cchClassName)
+	static inline HRESULT WINAPI GetThemeClass(const HTHEME& hTheme, LPCTSTR pszClassName, const int cchClassName)
 	{
 		static const auto& GetThemeClass = (pfnGetThemeClass)GetProcAddress(GetModuleHandle(TEXT("Uxtheme")), MAKEINTRESOURCEA(74));
 		if (GetThemeClass)
@@ -29,7 +29,7 @@ public:
 		}
 	}
 
-	static inline BOOL WINAPI IsThemeClassDefined(const HTHEME& hTheme, LPCWSTR pszAppName, LPCWSTR pszClassName, BOOL bMatchClass)
+	static inline BOOL WINAPI IsThemeClassDefined(const HTHEME& hTheme, LPCTSTR pszAppName, LPCTSTR pszClassName, BOOL bMatchClass)
 	{
 		static const auto& IsThemeClassDefined = (pfnIsThemeClassDefined)GetProcAddress(GetModuleHandle(TEXT("Uxtheme")), MAKEINTRESOURCEA(50));
 		if (IsThemeClassDefined)
@@ -42,9 +42,9 @@ public:
 		}
 	}
 
-	static inline bool VerifyThemeData(const HTHEME& hTheme, LPCWSTR pszThemeClassName)
+	static inline bool VerifyThemeData(const HTHEME& hTheme, LPCTSTR pszThemeClassName)
 	{
-		WCHAR pszClassName[MAX_PATH + 1];
+		TCHAR pszClassName[MAX_PATH + 1];
 		GetThemeClass(hTheme, pszClassName, MAX_PATH);
 		return !_wcsicmp(pszClassName, pszThemeClassName);
 	}
@@ -61,7 +61,7 @@ public:
 
 	static inline bool IsValidFlyout(const HWND& hWnd)
 	{
-		WCHAR szClass[MAX_PATH + 1] = {};
+		TCHAR szClass[MAX_PATH + 1] = {};
 		// 微软内部判断窗口是否是弹出菜单的方法
 		if (GetClassLong(hWnd, GCW_ATOM) == 32768)
 		{
@@ -81,14 +81,21 @@ public:
 
 	static inline bool IsViewControlClass(const HWND& hWnd)
 	{
-		WCHAR szClass[MAX_PATH + 1] = {};
+		TCHAR szClass[MAX_PATH + 1] = {};
 		GetClassName(hWnd, szClass, MAX_PATH);
 		return !_tcscmp(szClass, TEXT("ViewControlClass"));
 	}
 
+	static inline bool IsTooltipClass(const HWND& hWnd)
+	{
+		TCHAR szClass[MAX_PATH + 1] = {};
+		GetClassName(hWnd, szClass, MAX_PATH);
+		return !_tcscmp(szClass, TOOLTIPS_CLASS);
+	}
+
 	static inline bool IsToolbarWindow(const HWND& hWnd)
 	{
-		WCHAR szClass[MAX_PATH + 1] = {};
+		TCHAR szClass[MAX_PATH + 1] = {};
 		GetClassName(hWnd, szClass, MAX_PATH);
 		return !_tcscmp(szClass, TEXT("ToolbarWindow32"));
 	}

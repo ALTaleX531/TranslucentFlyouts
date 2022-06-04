@@ -84,8 +84,27 @@ public:
 		        GetModuleHandle(TEXT("User32")),
 		        "SetWindowCompositionAttribute"
 		    );
-		ACCENT_POLICY policy = {static_cast<ACCENT_STATE>(dwEffect), static_cast<ACCENT_FLAG>(bBorderOption), 0x1, 0};
+
+		ACCENT_POLICY policy = {static_cast<ACCENT_STATE>(dwEffect), bBorderOption ? ACCENT_ALL_BORDER : ACCENT_NONE_BORDER, 0x1, 0};
 		WINDOWCOMPOSITIONATTRIBUTEDATA data = {WCA_ACCENT_POLICY, &policy, sizeof(ACCENT_POLICY)};
+		if (dwEffect == ACCENT_ENABLE_TRANSPARENTGRADIENT)
+		{
+			policy.AccentState = ACCENT_DISABLED;
+			policy.dwAnimationId = 0;
+			policy.dwGradientColor = 0;
+			SetTransparent(hwnd, TRUE);
+		}
+		else
+		{
+			SetTransparent(hwnd, FALSE);
+		}
 		SetWindowCompositionAttribute(hwnd, &data);
+	}
+
+	static void SetTransparent(HWND hWnd, BOOL Enable)
+	{
+		DWM_BLURBEHIND bb = {DWM_BB_ENABLE | DWM_BB_BLURREGION | DWM_BB_TRANSITIONONMAXIMIZED, Enable, CreateRectRgn(0, 0, -1, -1), TRUE};
+		DwmEnableBlurBehindWindow(hWnd, &bb);
+		DeleteObject(bb.hRgnBlur);
 	}
 };
