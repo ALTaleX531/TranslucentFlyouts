@@ -6,46 +6,65 @@
 #include <memory>
 
 using std::nothrow;
-// 透明化处理
-Detours TranslucentFlyoutsLib::DrawThemeBackgroundHook("Uxtheme", "DrawThemeBackground", MyDrawThemeBackground);
-// 文字渲染
-Detours TranslucentFlyoutsLib::DrawThemeTextExHook("Uxtheme", "DrawThemeTextEx", MyDrawThemeTextEx);
-Detours TranslucentFlyoutsLib::DrawThemeTextHook("Uxtheme", "DrawThemeText", MyDrawThemeText);
-Detours TranslucentFlyoutsLib::DrawTextWHook("User32", "DrawTextW", MyDrawTextW);
-// 图标修复
-Detours TranslucentFlyoutsLib::SetMenuInfoHook("User32", "SetMenuInfo", MySetMenuInfo);
-Detours TranslucentFlyoutsLib::SetMenuItemBitmapsHook("User32", "SetMenuItemBitmaps", MySetMenuItemBitmaps);
-Detours TranslucentFlyoutsLib::InsertMenuItemWHook("User32", "InsertMenuItemW", MyInsertMenuItemW);
-Detours TranslucentFlyoutsLib::SetMenuItemInfoWHook("User32", "SetMenuItemInfoW", MySetMenuItemInfoW);
+using namespace TranslucentFlyoutsLib;
 
-thread_local HWND TranslucentFlyoutsLib::hWnd = nullptr;
+// 透明化处理
+DetoursHook DrawThemeBackgroundHook("Uxtheme", "DrawThemeBackground", MyDrawThemeBackground);
+// 文字渲染
+DetoursHook DrawThemeTextExHook("Uxtheme", "DrawThemeTextEx", MyDrawThemeTextEx);
+DetoursHook DrawThemeTextHook("Uxtheme", "DrawThemeText", MyDrawThemeText);
+DetoursHook DrawTextWHook("User32", "DrawTextW", MyDrawTextW);
+// 图标修复
+DetoursHook SetMenuInfoHook("User32", "SetMenuInfo", MySetMenuInfo);
+DetoursHook SetMenuItemBitmapsHook("User32", "SetMenuItemBitmaps", MySetMenuItemBitmaps);
+DetoursHook InsertMenuItemWHook("User32", "InsertMenuItemW", MyInsertMenuItemW);
+DetoursHook SetMenuItemInfoWHook("User32", "SetMenuItemInfoW", MySetMenuItemInfoW);
+
+thread_local HWND hWnd = nullptr;
+
+bool VerifyCaller(PVOID pvCaller, LPCTSTR pszCallerModuleName)
+{
+	HMODULE hModule = DetourGetContainingModule(pvCaller);
+	return hModule == GetModuleHandle(pszCallerModuleName);
+}
+
+void SetFlyout(HWND hWnd)
+{
+	::hWnd = hWnd;
+}
 
 void TranslucentFlyoutsLib::Startup()
 {
-	Detours::BeginHook();
-	DrawThemeBackgroundHook.SetHookState(TRUE);
-	DrawThemeTextExHook.SetHookState(TRUE);
-	DrawThemeTextHook.SetHookState(TRUE);
-	DrawTextWHook.SetHookState(TRUE);
-	SetMenuInfoHook.SetHookState(TRUE);
-	SetMenuItemBitmapsHook.SetHookState(TRUE);
-	InsertMenuItemWHook.SetHookState(TRUE);
-	SetMenuItemInfoWHook.SetHookState(TRUE);
-	Detours::EndHook();
+	Detours::Begin();
+	Detours::Batch(
+	    TRUE,
+	    DrawThemeBackgroundHook,
+	    DrawThemeTextExHook,
+	    DrawThemeTextHook,
+	    DrawTextWHook,
+	    SetMenuInfoHook,
+	    SetMenuItemBitmapsHook,
+	    InsertMenuItemWHook,
+	    SetMenuItemInfoWHook
+	);
+	Detours::Commit();
 }
 
 void TranslucentFlyoutsLib::Shutdown()
 {
-	Detours::BeginHook();
-	DrawThemeBackgroundHook.SetHookState(FALSE);
-	DrawThemeTextExHook.SetHookState(FALSE);
-	DrawThemeTextHook.SetHookState(FALSE);
-	DrawTextWHook.SetHookState(FALSE);
-	SetMenuInfoHook.SetHookState(FALSE);
-	SetMenuItemBitmapsHook.SetHookState(FALSE);
-	InsertMenuItemWHook.SetHookState(FALSE);
-	SetMenuItemInfoWHook.SetHookState(FALSE);
-	Detours::EndHook();
+	Detours::Begin();
+	Detours::Batch(
+	    FALSE,
+	    DrawThemeBackgroundHook,
+	    DrawThemeTextExHook,
+	    DrawThemeTextHook,
+	    DrawTextWHook,
+	    SetMenuInfoHook,
+	    SetMenuItemBitmapsHook,
+	    InsertMenuItemWHook,
+	    SetMenuItemInfoWHook
+	);
+	Detours::Commit();
 }
 
 HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
@@ -66,15 +85,13 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 		HDC hMemDC = CreateCompatibleDC(nullptr);
 		if (hMemDC)
 		{
-			HBITMAP hBitmap = ThemeHelper::CreateDIB(nullptr, Rect.right, Rect.bottom, (PVOID*)&pvBits);
+			HBITMAP hBitmap = CreateDIB(nullptr, Rect.right, Rect.bottom, (PVOID*)&pvBits);
 			if (hBitmap)
 			{
 				SelectObject(hMemDC, hBitmap);
 				if (
 				    SUCCEEDED(
-				        CallOldFunction(
-				            DrawThemeBackgroundHook,
-				            MyDrawThemeBackground,
+				        DrawThemeBackgroundHook.OldFunction<decltype(MyDrawThemeBackground)>(
 				            hTheme,
 				            hMemDC,
 				            iPartId,
@@ -99,8 +116,31 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 	};
 	HRESULT hr = S_OK;
 
-	if (ThemeHelper::IsAllowTransparent() and ThemeHelper::VerifyThemeData(hTheme, TEXT("Tooltip")) and iPartId == TTP_STANDARD)
+	/*if (VerifyCaller(_ReturnAddress(), TEXT("Explorerframe")) or VerifyCaller(_ReturnAddress(), TEXT("dui70")))
 	{
+		TCHAR pszClassName[MAX_PATH + 1];
+		ThemeHelper::GetThemeClass(hTheme, pszClassName, MAX_PATH);
+		OutputDebugString(pszClassName);
+	}*/
+	/*if (ThemeHelper::VerifyThemeData(hTheme, TEXT("Menu")))
+	{
+		HMODULE hModule = DetourGetContainingModule(_ReturnAddress());
+		TCHAR pszClassName[MAX_PATH + 1];
+		GetModuleFileName(hModule, pszClassName, MAX_PATH);
+		OutputDebugString(pszClassName);
+	}*/
+	if (IsAllowTransparent() and VerifyThemeData(hTheme, TEXT("Tooltip")) and iPartId == TTP_STANDARD and GetCurrentFlyoutPolicy() & Tooltip)
+	{
+		if (hWnd and IsWindow(hWnd))
+		{
+			SetWindowEffect(
+			    hWnd,
+			    GetCurrentFlyoutEffect(),
+			    GetCurrentFlyoutBorder()
+			);
+			SetFlyout(nullptr);
+		}
+
 		if (
 		    !::IsThemeBackgroundPartiallyTransparent(hTheme, iPartId, iStateId) or
 		    !IsThemeBackgroundPartiallyTransparent(hTheme, iPartId, iStateId)
@@ -119,11 +159,9 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 
 			if (hPaintBuffer and hMemDC)
 			{
-				ThemeHelper::Clear(hdc, &Rect);
+				Clear(hdc, &Rect);
 
-				hr = CallOldFunction(
-				         DrawThemeBackgroundHook,
-				         MyDrawThemeBackground,
+				hr = DrawThemeBackgroundHook.OldFunction<decltype(MyDrawThemeBackground)>(
 				         hTheme,
 				         hMemDC,
 				         iPartId,
@@ -137,9 +175,7 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 			}
 			else
 			{
-				hr = CallOldFunction(
-				         DrawThemeBackgroundHook,
-				         MyDrawThemeBackground,
+				hr = DrawThemeBackgroundHook.OldFunction<decltype(MyDrawThemeBackground)>(
 				         hTheme,
 				         hdc,
 				         iPartId,
@@ -151,9 +187,7 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 		}
 		else
 		{
-			hr = CallOldFunction(
-			         DrawThemeBackgroundHook,
-			         MyDrawThemeBackground,
+			hr = DrawThemeBackgroundHook.OldFunction<decltype(MyDrawThemeBackground)>(
 			         hTheme,
 			         hdc,
 			         iPartId,
@@ -163,7 +197,7 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 			     );
 		}
 	}
-	else if (ThemeHelper::IsAllowTransparent() and ThemeHelper::VerifyThemeData(hTheme, TEXT("Toolbar")) and iPartId == 0 and iStateId == 0)
+	else if (IsAllowTransparent() and VerifyThemeData(hTheme, TEXT("Toolbar")) and !VerifyCaller(_ReturnAddress(), TEXT("comctrl32")) and GetCurrentFlyoutPolicy() & ViewControl and iPartId == 0 and iStateId == 0)
 	{
 		RECT Rect = *pRect;
 		if (pClipRect)
@@ -178,11 +212,9 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 
 		if (hPaintBuffer and hMemDC)
 		{
-			ThemeHelper::Clear(hdc, &Rect);
+			Clear(hdc, &Rect);
 
-			hr = CallOldFunction(
-			         DrawThemeBackgroundHook,
-			         MyDrawThemeBackground,
+			hr = DrawThemeBackgroundHook.OldFunction<decltype(MyDrawThemeBackground)>(
 			         hTheme,
 			         hMemDC,
 			         iPartId,
@@ -196,9 +228,7 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 		}
 		else
 		{
-			hr = CallOldFunction(
-			         DrawThemeBackgroundHook,
-			         MyDrawThemeBackground,
+			hr = DrawThemeBackgroundHook.OldFunction<decltype(MyDrawThemeBackground)>(
 			         hTheme,
 			         hdc,
 			         iPartId,
@@ -208,13 +238,13 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 			     );
 		}
 	}
-	else if (ThemeHelper::IsAllowTransparent() and ThemeHelper::VerifyThemeData(hTheme, TEXT("Menu")))
+	else if (IsAllowTransparent() and VerifyThemeData(hTheme, TEXT("Menu")) and GetCurrentFlyoutPolicy() & PopupMenu)
 	{
 		if (hWnd and IsWindow(hWnd))
 		{
 			if (iPartId != MENU_POPUPBACKGROUND)
 			{
-				AcrylicHelper::SetEffect(
+				SetWindowEffect(
 				    hWnd,
 				    GetCurrentFlyoutEffect(),
 				    GetCurrentFlyoutBorder()
@@ -252,11 +282,9 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 
 				if (hPaintBuffer and hMemDC)
 				{
-					ThemeHelper::Clear(hdc, &Rect);
+					Clear(hdc, &Rect);
 
-					hr = CallOldFunction(
-					         DrawThemeBackgroundHook,
-					         MyDrawThemeBackground,
+					hr = DrawThemeBackgroundHook.OldFunction<decltype(MyDrawThemeBackground)>(
 					         hTheme,
 					         hMemDC,
 					         iPartId,
@@ -270,9 +298,7 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 				}
 				else
 				{
-					hr = CallOldFunction(
-					         DrawThemeBackgroundHook,
-					         MyDrawThemeBackground,
+					hr = DrawThemeBackgroundHook.OldFunction<decltype(MyDrawThemeBackground)>(
 					         hTheme,
 					         hdc,
 					         iPartId,
@@ -284,9 +310,7 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 			}
 			else
 			{
-				hr = CallOldFunction(
-				         DrawThemeBackgroundHook,
-				         MyDrawThemeBackground,
+				hr = DrawThemeBackgroundHook.OldFunction<decltype(MyDrawThemeBackground)>(
 				         hTheme,
 				         hdc,
 				         iPartId,
@@ -319,9 +343,7 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 				);
 			}
 
-			hr = CallOldFunction(
-			         DrawThemeBackgroundHook,
-			         MyDrawThemeBackground,
+			hr = DrawThemeBackgroundHook.OldFunction<decltype(MyDrawThemeBackground)>(
 			         hTheme,
 			         hdc,
 			         iPartId,
@@ -333,9 +355,7 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 	}
 	else
 	{
-		hr = CallOldFunction(
-		         DrawThemeBackgroundHook,
-		         MyDrawThemeBackground,
+		hr = DrawThemeBackgroundHook.OldFunction<decltype(MyDrawThemeBackground)>(
 		         hTheme,
 		         hdc,
 		         iPartId,
@@ -361,8 +381,12 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeTextEx(
 {
 	HRESULT hr = S_OK;
 	if (
-	    ThemeHelper::IsAllowTransparent() and
-	    (ThemeHelper::VerifyThemeData(hTheme, TEXT("Menu")) or ThemeHelper::VerifyThemeData(hTheme, TEXT("Toolbar")) or ThemeHelper::VerifyThemeData(hTheme, TEXT("Tooltip"))) and
+	    IsAllowTransparent() and
+	    (
+	        (VerifyThemeData(hTheme, TEXT("Menu")) and GetCurrentFlyoutPolicy() & PopupMenu) or
+	        (VerifyThemeData(hTheme, TEXT("Toolbar")) and GetCurrentFlyoutPolicy() & ViewControl) or
+	        (VerifyThemeData(hTheme, TEXT("Tooltip")) and GetCurrentFlyoutPolicy() & Tooltip)
+	    ) and
 	    pOptions and
 	    (
 	        !pOptions or
@@ -390,9 +414,7 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeTextEx(
 			SetTextAlign(hMemDC, GetTextAlign(hdc));
 			SetTextCharacterExtra(hMemDC, GetTextCharacterExtra(hdc));
 
-			hr = CallOldFunction(
-			         DrawThemeTextExHook,
-			         MyDrawThemeTextEx,
+			hr = DrawThemeTextExHook.OldFunction<decltype(MyDrawThemeTextEx)>(
 			         hTheme,
 			         hMemDC,
 			         iPartId,
@@ -408,9 +430,7 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeTextEx(
 		}
 		else
 		{
-			hr = CallOldFunction(
-			         DrawThemeTextExHook,
-			         MyDrawThemeTextEx,
+			hr = DrawThemeTextExHook.OldFunction<decltype(MyDrawThemeTextEx)>(
 			         hTheme,
 			         hdc,
 			         iPartId,
@@ -427,9 +447,7 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeTextEx(
 	}
 	else
 	{
-		hr = CallOldFunction(
-		         DrawThemeTextExHook,
-		         MyDrawThemeTextEx,
+		hr = DrawThemeTextExHook.OldFunction<decltype(MyDrawThemeTextEx)>(
 		         hTheme,
 		         hdc,
 		         iPartId,
@@ -460,7 +478,14 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeText(
 	// dwTextFlags 不支持DT_CALCRECT
 	HRESULT hr = S_OK;
 
-	if (ThemeHelper::IsAllowTransparent() and (ThemeHelper::VerifyThemeData(hTheme, TEXT("Menu")) or ThemeHelper::VerifyThemeData(hTheme, TEXT("Toolbar")) or ThemeHelper::VerifyThemeData(hTheme, TEXT("Tooltip"))))
+	if (
+	    IsAllowTransparent() and
+	    (
+	        (VerifyThemeData(hTheme, TEXT("Menu")) and GetCurrentFlyoutPolicy() & PopupMenu) or
+	        (VerifyThemeData(hTheme, TEXT("Toolbar")) and GetCurrentFlyoutPolicy() & ViewControl) or
+	        (VerifyThemeData(hTheme, TEXT("Tooltip")) and GetCurrentFlyoutPolicy() & Tooltip)
+	    )
+	)
 	{
 		DTTOPTS Options = {sizeof(DTTOPTS)};
 		RECT Rect = *pRect;
@@ -478,9 +503,7 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeText(
 	}
 	else
 	{
-		hr = CallOldFunction(
-		         DrawThemeTextHook,
-		         MyDrawThemeText,
+		hr = DrawThemeTextHook.OldFunction<decltype(MyDrawThemeText)>(
 		         hTheme,
 		         hdc,
 		         iPartId,
@@ -507,12 +530,10 @@ int WINAPI TranslucentFlyoutsLib::MyDrawTextW(
 	int nResult = 0;
 	thread_local static int nLastResult = 0;
 
-	if (!ThemeHelper::IsAllowTransparent() or GetBkMode(hdc) != TRANSPARENT)
+	if (!IsAllowTransparent() or GetBkMode(hdc) != TRANSPARENT)
 	{
 		nResult =
-		    CallOldFunction(
-		        DrawTextWHook,
-		        MyDrawTextW,
+		    DrawTextWHook.OldFunction<decltype(MyDrawTextW)>(
 		        hdc,
 		        lpchText,
 		        cchText,
@@ -524,9 +545,7 @@ int WINAPI TranslucentFlyoutsLib::MyDrawTextW(
 	{
 		nLastResult =
 		    nResult =
-		        CallOldFunction(
-		            DrawTextWHook,
-		            MyDrawTextW,
+		        DrawTextWHook.OldFunction<decltype(MyDrawTextW)>(
 		            hdc,
 		            lpchText,
 		            cchText,
@@ -562,20 +581,25 @@ BOOL WINAPI TranslucentFlyoutsLib::MySetMenuInfo(
 	BOOL bResult = FALSE;
 	thread_local COLORREF dwLastColor = 0xFFFFFF;
 
-	if ((lpMenuInfo->fMask & MIM_BACKGROUND) and lpMenuInfo->hbrBack and ThemeHelper::IsAllowTransparent())
+	if (
+	    (lpMenuInfo->fMask & MIM_BACKGROUND) and
+	    lpMenuInfo->hbrBack and
+	    IsAllowTransparent() and
+	    GetCurrentFlyoutPolicy() & PopupMenu
+	)
 	{
 		PBYTE pvBits = nullptr;
 		MENUINFO MenuInfo = *lpMenuInfo;
-		HBITMAP hBitmap = ThemeHelper::CreateDIB(nullptr, 1, 1, (PVOID*)&pvBits);
+		HBITMAP hBitmap = CreateDIB(nullptr, 1, 1, (PVOID*)&pvBits);
 		if (hBitmap and pvBits)
 		{
-			COLORREF dwColor = ThemeHelper::GetBrushColor(lpMenuInfo->hbrBack);
+			COLORREF dwColor = GetBrushColor(lpMenuInfo->hbrBack);
 
 			// 获取提供的画刷颜色，设置位图画刷的像素
 			if (dwColor != CLR_NONE)
 			{
 				dwLastColor = dwColor;
-				ThemeHelper::SetPixel(
+				SetPixel(
 				    pvBits,
 				    GetBValue(dwColor),
 				    GetGValue(dwColor),
@@ -585,7 +609,7 @@ BOOL WINAPI TranslucentFlyoutsLib::MySetMenuInfo(
 			}
 			else
 			{
-				ThemeHelper::SetPixel(
+				SetPixel(
 				    pvBits,
 				    GetBValue(dwLastColor),
 				    GetGValue(dwLastColor),
@@ -607,18 +631,14 @@ BOOL WINAPI TranslucentFlyoutsLib::MySetMenuInfo(
 			}
 
 			DeleteObject(hBitmap);
-			bResult = CallOldFunction(
-			              SetMenuInfoHook,
-			              MySetMenuInfo,
+			bResult = SetMenuInfoHook.OldFunction<decltype(MySetMenuInfo)>(
 			              hMenu,
 			              &MenuInfo
 			          );
 		}
 		else
 		{
-			bResult = CallOldFunction(
-			              SetMenuInfoHook,
-			              MySetMenuInfo,
+			bResult = SetMenuInfoHook.OldFunction<decltype(MySetMenuInfo)>(
 			              hMenu,
 			              lpMenuInfo
 			          );
@@ -626,9 +646,7 @@ BOOL WINAPI TranslucentFlyoutsLib::MySetMenuInfo(
 	}
 	else
 	{
-		bResult = CallOldFunction(
-		              SetMenuInfoHook,
-		              MySetMenuInfo,
+		bResult = SetMenuInfoHook.OldFunction<decltype(MySetMenuInfo)>(
 		              hMenu,
 		              lpMenuInfo
 		          );
@@ -647,15 +665,13 @@ BOOL WINAPI TranslucentFlyoutsLib::MySetMenuItemBitmaps(
 {
 	BOOL bResult = FALSE;
 
-	if (ThemeHelper::IsAllowTransparent())
+	if (IsAllowTransparent() and GetCurrentFlyoutPolicy() & PopupMenu)
 	{
-		ThemeHelper::PrepareAlpha(hBitmapUnchecked);
-		ThemeHelper::PrepareAlpha(hBitmapChecked);
+		PrepareAlpha(hBitmapUnchecked);
+		PrepareAlpha(hBitmapChecked);
 	}
 
-	bResult = CallOldFunction(
-	              SetMenuItemBitmapsHook,
-	              MySetMenuItemBitmaps,
+	bResult = SetMenuItemBitmapsHook.OldFunction<decltype(MySetMenuItemBitmaps)>(
 	              hMenu,
 	              uPosition,
 	              uFlags,
@@ -674,15 +690,13 @@ BOOL WINAPI TranslucentFlyoutsLib::MyInsertMenuItemW(
 {
 	BOOL bResult = FALSE;
 
-	if (ThemeHelper::IsAllowTransparent() and lpmii and (lpmii->fMask & MIIM_CHECKMARKS or lpmii->fMask & MIIM_BITMAP))
+	if (IsAllowTransparent() and lpmii and (lpmii->fMask & MIIM_CHECKMARKS or lpmii->fMask & MIIM_BITMAP) and GetCurrentFlyoutPolicy() & PopupMenu)
 	{
-		ThemeHelper::PrepareAlpha(lpmii->hbmpItem);
-		ThemeHelper::PrepareAlpha(lpmii->hbmpUnchecked);
-		ThemeHelper::PrepareAlpha(lpmii->hbmpChecked);
+		PrepareAlpha(lpmii->hbmpItem);
+		PrepareAlpha(lpmii->hbmpUnchecked);
+		PrepareAlpha(lpmii->hbmpChecked);
 	}
-	bResult = CallOldFunction(
-	              InsertMenuItemWHook,
-	              MyInsertMenuItemW,
+	bResult = InsertMenuItemWHook.OldFunction<decltype(MyInsertMenuItemW)>(
 	              hMenu,
 	              item,
 	              fByPosition,
@@ -700,15 +714,13 @@ BOOL WINAPI TranslucentFlyoutsLib::MySetMenuItemInfoW(
 {
 	BOOL bResult = FALSE;
 
-	if (ThemeHelper::IsAllowTransparent() and lpmii and (lpmii->fMask & MIIM_CHECKMARKS or lpmii->fMask & MIIM_BITMAP))
+	if (IsAllowTransparent() and lpmii and (lpmii->fMask & MIIM_CHECKMARKS or lpmii->fMask & MIIM_BITMAP) and GetCurrentFlyoutPolicy() & PopupMenu)
 	{
-		ThemeHelper::PrepareAlpha(lpmii->hbmpItem);
-		ThemeHelper::PrepareAlpha(lpmii->hbmpUnchecked);
-		ThemeHelper::PrepareAlpha(lpmii->hbmpChecked);
+		PrepareAlpha(lpmii->hbmpItem);
+		PrepareAlpha(lpmii->hbmpUnchecked);
+		PrepareAlpha(lpmii->hbmpChecked);
 	}
-	bResult = CallOldFunction(
-	              SetMenuItemInfoWHook,
-	              MySetMenuItemInfoW,
+	bResult = SetMenuItemInfoWHook.OldFunction<decltype(MySetMenuItemInfoW)>(
 	              hMenu,
 	              item,
 	              fByPositon,
@@ -716,17 +728,6 @@ BOOL WINAPI TranslucentFlyoutsLib::MySetMenuItemInfoW(
 	          );
 
 	return bResult;
-}
-
-bool TranslucentFlyoutsLib::VerifyCaller(PVOID pvCaller, LPCTSTR pszCallerModuleName)
-{
-	HMODULE hModule = DetourGetContainingModule(pvCaller);
-	return hModule == GetModuleHandle(pszCallerModuleName);
-}
-
-void TranslucentFlyoutsLib::SetFlyout(HWND hWnd)
-{
-	TranslucentFlyoutsLib::hWnd = hWnd;
 }
 
 LRESULT CALLBACK TranslucentFlyoutsLib::SubclassProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
@@ -775,56 +776,31 @@ void CALLBACK TranslucentFlyoutsLib::HandleWinEvent(
     DWORD dwEventThread, DWORD dwmsEventTime
 )
 {
-	if (hWnd)
+	if (hWnd and IsWindow(hWnd))
 	{
 		if (dwEvent == EVENT_OBJECT_CREATE)
 		{
-			if (ThemeHelper::IsAllowTransparent() and ThemeHelper::IsValidFlyout(hWnd))
+			if (IsAllowTransparent() and IsValidFlyout(hWnd))
 			{
 				SetFlyout(hWnd);
 				BufferedPaintInit();
-			}
-
-			if (ThemeHelper::IsViewControlClass(GetParent(hWnd)) and ThemeHelper::IsToolbarWindow(hWnd))
-			{
-				//SetWindowSubclass(hWnd, SubclassProc, 0, 0);
 			}
 		}
 
 		if (dwEvent == EVENT_OBJECT_DESTROY)
 		{
-			if (ThemeHelper::IsAllowTransparent() and ThemeHelper::IsValidFlyout(hWnd))
+			if (IsAllowTransparent() and IsValidFlyout(hWnd))
 			{
 				BufferedPaintUnInit();
-			}
-
-			if (ThemeHelper::IsViewControlClass(GetParent(hWnd)) and ThemeHelper::IsToolbarWindow(hWnd))
-			{
-				//RemoveWindowSubclass(hWnd, SubclassProc, 0);
 			}
 		}
 
 		if (dwEvent == EVENT_OBJECT_SHOW)
 		{
-			if (ThemeHelper::IsAllowTransparent() and ThemeHelper::IsTooltipClass(hWnd))
+			if (IsAllowTransparent() and IsTooltipClass(hWnd) and GetCurrentFlyoutPolicy() & Tooltip)
 			{
-				AcrylicHelper::SetEffect(
-				    hWnd,
-				    GetCurrentFlyoutEffect(),
-				    GetCurrentFlyoutBorder()
-				);
+				SetFlyout(hWnd);
 			}
 		}
 	}
-	/*case WM_NCHITTEST:
-		{
-			TCHAR p[261] = {'n','u','l','l'};
-			ATOM prop = (ATOM)GetProp(hWnd, (LPCTSTR)0xA910);
-			GetAtomName(prop, p, 260);
-			OutputDebugString(p);
-			prop = (ATOM)GetProp(hWnd, (LPCTSTR)0xA911);
-			GetAtomName(prop, p, 260);
-			OutputDebugString(p);
-			break;
-		}*/
 }

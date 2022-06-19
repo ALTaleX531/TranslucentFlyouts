@@ -1,9 +1,8 @@
 #pragma once
 #include "pch.h"
 
-class ThemeHelper
+namespace TranslucentFlyoutsLib
 {
-public:
 	typedef HRESULT(WINAPI*pfnGetThemeClass)(HTHEME hTheme, LPCTSTR pszClassName, int cchClassName);
 	typedef BOOL(WINAPI*pfnIsThemeClassDefined)(HTHEME hTheme, LPCTSTR pszAppName, LPCTSTR pszClassName, BOOL bMatchClass);
 	typedef BOOL(WINAPI*pfnIsTopLevelWindow)(HWND hWnd);
@@ -72,13 +71,14 @@ public:
 		    (
 		        IsTopLevelWindow(hWnd) and
 		        (
-		            !_tcscmp(szClass, TEXT("#32768")) or
-		            !_tcscmp(szClass, TEXT("ViewControlClass")) or
-		            !_tcscmp(szClass, TEXT("DropDown"))
+		            (!_tcscmp(szClass, TEXT("#32768")) and GetCurrentFlyoutPolicy() & PopupMenu) or
+		            (!_tcscmp(szClass, TEXT("ViewControlClass")) and GetCurrentFlyoutPolicy() & ViewControl) or
+		            (!_tcscmp(szClass, TEXT("DropDown")) and GetCurrentFlyoutPolicy() & PopupMenu)
 		        )
 		    );
 	}
 
+	[[deprecated]]
 	static inline bool IsViewControlClass(const HWND& hWnd)
 	{
 		TCHAR szClass[MAX_PATH + 1] = {};
@@ -93,6 +93,7 @@ public:
 		return !_tcscmp(szClass, TOOLTIPS_CLASS);
 	}
 
+	[[deprecated]]
 	static inline bool IsToolbarWindow(const HWND& hWnd)
 	{
 		TCHAR szClass[MAX_PATH + 1] = {};
@@ -143,17 +144,6 @@ public:
 		pvBits[1] = (g * (a + 1)) >> 8;
 		pvBits[2] = (r * (a + 1)) >> 8;
 		pvBits[3] = a;
-	}
-
-	static inline void HighlightBox(HDC hdc, LPCRECT lpRect, COLORREF dwColor)
-	{
-		HPEN hPen = CreatePen(PS_SOLID, 3, dwColor);
-		HPEN hOldPen = (HPEN)SelectObject(hdc, hPen);
-		HBRUSH hOldBrush = (HBRUSH)SelectObject(hdc, GetStockObject(NULL_BRUSH));
-		Rectangle(hdc, lpRect->left, lpRect->top, lpRect->right, lpRect->bottom);
-		SelectObject(hdc, hOldBrush);
-		SelectObject(hdc, hOldPen);
-		DeleteObject(hPen);
 	}
 
 	static void PrepareAlpha(HBITMAP hBitmap)

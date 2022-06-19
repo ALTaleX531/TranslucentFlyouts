@@ -1,9 +1,8 @@
 #pragma once
 #include "pch.h"
 
-class AcrylicHelper
+namespace TranslucentFlyoutsLib
 {
-private:
 	typedef enum _WINDOWCOMPOSITIONATTRIBUTE
 	{
 		WCA_UNDEFINED,
@@ -76,8 +75,15 @@ private:
 	} ACCENT_POLICY;
 
 	typedef BOOL(WINAPI* pfnSetWindowCompositionAttribute)(HWND, WINDOWCOMPOSITIONATTRIBUTEDATA*);
-public:
-	static void SetEffect(HWND hwnd, DWORD dwEffect, DWORD bBorderOption)
+
+	static void DwmSetWindowTransparent(HWND hWnd, BOOL Enable)
+	{
+		DWM_BLURBEHIND bb = {DWM_BB_ENABLE | DWM_BB_BLURREGION | DWM_BB_TRANSITIONONMAXIMIZED, Enable, CreateRectRgn(0, 0, -1, -1), TRUE};
+		DwmEnableBlurBehindWindow(hWnd, &bb);
+		DeleteObject(bb.hRgnBlur);
+	}
+
+	static void SetWindowEffect(HWND hwnd, DWORD dwEffect, DWORD bBorderOption)
 	{
 		static const auto& SetWindowCompositionAttribute =
 		    (pfnSetWindowCompositionAttribute)GetProcAddress(
@@ -87,24 +93,19 @@ public:
 
 		ACCENT_POLICY policy = {static_cast<ACCENT_STATE>(dwEffect), bBorderOption ? ACCENT_ALL_BORDER : ACCENT_NONE_BORDER, 0x1, 0};
 		WINDOWCOMPOSITIONATTRIBUTEDATA data = {WCA_ACCENT_POLICY, &policy, sizeof(ACCENT_POLICY)};
+		
 		if (dwEffect == ACCENT_ENABLE_TRANSPARENTGRADIENT)
 		{
 			policy.AccentState = ACCENT_DISABLED;
 			policy.dwAnimationId = 0;
 			policy.dwGradientColor = 0;
-			SetTransparent(hwnd, TRUE);
+			DwmSetWindowTransparent(hwnd, TRUE);
 		}
 		else
 		{
-			SetTransparent(hwnd, FALSE);
+			DwmSetWindowTransparent(hwnd, FALSE);
 		}
-		SetWindowCompositionAttribute(hwnd, &data);
-	}
 
-	static void SetTransparent(HWND hWnd, BOOL Enable)
-	{
-		DWM_BLURBEHIND bb = {DWM_BB_ENABLE | DWM_BB_BLURREGION | DWM_BB_TRANSITIONONMAXIMIZED, Enable, CreateRectRgn(0, 0, -1, -1), TRUE};
-		DwmEnableBlurBehindWindow(hWnd, &bb);
-		DeleteObject(bb.hRgnBlur);
+		SetWindowCompositionAttribute(hwnd, &data);
 	}
 };

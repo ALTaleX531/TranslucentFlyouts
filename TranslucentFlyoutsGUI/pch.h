@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <tchar.h>
 
+#pragma comment(lib, "windowsapp.lib")
 #pragma comment(lib, "shlwapi.lib")
 #pragma comment(lib, "comctl32.lib")
 #pragma comment(lib, "uxtheme.lib")

@@ -1,6 +1,5 @@
 ﻿// dllmain.cpp : 定义 DLL 应用程序的入口点。
 #include "pch.h"
-#include "tflapi.h"
 #include "TranslucentFlyoutsLib.h"
 
 #ifdef _WIN64
@@ -39,4 +38,3 @@ BOOL APIENTRY DllMain(
 	}
 	return TRUE;
 }
-

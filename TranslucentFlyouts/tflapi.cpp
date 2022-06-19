@@ -84,6 +84,14 @@ extern "C"
 		return dwColorizeOption;
 	}
 
+	DWORD WINAPI GetCurrentFlyoutPolicy()
+	{
+		DWORD dwSize = sizeof(DWORD);
+		DWORD dwColorizeOption = GetDefaultFlyoutPolicy();
+		RegGetValue(HKEY_CURRENT_USER, TEXT("SOFTWARE\\TranslucentFlyouts"), TEXT("FlyoutPolicy"), RRF_RT_REG_DWORD, nullptr, &dwColorizeOption, &dwSize);
+		return dwColorizeOption;
+	}
+
 	DWORD WINAPI GetDefaultFlyoutOpacity()
 	{
 		return 102;
@@ -102,6 +110,11 @@ extern "C"
 	DWORD WINAPI GetDefaultFlyoutColorizeOption()
 	{
 		return 0;
+	}
+
+	DWORD WINAPI GetDefaultFlyoutPolicy()
+	{
+		return PopupMenu;
 	}
 
 	BOOL WINAPI SetFlyoutOpacity(DWORD dwOpacity)
@@ -168,6 +181,24 @@ extern "C"
 			return FALSE;
 		}
 		lResult = RegSetValueEx(hKey, TEXT("FlyoutColorizeOption"), 0, REG_DWORD, (LPBYTE)&dwColorizeOption, sizeof(DWORD));
+		if (lResult != NO_ERROR)
+		{
+			return FALSE;
+		}
+		RegCloseKey(hKey);
+		return TRUE;
+	}
+
+	BOOL WINAPI SetFlyoutPolicy(DWORD dwPolicy)
+	{
+		HKEY hKey = nullptr;
+		LRESULT lResult = NO_ERROR;
+		lResult = RegCreateKeyEx(HKEY_CURRENT_USER, TEXT("SOFTWARE\\TranslucentFlyouts"), 0, 0, REG_OPTION_NON_VOLATILE, KEY_WRITE | KEY_WOW64_64KEY, nullptr, &hKey, nullptr);
+		if (lResult != NO_ERROR)
+		{
+			return FALSE;
+		}
+		lResult = RegSetValueEx(hKey, TEXT("FlyoutPolicy"), 0, REG_DWORD, (LPBYTE)&dwPolicy, sizeof(DWORD));
 		if (lResult != NO_ERROR)
 		{
 			return FALSE;

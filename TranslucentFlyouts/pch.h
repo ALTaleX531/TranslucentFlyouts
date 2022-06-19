@@ -10,6 +10,7 @@
 #define WIN32_LEAN_AND_MEAN             // 从 Windows 头文件中排除极少使用的内容
 // Windows 头文件
 #include <windows.h>
+#include "WindowsRuntime.h"
 #include <VersionHelpers.h>
 #include <Uxtheme.h>
 #include <vsstyle.h>
@@ -18,6 +19,7 @@
 #include <intrin.h>
 #include <stdio.h>
 #include <tchar.h>
+#include <initializer_list>
 
 #pragma comment(lib, "comctl32.lib")
 #pragma comment(lib, "uxtheme.lib")

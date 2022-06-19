@@ -33,6 +33,33 @@ void OnInitDpiScailing()
 	}
 }
 
+HWND AssociateTooltip(HWND hwnd, int nDlgItemId)
+{
+	HWND hwndTool = GetDlgItem(hwnd, nDlgItemId);
+	HWND hwndTip = CreateWindowEx(
+	                   NULL, TOOLTIPS_CLASS, NULL,
+	                   WS_POPUP | TTS_ALWAYSTIP | TTS_BALLOON | TTS_USEVISUALSTYLE,
+	                   CW_USEDEFAULT, CW_USEDEFAULT,
+	                   CW_USEDEFAULT, CW_USEDEFAULT,
+	                   hwnd, NULL,
+	                   g_hInst, NULL
+	               );
+
+	if (!hwndTool || !hwndTip)
+	{
+		return (HWND)NULL;
+	}
+	TOOLINFO toolInfo = {0};
+	toolInfo.cbSize = sizeof(toolInfo);
+	toolInfo.hwnd = hwnd;
+	toolInfo.uFlags = TTF_IDISHWND | TTF_SUBCLASS | TTF_TRANSPARENT;
+	toolInfo.uId = (UINT_PTR)hwndTool;
+	toolInfo.lpszText = LPSTR_TEXTCALLBACK;
+	SendMessage(hwndTip, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
+
+	return hwndTip;
+}
+
 void ShowMenu(HWND hWnd)
 {
 	HMENU hMenu = CreatePopupMenu();
@@ -56,9 +83,8 @@ BOOL ShowBalloonTip(HWND hWnd, LPCTSTR szMsg, LPCTSTR szTitle, UINT uTimeout, DW
 	return Shell_NotifyIcon(NIM_MODIFY, &data);
 }
 
-void ThrowIfFailed(HWND hWnd)
+void ShowBalloonTip(HWND hWnd, DWORD dwLastError = GetLastError())
 {
-	DWORD dwLastError = GetLastError();
 	if (dwLastError != NO_ERROR)
 	{
 		TCHAR szErrorString[MAX_PATH];
@@ -67,7 +93,7 @@ void ThrowIfFailed(HWND hWnd)
 		    FORMAT_MESSAGE_IGNORE_INSERTS,
 		    NULL,
 		    GetLastError(),
-		    MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), //Default language
+		    MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
 		    (LPTSTR)&szErrorString,
 		    MAX_PATH,
 		    NULL
@@ -160,6 +186,31 @@ void OnInitDialogItem(const HWND& hWnd)
 		default:
 			break;
 	}
+	DWORD dwPolicy = GetCurrentFlyoutPolicy();
+	if (dwPolicy & PopupMenu)
+	{
+		CheckDlgButton(hWnd, IDC_CHECK1, BST_CHECKED);
+	}
+	else
+	{
+		CheckDlgButton(hWnd, IDC_CHECK1, BST_UNCHECKED);
+	}
+	if (dwPolicy & Tooltip)
+	{
+		CheckDlgButton(hWnd, IDC_CHECK2, BST_CHECKED);
+	}
+	else
+	{
+		CheckDlgButton(hWnd, IDC_CHECK2, BST_UNCHECKED);
+	}
+	if (dwPolicy & ViewControl)
+	{
+		CheckDlgButton(hWnd, IDC_CHECK3, BST_CHECKED);
+	}
+	else
+	{
+		CheckDlgButton(hWnd, IDC_CHECK3, BST_UNCHECKED);
+	}
 }
 
 void OnInitDialog(const HWND& hWnd)
@@ -167,6 +218,18 @@ void OnInitDialog(const HWND& hWnd)
 	const HWND& hCombobox1 = GetDlgItem(hWnd, IDC_COMBO1);
 	const HWND& hCombobox2 = GetDlgItem(hWnd, IDC_COMBO2);
 	const HWND& hCombobox3 = GetDlgItem(hWnd, IDC_COMBO3);
+	//
+	WINDOWPLACEMENT wp;
+	wp.length = sizeof(WINDOWPLACEMENT);
+	wp.flags = WPF_RESTORETOMAXIMIZED;
+	wp.showCmd = SW_HIDE;
+	//SetWindowPlacement(hWnd, &wp);
+	//
+	AssociateTooltip(hWnd, IDC_COMBO1);
+	AssociateTooltip(hWnd, IDC_COMBO2);
+	AssociateTooltip(hWnd, IDC_SLIDER1);
+	AssociateTooltip(hWnd, IDC_COMBO3);
+	AssociateTooltip(hWnd, IDC_BUTTON1);
 	//
 	SendDlgItemMessage(hWnd, IDC_SLIDER1, TBM_SETRANGE, 0, MAKELPARAM(0, 255));
 	//
@@ -185,6 +248,17 @@ void OnInitDialog(const HWND& hWnd)
 	ComboBox_AddString(hCombobox3, TEXT("跟随透明度（适用于Win11）"));
 	ComboBox_AddString(hCombobox3, TEXT("完全不透明（适用于Win10）"));
 	//
+	TCHAR pszStartupName[MAX_PATH];
+	DWORD dwSize = sizeof(pszStartupName);
+	if (RegGetValue(HKEY_CURRENT_USER, TEXT("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run"), TEXT("TFGUI"), RRF_RT_REG_SZ, nullptr, pszStartupName, &dwSize) == ERROR_SUCCESS)
+	{
+		CheckDlgButton(hWnd, IDC_CHECK4, BST_CHECKED);
+	}
+	else
+	{
+		CheckDlgButton(hWnd, IDC_CHECK4, BST_UNCHECKED);
+	}
+	//
 	OnInitDialogItem(hWnd);
 }
 
@@ -197,7 +271,7 @@ INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPara
 			ShellCreateIcon(hWnd);
 			if (!RegisterHook())
 			{
-				ThrowIfFailed(hWnd);
+				ShowBalloonTip(hWnd);
 			}
 			OnInitDialog(hWnd);
 			//
@@ -207,7 +281,7 @@ INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPara
 		{
 			if (!UnregisterHook())
 			{
-				ThrowIfFailed(hWnd);
+				ShowBalloonTip(hWnd);
 			}
 			ShellDestroyIcon(hWnd);
 			break;
@@ -244,7 +318,41 @@ INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPara
 				dwOpacity = (DWORD)SendDlgItemMessage(hWnd, IDC_SLIDER1, TBM_GETPOS, 0, 0);
 				if (!SetFlyoutOpacity(dwOpacity))
 				{
-					ThrowIfFailed(hWnd);
+					ShowBalloonTip(hWnd);
+				}
+			}
+			break;
+		}
+		case WM_NOTIFY:
+		{
+			if (((LPNMHDR)lParam)->code == TTN_GETDISPINFO)
+			{
+				LPNMTTDISPINFO pInfo = (LPNMTTDISPINFO)lParam;
+				SendMessage(pInfo->hdr.hwndFrom, TTM_SETMAXTIPWIDTH, 0, 500);
+				SendMessage(pInfo->hdr.hwndFrom, TTM_SETDELAYTIME, TTDT_INITIAL, MAKELPARAM(300, 0));
+				SendMessage(pInfo->hdr.hwndFrom, TTM_SETDELAYTIME, TTDT_AUTOPOP, MAKELPARAM(30000, 0));
+				if (((LPNMHDR)lParam)->idFrom == (UINT_PTR)GetDlgItem(hWnd, IDC_COMBO1))
+				{
+					pInfo->lpszText = (LPTSTR)TEXT("此参数决定对弹出窗口应用的特效\r\n如使用Acrylic Blur背景为亚克力模糊\r\n当窗口第一次渲染时设置特效");
+				}
+				if (((LPNMHDR)lParam)->idFrom == (UINT_PTR)GetDlgItem(hWnd, IDC_COMBO2))
+				{
+					pInfo->lpszText = (LPTSTR)TEXT("此参数决定弹出窗口是否具有一个额外的边框或者说阴影\r\n当窗口被设置特效时，边框也会被同步添加到窗口\r\n当使用高透明度设置时，这对于增强视觉对比度十分有用\r\n");
+				}
+				if (((LPNMHDR)lParam)->idFrom == (UINT_PTR)GetDlgItem(hWnd, IDC_SLIDER1))
+				{
+					TCHAR lpText[MAX_PATH] = {};
+					_sntprintf_s(lpText, MAX_PATH, TEXT("当前不透明度：%d/255\r\n"), GetCurrentFlyoutOpacity());
+					_sntprintf_s(lpText, MAX_PATH, TEXT("%s%s"), lpText, TEXT("此参数决定弹出窗口的不透明度\r\n此值越高，越不透明，窗口背后的内容可见度越低，反之亦然\r\n只有渲染完全不透明的主题位图会受此影响，正常情况下不应也不需要设置为255或0"));
+					pInfo->lpszText = (LPTSTR)lpText;
+				}
+				if (((LPNMHDR)lParam)->idFrom == (UINT_PTR)GetDlgItem(hWnd, IDC_COMBO3))
+				{
+					pInfo->lpszText = (LPTSTR)TEXT("此参数决定弹出菜单鼠标悬停项的主题位图混合方式\r\n这是调用AlphaBlend混合时的不透明度选择方案\r\n建议在Windows 10普通主题下选择不透明增加对比度\r\nWindows 11圆角主题具有缺陷，在较高透明度下视觉效果有瑕疵，建议使用跟随透明度设置");
+				}
+				if (((LPNMHDR)lParam)->idFrom == (UINT_PTR)GetDlgItem(hWnd, IDC_BUTTON1))
+				{
+					pInfo->lpszText = (LPTSTR)TEXT("注意此选项会删除默认的配置信息\n但是不影响用户界面选项的设置\n即不会影响自启动");
 				}
 			}
 			break;
@@ -253,6 +361,7 @@ INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPara
 		{
 			switch (LOWORD(wParam))
 			{
+				case IDCANCEL:
 				case 0:
 				{
 					EndDialog(hWnd, TRUE);
@@ -261,26 +370,6 @@ INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPara
 				case 1:
 				{
 					ShowWindow(hWnd, SW_SHOW);
-					break;
-				}
-				case IDC_BUTTON2:
-				{
-					ShellMessageBox(g_hInst, hWnd, TEXT("此参数将决定如何处理弹出窗口的背景\n如使用Acrylic Blur背景为亚克力模糊"), TEXT("关于效果"), MB_ICONINFORMATION);
-					break;
-				}
-				case IDC_BUTTON3:
-				{
-					ShellMessageBox(g_hInst, hWnd, TEXT("此参数将决定弹出窗口是否具有一个额外的边框或者说阴影\n当使用高透明度设置时，这对于增强对比度十分有用"), TEXT("关于边框选项"), MB_ICONINFORMATION);
-					break;
-				}
-				case IDC_BUTTON4:
-				{
-					ShellMessageBox(g_hInst, hWnd, TEXT("此参数将决定弹出窗口的不透明度\n此值越高，越不透明，你所能见到的窗口背后的内容可见度越低；反之亦然\n正常情况下不应也不需要设置为255或0"), TEXT("关于不透明度"), MB_ICONINFORMATION);
-					break;
-				}
-				case IDC_BUTTON5:
-				{
-					ShellMessageBox(g_hInst, hWnd, TEXT("此参数将决定弹出菜单鼠标悬停项的着色方式\nWindows 10普通主题下可以选择不透明增加对比度，Windows 11圆角主题具有缺陷，在高透明度下视觉效果有瑕疵，建议使用跟随透明度设置"), TEXT("关于鼠标悬停着色"), MB_ICONINFORMATION);
 					break;
 				}
 				case IDC_COMBO1:
@@ -312,7 +401,7 @@ INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPara
 						}
 						if (!SetFlyoutEffect(dwEffect))
 						{
-							ThrowIfFailed(hWnd);
+							ShowBalloonTip(hWnd);
 						}
 					}
 					break;
@@ -334,7 +423,7 @@ INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPara
 						}
 						if (!SetFlyoutBorder(dwBorder))
 						{
-							ThrowIfFailed(hWnd);
+							ShowBalloonTip(hWnd);
 						}
 					}
 					break;
@@ -356,16 +445,37 @@ INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPara
 						}
 						if (!SetFlyoutColorizeOption(dwColorizeOption))
 						{
-							ThrowIfFailed(hWnd);
+							ShowBalloonTip(hWnd);
 						}
 					}
+					break;
+				}
+				case IDC_CHECK1:
+				{
+					DWORD dwPolicy = GetCurrentFlyoutPolicy();
+					dwPolicy = IsDlgButtonChecked(hWnd, IDC_CHECK1) ? dwPolicy | PopupMenu : dwPolicy & ~PopupMenu;
+					SetFlyoutPolicy(dwPolicy);
+					break;
+				}
+				case IDC_CHECK2:
+				{
+					DWORD dwPolicy = GetCurrentFlyoutPolicy();
+					dwPolicy = IsDlgButtonChecked(hWnd, IDC_CHECK2) ? dwPolicy | Tooltip : dwPolicy & ~Tooltip;
+					SetFlyoutPolicy(dwPolicy);
+					break;
+				}
+				case IDC_CHECK3:
+				{
+					DWORD dwPolicy = GetCurrentFlyoutPolicy();
+					dwPolicy = IsDlgButtonChecked(hWnd, IDC_CHECK3) ? dwPolicy | ViewControl : dwPolicy & ~ViewControl;
+					SetFlyoutPolicy(dwPolicy);
 					break;
 				}
 				case IDC_BUTTON1:
 				{
 					if (!ClearFlyoutConfig())
 					{
-						ThrowIfFailed(hWnd);
+						ShowBalloonTip(hWnd);
 					}
 					else
 					{
@@ -373,6 +483,42 @@ INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPara
 					}
 					OnInitDialogItem(hWnd);
 					break;
+				}
+				case IDC_CHECK4:
+				{
+					HKEY hKey = nullptr;
+					if (IsDlgButtonChecked(hWnd, IDC_CHECK4))
+					{
+						TCHAR pszModuleFileName[MAX_PATH];
+						GetModuleFileName(NULL, pszModuleFileName, MAX_PATH);
+						if (RegOpenKeyEx(HKEY_CURRENT_USER, TEXT("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run"), 0, GENERIC_WRITE | KEY_WOW64_64KEY, &hKey) == ERROR_SUCCESS)
+						{
+							if (RegSetValueEx(hKey, TEXT("TFGUI"), 0, REG_SZ, (LPBYTE)pszModuleFileName, sizeof(pszModuleFileName)) != ERROR_SUCCESS)
+							{
+								ShowBalloonTip(hWnd);
+							}
+							RegCloseKey(hKey);
+						}
+						else
+						{
+							ShowBalloonTip(hWnd);
+						}
+					}
+					else
+					{
+						if (RegOpenKeyEx(HKEY_CURRENT_USER, TEXT("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run"), 0, GENERIC_WRITE | KEY_WOW64_64KEY, &hKey) == ERROR_SUCCESS)
+						{
+							if (RegDeleteValue(hKey, TEXT("TFGUI")) != ERROR_SUCCESS)
+							{
+								ShowBalloonTip(hWnd);
+							}
+							RegCloseKey(hKey);
+						}
+						else
+						{
+							ShowBalloonTip(hWnd);
+						}
+					}
 				}
 				default:
 					break;
