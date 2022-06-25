@@ -7,4 +7,8 @@ namespace TranslucentFlyoutsLib
 {
 	extern void Startup();
 	extern void Shutdown();
+
+	extern void OnWindowsCreated(HWND hWnd);
+	extern void OnWindowsDestroyed(HWND hWnd);
+	extern void OnWindowShowed(HWND hWnd);
 };

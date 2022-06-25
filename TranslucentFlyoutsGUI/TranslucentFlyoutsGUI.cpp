@@ -133,7 +133,7 @@ void OnInitDialogItem(const HWND& hWnd)
 		}
 		case 1:
 		{
-			ComboBox_SelectString(hCombobox1, -1, TEXT("纯色"));
+			ComboBox_SelectString(hCombobox1, -1, TEXT("不支持的选项"));
 			break;
 		}
 		case 2:
@@ -342,8 +342,8 @@ INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPara
 				if (((LPNMHDR)lParam)->idFrom == (UINT_PTR)GetDlgItem(hWnd, IDC_SLIDER1))
 				{
 					TCHAR lpText[MAX_PATH] = {};
-					_sntprintf_s(lpText, MAX_PATH, TEXT("当前不透明度：%d/255\r\n"), GetCurrentFlyoutOpacity());
-					_sntprintf_s(lpText, MAX_PATH, TEXT("%s%s"), lpText, TEXT("此参数决定弹出窗口的不透明度\r\n此值越高，越不透明，窗口背后的内容可见度越低，反之亦然\r\n只有渲染完全不透明的主题位图会受此影响，正常情况下不应也不需要设置为255或0"));
+					_stprintf_s(lpText, TEXT("当前不透明度：%d/255\r\n"), GetCurrentFlyoutOpacity());
+					_stprintf_s(lpText, TEXT("%s%s"), lpText, TEXT("此参数决定弹出窗口的不透明度\r\n此值越高，越不透明，窗口背后的内容可见度越低，反之亦然\r\n只有渲染完全不透明的主题位图会受此影响，正常情况下不应也不需要设置为255或0"));
 					pInfo->lpszText = (LPTSTR)lpText;
 				}
 				if (((LPNMHDR)lParam)->idFrom == (UINT_PTR)GetDlgItem(hWnd, IDC_COMBO3))
@@ -372,6 +372,10 @@ INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPara
 					ShowWindow(hWnd, SW_SHOW);
 					break;
 				}
+				case IDC_BUTTON2:
+				{
+					InvalidateRect(nullptr, nullptr, true);
+				}
 				case IDC_COMBO1:
 				{
 					if (HIWORD(wParam) == CBN_SELCHANGE)
@@ -385,7 +389,7 @@ INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPara
 						}
 						if (!_tcsicmp(szBuffer, TEXT("不支持的选项")))
 						{
-							OnInitDialogItem(hWnd);
+							dwEffect = 1;
 						}
 						if (!_tcsicmp(szBuffer, TEXT("Transparent")))
 						{

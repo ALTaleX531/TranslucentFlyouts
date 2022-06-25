@@ -18,19 +18,6 @@ namespace TranslucentFlyoutsLib
 			return reinterpret_cast<T*>(GetOldFunction())(args...);
 		}
 
-		template <typename... Args>
-		static void Batch(BOOL bHookState, Args&&... args)
-		{
-			Batch(bHookState, {args...});
-		}
-		static void Batch(BOOL bHookState, const std::initializer_list<Detours>& args)
-		{
-			for (auto item : args)
-			{
-				item.SetHookState(TRUE);
-			}
-		}
-
 		static void Begin()
 		{
 			DetourSetIgnoreTooSmall(TRUE);
@@ -42,6 +29,23 @@ namespace TranslucentFlyoutsLib
 			DetourTransactionCommit();
 		}
 
+		template <typename... Args>
+		static void Batch(Args&&... args)
+		{
+			Batch(std::forward<Args>(args)...);
+		}
+		template <typename T, typename... Args>
+		static void Batch(T& t, Args&&... args)
+		{
+			t.SetHookState();
+			Batch(args...);
+		}
+		static void Batch() {}
+
+		Detours()
+		{
+
+		}
 		Detours(LPCSTR pszModule, LPCSTR pszFunction, PVOID NewAddr = nullptr)
 		{
 			PVOID OldAddr = DetourFindFunction(pszModule, pszFunction);
@@ -58,8 +62,12 @@ namespace TranslucentFlyoutsLib
 		{
 			return pvOldAddr;
 		}
-		void SetHookState(BOOL bHookState)
+		void SetHookState(BOOL bHookState = -1)
 		{
+			if (bHookState == -1)
+			{
+				bHookState = !bHookInstalled;
+			}
 			if (bHookState == TRUE)
 			{
 				DetourAttach(&(PVOID&)pvOldAddr, pvNewAddr);
@@ -76,9 +84,24 @@ namespace TranslucentFlyoutsLib
 			return bHookInstalled;
 		}
 	private:
-		PVOID pvNewAddr;
-		PVOID pvOldAddr;
-		bool bHookInstalled;
+		PVOID pvNewAddr = nullptr;
+		PVOID pvOldAddr = nullptr;
+		bool bHookInstalled = false;
 	};
+
 	using DetoursHook = Detours;
+
+	static inline bool VerifyCaller(LPCTSTR pszCallerModuleName, PVOID pvCaller = _ReturnAddress())
+	{
+		HMODULE hModule = DetourGetContainingModule(pvCaller);
+		return hModule == GetModuleHandle(pszCallerModuleName);
+	}
+
+	static inline bool VerifyProcessModule(LPCTSTR pszTargetModuleName)
+	{
+		HMODULE hModule = GetModuleHandle(nullptr);
+		TCHAR pszModuleName[MAX_PATH + 1] = {};
+		GetModuleFileName(hModule, pszModuleName, MAX_PATH);
+		return _tcsicmp(pszModuleName, pszTargetModuleName);
+	}
 }

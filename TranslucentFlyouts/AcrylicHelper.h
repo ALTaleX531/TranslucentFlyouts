@@ -83,7 +83,7 @@ namespace TranslucentFlyoutsLib
 		DeleteObject(bb.hRgnBlur);
 	}
 
-	static void SetWindowEffect(HWND hwnd, DWORD dwEffect, DWORD bBorderOption)
+	static void SetWindowEffect(HWND hwnd, DWORD dwEffect, BOOL bBorderOption)
 	{
 		static const auto& SetWindowCompositionAttribute =
 		    (pfnSetWindowCompositionAttribute)GetProcAddress(

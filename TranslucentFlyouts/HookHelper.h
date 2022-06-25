@@ -4,69 +4,90 @@
 namespace TranslucentFlyoutsLib
 {
 	extern HRESULT WINAPI MyDrawThemeBackground(
-		HTHEME  hTheme,
-		HDC     hdc,
-		int     iPartId,
-		int     iStateId,
-		LPCRECT pRect,
-		LPCRECT pClipRect
+	    HTHEME  hTheme,
+	    HDC     hdc,
+	    int     iPartId,
+	    int     iStateId,
+	    LPCRECT pRect,
+	    LPCRECT pClipRect
 	);
 	extern HRESULT WINAPI MyDrawThemeTextEx(
-		HTHEME        hTheme,
-		HDC           hdc,
-		int           iPartId,
-		int           iStateId,
-		LPCTSTR       pszText,
-		int           cchText,
-		DWORD         dwTextFlags,
-		LPRECT        pRect,
-		const DTTOPTS *pOptions
+	    HTHEME        hTheme,
+	    HDC           hdc,
+	    int           iPartId,
+	    int           iStateId,
+	    LPCTSTR       pszText,
+	    int           cchText,
+	    DWORD         dwTextFlags,
+	    LPRECT        pRect,
+	    const DTTOPTS *pOptions
 	);
 	extern HRESULT WINAPI MyDrawThemeText(
-		HTHEME  hTheme,
-		HDC     hdc,
-		int     iPartId,
-		int     iStateId,
-		LPCTSTR pszText,
-		int     cchText,
-		DWORD   dwTextFlags,
-		DWORD   dwTextFlags2,
-		LPCRECT pRect
+	    HTHEME  hTheme,
+	    HDC     hdc,
+	    int     iPartId,
+	    int     iStateId,
+	    LPCTSTR pszText,
+	    int     cchText,
+	    DWORD   dwTextFlags,
+	    DWORD   dwTextFlags2,
+	    LPCRECT pRect
 	);
 	extern int WINAPI MyDrawTextW(
-		HDC     hdc,
-		LPCTSTR lpchText,
-		int     cchText,
-		LPRECT  lprc,
-		UINT    format
+	    HDC     hdc,
+	    LPCTSTR lpchText,
+	    int     cchText,
+	    LPRECT  lprc,
+	    UINT    format
+	);
+	extern int WINAPI MyDrawTextExW(
+	    HDC              hdc,
+	    LPWSTR           lpchText,
+	    int              cchText,
+	    LPRECT           lprc,
+	    UINT             format,
+	    LPDRAWTEXTPARAMS lpdtp
+	);
+	extern BOOL WINAPI MyExtTextOutW(
+	    HDC        hdc,
+	    int        x,
+	    int        y,
+	    UINT       options,
+	    const RECT *lprect,
+	    LPCWSTR    lpString,
+	    UINT       c,
+	    const INT  *lpDx
 	);
 	extern BOOL WINAPI MySetMenuInfo(
-		HMENU hMenu,
-		LPCMENUINFO lpMenuInfo
+	    HMENU hMenu,
+	    LPCMENUINFO lpMenuInfo
 	);
 	extern BOOL WINAPI MySetMenuItemBitmaps(
-		HMENU   hMenu,
-		UINT    uPosition,
-		UINT    uFlags,
-		HBITMAP hBitmapUnchecked,
-		HBITMAP hBitmapChecked
+	    HMENU   hMenu,
+	    UINT    uPosition,
+	    UINT    uFlags,
+	    HBITMAP hBitmapUnchecked,
+	    HBITMAP hBitmapChecked
 	);
 	extern BOOL WINAPI MyInsertMenuItemW(
-		HMENU            hMenu,
-		UINT             item,
-		BOOL             fByPosition,
-		LPCMENUITEMINFOW lpmii
+	    HMENU            hMenu,
+	    UINT             item,
+	    BOOL             fByPosition,
+	    LPCMENUITEMINFOW lpmii
 	);
 	extern BOOL WINAPI MySetMenuItemInfoW(
-		HMENU            hMenu,
-		UINT             item,
-		BOOL             fByPositon,
-		LPCMENUITEMINFOW lpmii
+	    HMENU            hMenu,
+	    UINT             item,
+	    BOOL             fByPositon,
+	    LPCMENUITEMINFOW lpmii
 	);
+	extern HDC WINAPI MyCreateCompatibleDC(HDC hdc);
+	extern BOOL WINAPI MyDeleteDC(HDC hdc);
+	extern BOOL WINAPI MyDeleteObject(HGDIOBJ ho);
 	extern void CALLBACK HandleWinEvent(
-		HWINEVENTHOOK hWinEventHook, DWORD dwEvent, HWND hWnd,
-		LONG idObject, LONG idChild,
-		DWORD dwEventThread, DWORD dwmsEventTime
+	    HWINEVENTHOOK hWinEventHook, DWORD dwEvent, HWND hWnd,
+	    LONG idObject, LONG idChild,
+	    DWORD dwEventThread, DWORD dwmsEventTime
 	);
 	extern LRESULT CALLBACK SubclassProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
 };

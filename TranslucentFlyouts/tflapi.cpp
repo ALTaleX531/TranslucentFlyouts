@@ -94,7 +94,7 @@ extern "C"
 
 	DWORD WINAPI GetDefaultFlyoutOpacity()
 	{
-		return 102;
+		return 154;
 	}
 
 	DWORD WINAPI GetDefaultFlyoutEffect()
@@ -209,7 +209,7 @@ extern "C"
 
 	FLOAT WINAPI GetVersionInfo()
 	{
-		return 1.0f;
+		return 1.01f;
 	}
 
 	BOOL WINAPI IsHookInstalled()

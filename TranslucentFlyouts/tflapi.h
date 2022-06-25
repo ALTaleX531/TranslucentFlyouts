@@ -13,10 +13,10 @@ extern "C" {
 
 enum FlyoutPolicy
 {
-	PopupMenu = 0b1,
-	Tooltip = 0b10,
-	ViewControl = 0b100,
-	FileExplorer = 0b1000
+	Null,
+	PopupMenu = 1,
+	Tooltip = 1 << 1,
+	ViewControl = 1 << 2,
 };
 
 TFLAPI BOOL WINAPI RegisterHook();
