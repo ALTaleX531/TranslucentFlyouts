@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "tflapi.h"
+#include "SettingsHelper.h"
 #include "TranslucentFlyoutsLib.h"
 
 #pragma data_seg("shared")
@@ -7,7 +8,9 @@ HWINEVENTHOOK g_hHook = nullptr;
 #pragma data_seg()
 #pragma comment(linker,"/SECTION:shared,RWS")
 
+using namespace TranslucentFlyoutsLib;
 extern HMODULE g_hModule;
+extern Settings g_settings;
 
 extern "C"
 {
@@ -207,11 +210,6 @@ extern "C"
 		return TRUE;
 	}
 
-	FLOAT WINAPI GetVersionInfo()
-	{
-		return 1.01f;
-	}
-
 	BOOL WINAPI IsHookInstalled()
 	{
 		return g_hHook != 0;
@@ -232,5 +230,27 @@ extern "C"
 			return FALSE;
 		}
 		return TRUE;
+	}
+
+	VOID WINAPI GetVersionString(LPWSTR pszClassName, const int cchClassName)
+	{
+		wcscpy_s(pszClassName, cchClassName, L"1.0.1");
+	}
+
+	VOID WINAPI FlushSettingsCache()
+	{
+		TCHAR pszMutexName[] = TEXT("Local\\FlushSettingsCache");
+		HANDLE hMutex = OpenMutex(SYNCHRONIZE, FALSE, pszMutexName);
+		if (!hMutex)
+		{
+			hMutex = CreateMutex(nullptr, TRUE, pszMutexName);
+		}
+		else
+		{
+			WaitForSingleObject(hMutex, INFINITE);
+		}
+		g_settings.Update();
+		ReleaseMutex(hMutex);
+		CloseHandle(hMutex);
 	}
 }

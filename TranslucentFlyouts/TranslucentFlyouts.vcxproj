@@ -159,6 +159,7 @@
     <ClInclude Include="AcrylicHelper.h" />
     <ClInclude Include="DebugHelper.h" />
     <ClInclude Include="HookHelper.h" />
+    <ClInclude Include="SettingsHelper.h" />
     <ClInclude Include="WindowsRuntime.h" />
     <ClInclude Include="DetoursHelper.h" />
     <ClInclude Include="tflapi.h" />

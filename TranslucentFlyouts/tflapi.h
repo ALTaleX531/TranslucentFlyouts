@@ -40,9 +40,10 @@ TFLAPI BOOL WINAPI SetFlyoutBorder(DWORD dwBorder);
 TFLAPI BOOL WINAPI SetFlyoutColorizeOption(DWORD dwColorizeOption);
 TFLAPI BOOL WINAPI SetFlyoutPolicy(DWORD dwPolicy);
 
-TFLAPI FLOAT WINAPI GetVersionInfo();
 TFLAPI BOOL WINAPI IsHookInstalled();
 TFLAPI BOOL WINAPI ClearFlyoutConfig();
+TFLAPI VOID WINAPI GetVersionString(LPWSTR pszClassName, const int cchClassName);
+TFLAPI VOID WINAPI FlushSettingsCache();
 
 #ifdef __cplusplus
 }

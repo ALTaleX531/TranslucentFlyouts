@@ -2,10 +2,9 @@
 //
 
 #include "pch.h"
-#include "Resource.h"
 #include "TranslucentFlyoutsGUI.h"
 #include "..\TranslucentFlyouts\tflapi.h"
-#define WM_SHELLICON WM_APP
+#define WM_TASKBARICON WM_APP + 1
 #ifdef _WIN64
 	#pragma comment(lib, "..\\x64\\Release\\TranslucentFlyoutsLib.lib")
 	#pragma comment(lib, "..\\Libraries\\x64\\libkcrt.lib")
@@ -17,12 +16,21 @@
 #endif
 #pragma comment(linker, "/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
-HINSTANCE g_hInst;
-const UINT& WM_TASKBARCREATED = RegisterWindowMessage(TEXT("TaskbarCreated"));
+#pragma data_seg("shared")
+HWND g_mainWindow = nullptr;
+HWND g_settingsWindow = nullptr;
+#pragma data_seg()
+#pragma comment(linker,"/SECTION:shared,RWS")
+
+HINSTANCE g_hInst = nullptr;
+bool g_showSettingsDialog = false;
+const UINT WM_TASKBARCREATED = RegisterWindowMessage(TEXT("TaskbarCreated"));
+INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam);
+LRESULT CALLBACK WndProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam);
 
 void OnInitDpiScailing()
 {
-	static const auto& pfnSetProcessDpiAwarenessContext = (BOOL(WINAPI*)(int*))GetProcAddress(GetModuleHandle(TEXT("User32")), "SetProcessDpiAwarenessContext");
+	static const auto pfnSetProcessDpiAwarenessContext = (BOOL(WINAPI*)(int*))GetProcAddress(GetModuleHandle(TEXT("User32")), "SetProcessDpiAwarenessContext");
 	if (pfnSetProcessDpiAwarenessContext)
 	{
 		pfnSetProcessDpiAwarenessContext((int*) - 4);
@@ -68,14 +76,36 @@ void ShowMenu(HWND hWnd)
 	AppendMenu(hMenu, MF_STRING, 1, TEXT("设置(&S)"));
 	AppendMenu(hMenu, MF_STRING, 0, TEXT("退出(&X)"));
 	SetForegroundWindow(hWnd);
-	TrackPopupMenuEx(hMenu, TPM_NONOTIFY, Pt.x, Pt.y, hWnd, nullptr);
-	PostMessage(hWnd, WM_NULL, 0, 0);
+	switch (TrackPopupMenuEx(hMenu, TPM_NONOTIFY | TPM_RETURNCMD, Pt.x, Pt.y, hWnd, nullptr))
+	{
+		case 0:
+		{
+			DestroyWindow(hWnd);
+			break;
+		}
+		case 1:
+		{
+			if (IsWindow(g_settingsWindow))
+			{
+				FlashWindow(g_settingsWindow, TRUE);
+				ShowWindow(g_settingsWindow, SW_SHOWNORMAL);
+				SetActiveWindow(g_settingsWindow);
+			}
+			else
+			{
+				DialogBox(g_hInst, MAKEINTRESOURCE(IDD_DIALOG1), nullptr, DialogProc);
+			}
+			break;
+		}
+		default:
+			break;
+	}
 	DestroyMenu(hMenu);
 }
 
 BOOL ShowBalloonTip(HWND hWnd, LPCTSTR szMsg, LPCTSTR szTitle, UINT uTimeout, DWORD dwInfoFlags)
 {
-	NOTIFYICONDATA data = {sizeof(data), hWnd, IDI_ICON1, NIF_INFO | NIF_MESSAGE, WM_SHELLICON};
+	NOTIFYICONDATA data = {sizeof(data), hWnd, IDI_ICON1, NIF_INFO | NIF_MESSAGE, WM_TASKBARICON};
 	data.uTimeout = uTimeout;
 	data.dwInfoFlags = dwInfoFlags;
 	_tcscpy_s(data.szInfo, szMsg ? szMsg : _T(""));
@@ -100,27 +130,27 @@ void ShowBalloonTip(HWND hWnd, DWORD dwLastError = GetLastError())
 		);
 
 		MessageBeep(MB_ICONSTOP);
-		ShowBalloonTip(hWnd, szErrorString, TEXT("出现了一个错误"), 3000, NIIF_ERROR | NIIF_NOSOUND);
+		ShowBalloonTip(g_mainWindow, szErrorString, TEXT("出现了一个错误"), 3000, NIIF_ERROR | NIIF_NOSOUND);
 	}
 }
 
-void ShellCreateIcon(HWND hWnd)
+void TaskbarCreateIcon(HWND hWnd)
 {
-	NOTIFYICONDATA data = {sizeof(data), hWnd, IDI_ICON1, NIF_ICON | NIF_MESSAGE | NIF_TIP, WM_SHELLICON, LoadIcon(g_hInst, MAKEINTRESOURCE(IDI_ICON1)), {TEXT("TranslucentFlyouts 用户界面")}};
+	NOTIFYICONDATA data = {sizeof(data), hWnd, IDI_ICON1, NIF_ICON | NIF_MESSAGE | NIF_TIP, WM_TASKBARICON, LoadIcon(g_hInst, MAKEINTRESOURCE(IDI_ICON1)), {TEXT("TranslucentFlyouts 用户界面")}};
 	Shell_NotifyIcon(NIM_ADD, &data);
 }
 
-void ShellDestroyIcon(HWND hWnd)
+void TaskbarDestroyIcon(HWND hWnd)
 {
 	NOTIFYICONDATA data = {sizeof(data), hWnd, IDI_ICON1};
 	Shell_NotifyIcon(NIM_DELETE, &data);
 }
 
-void OnInitDialogItem(const HWND& hWnd)
+void OnInitDialogItem(HWND hWnd)
 {
-	const HWND& hCombobox1 = GetDlgItem(hWnd, IDC_COMBO1);
-	const HWND& hCombobox2 = GetDlgItem(hWnd, IDC_COMBO2);
-	const HWND& hCombobox3 = GetDlgItem(hWnd, IDC_COMBO3);
+	HWND hCombobox1 = GetDlgItem(hWnd, IDC_COMBO1);
+	HWND hCombobox2 = GetDlgItem(hWnd, IDC_COMBO2);
+	HWND hCombobox3 = GetDlgItem(hWnd, IDC_COMBO3);
 	//
 	SendDlgItemMessage(hWnd, IDC_SLIDER1, TBM_SETPOS, TRUE, GetCurrentFlyoutOpacity());
 	//
@@ -175,12 +205,12 @@ void OnInitDialogItem(const HWND& hWnd)
 	{
 		case 0:
 		{
-			ComboBox_SelectString(hCombobox3, -1, TEXT("完全不透明（适用于Win10）"));
+			ComboBox_SelectString(hCombobox3, -1, TEXT("不透明"));
 			break;
 		}
 		case 1:
 		{
-			ComboBox_SelectString(hCombobox3, -1, TEXT("跟随透明度（适用于Win11）"));
+			ComboBox_SelectString(hCombobox3, -1, TEXT("跟随不透明度"));
 			break;
 		}
 		default:
@@ -213,23 +243,20 @@ void OnInitDialogItem(const HWND& hWnd)
 	}
 }
 
-void OnInitDialog(const HWND& hWnd)
+void OnInitDialog(HWND hWnd)
 {
-	const HWND& hCombobox1 = GetDlgItem(hWnd, IDC_COMBO1);
-	const HWND& hCombobox2 = GetDlgItem(hWnd, IDC_COMBO2);
-	const HWND& hCombobox3 = GetDlgItem(hWnd, IDC_COMBO3);
+	g_settingsWindow = hWnd;
 	//
-	WINDOWPLACEMENT wp;
-	wp.length = sizeof(WINDOWPLACEMENT);
-	wp.flags = WPF_RESTORETOMAXIMIZED;
-	wp.showCmd = SW_HIDE;
-	//SetWindowPlacement(hWnd, &wp);
+	HWND hCombobox1 = GetDlgItem(hWnd, IDC_COMBO1);
+	HWND hCombobox2 = GetDlgItem(hWnd, IDC_COMBO2);
+	HWND hCombobox3 = GetDlgItem(hWnd, IDC_COMBO3);
 	//
 	AssociateTooltip(hWnd, IDC_COMBO1);
 	AssociateTooltip(hWnd, IDC_COMBO2);
 	AssociateTooltip(hWnd, IDC_SLIDER1);
 	AssociateTooltip(hWnd, IDC_COMBO3);
 	AssociateTooltip(hWnd, IDC_BUTTON1);
+	AssociateTooltip(hWnd, IDC_CHECK4);
 	//
 	SendDlgItemMessage(hWnd, IDC_SLIDER1, TBM_SETRANGE, 0, MAKELPARAM(0, 255));
 	//
@@ -245,8 +272,8 @@ void OnInitDialog(const HWND& hWnd)
 	ComboBox_AddString(hCombobox2, TEXT("无"));
 	ComboBox_AddString(hCombobox2, TEXT("额外的阴影"));
 	//
-	ComboBox_AddString(hCombobox3, TEXT("跟随透明度（适用于Win11）"));
-	ComboBox_AddString(hCombobox3, TEXT("完全不透明（适用于Win10）"));
+	ComboBox_AddString(hCombobox3, TEXT("跟随不透明度"));
+	ComboBox_AddString(hCombobox3, TEXT("不透明"));
 	//
 	TCHAR pszStartupName[MAX_PATH];
 	DWORD dwSize = sizeof(pszStartupName);
@@ -262,49 +289,150 @@ void OnInitDialog(const HWND& hWnd)
 	OnInitDialogItem(hWnd);
 }
 
+BOOL IsUserAgreeLicense()
+{
+	DWORD dwValue = 0;
+	DWORD dwSize = sizeof(dwValue);
+	return RegGetValue(HKEY_CURRENT_USER, TEXT("SOFTWARE\\TranslucentFlyouts"), TEXT("UserAgreeLicense"), RRF_RT_REG_DWORD, nullptr, &dwValue, &dwSize) == ERROR_SUCCESS and dwValue == 1;
+}
+
+VOID UserAgreeLicense()
+{
+	HKEY hKey = nullptr;
+	DWORD dwUserAgreeLicense = 1;
+	LRESULT lResult = NO_ERROR;
+	lResult = RegCreateKeyEx(HKEY_CURRENT_USER, TEXT("SOFTWARE\\TranslucentFlyouts"), 0, 0, REG_OPTION_NON_VOLATILE, KEY_WRITE | KEY_WOW64_64KEY, nullptr, &hKey, nullptr);
+	if (lResult != NO_ERROR)
+	{
+		return;
+	}
+	lResult = RegSetValueEx(hKey, TEXT("UserAgreeLicense"), 0, REG_DWORD, (LPBYTE)&dwUserAgreeLicense, sizeof(DWORD));
+	if (lResult != NO_ERROR)
+	{
+		return;
+	}
+	RegCloseKey(hKey);
+	return;
+}
+
+INT_PTR CALLBACK DialogProc3(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
+{
+	switch (Message)
+	{
+		case WM_NOTIFY:
+		{
+			switch (((LPNMHDR)lParam)->code)
+			{
+				case NM_CLICK:
+				case NM_RETURN:
+				{
+					PNMLINK pNMLink = (PNMLINK)lParam;
+					LITEM item = pNMLink->item;
+
+					ShellExecute(NULL, L"open", item.szUrl, NULL, NULL, SW_SHOW);
+					break;
+				}
+			}
+			break;
+		}
+		case WM_CLOSE:
+		{
+			EndDialog(hWnd, FALSE);
+			break;
+		}
+		case WM_COMMAND:
+		{
+			switch (LOWORD(wParam))
+			{
+				case IDOK:
+				{
+					EndDialog(hWnd, TRUE);
+					break;
+				}
+				case IDCANCEL:
+				{
+					EndDialog(hWnd, FALSE);
+					break;
+				}
+			}
+			break;
+		}
+		default:
+			return FALSE;
+	}
+	return TRUE;
+}
+
+INT_PTR CALLBACK DialogProc2(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
+{
+	switch (Message)
+	{
+		case WM_INITDIALOG:
+		{
+			TCHAR pszVersionInfo[MAX_PATH] = {};
+			TCHAR pszLibVersion[MAX_PATH];
+			GetVersionString(pszLibVersion, MAX_PATH);
+			_stprintf_s(pszVersionInfo, TEXT("TranslucentFlyoutsLib v%s\nTranslucentFlyoutsGUI v1.0.1"), pszLibVersion);
+			SetWindowText(GetDlgItem(hWnd, IDC_STATIC4), pszVersionInfo);
+			break;
+		}
+		case WM_NOTIFY:
+		{
+			switch (((LPNMHDR)lParam)->code)
+			{
+				case NM_CLICK:
+				case NM_RETURN:
+				{
+					PNMLINK pNMLink = (PNMLINK)lParam;
+					LITEM item = pNMLink->item;
+
+					ShellExecute(NULL, L"open", item.szUrl, NULL, NULL, SW_SHOW);
+					break;
+				}
+			}
+			break;
+		}
+		case WM_CLOSE:
+		{
+			EndDialog(hWnd, TRUE);
+			break;
+		}
+		case WM_COMMAND:
+		{
+			switch (LOWORD(wParam))
+			{
+				case IDOK:
+				{
+					EndDialog(hWnd, TRUE);
+					break;
+				}
+			}
+			break;
+		}
+		default:
+			return FALSE;
+	}
+	return TRUE;
+}
+
 INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam)
 {
 	switch (Message)
 	{
 		case WM_INITDIALOG:
 		{
-			ShellCreateIcon(hWnd);
-			if (!RegisterHook())
-			{
-				ShowBalloonTip(hWnd);
-			}
 			OnInitDialog(hWnd);
-			//
-			break;
-		}
-		case WM_DESTROY:
-		{
-			if (!UnregisterHook())
-			{
-				ShowBalloonTip(hWnd);
-			}
-			ShellDestroyIcon(hWnd);
 			break;
 		}
 		case WM_CLOSE:
 		{
-			ShowBalloonTip(hWnd, _T("如果要退出，请右键系统托盘图标"), _T("已最小化至系统托盘"), 3000, NIIF_INFO);
-			ShowWindow(hWnd, SW_HIDE);
+			ShowBalloonTip(g_mainWindow, _T("如果要退出，请右键系统托盘图标"), _T("已最小化至系统托盘"), 3000, NIIF_INFO);
+			EndDialog(hWnd, TRUE);
 			break;
 		}
-		case WM_SHELLICON:
+		case WM_DESTROY:
 		{
-			if (wParam == IDI_ICON1)
-			{
-				if (lParam == WM_LBUTTONUP)
-				{
-					ShowWindow(hWnd, SW_SHOW);
-				}
-				if (lParam == WM_RBUTTONUP)
-				{
-					ShowMenu(hWnd);
-				}
-			}
+			g_settingsWindow = nullptr;
 			break;
 		}
 		case WM_HSCROLL:
@@ -318,8 +446,9 @@ INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPara
 				dwOpacity = (DWORD)SendDlgItemMessage(hWnd, IDC_SLIDER1, TBM_GETPOS, 0, 0);
 				if (!SetFlyoutOpacity(dwOpacity))
 				{
-					ShowBalloonTip(hWnd);
+					ShowBalloonTip(g_mainWindow);
 				}
+				FlushSettingsCache();
 			}
 			break;
 		}
@@ -352,7 +481,11 @@ INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPara
 				}
 				if (((LPNMHDR)lParam)->idFrom == (UINT_PTR)GetDlgItem(hWnd, IDC_BUTTON1))
 				{
-					pInfo->lpszText = (LPTSTR)TEXT("注意此选项会删除默认的配置信息\n但是不影响用户界面选项的设置\n即不会影响自启动");
+					pInfo->lpszText = (LPTSTR)TEXT("注意此选项会删除默认的配置信息\r\n但是不影响用户界面选项的设置\r\n即不会影响自启动");
+				}
+				if (((LPNMHDR)lParam)->idFrom == (UINT_PTR)GetDlgItem(hWnd, IDC_CHECK4))
+				{
+					pInfo->lpszText = (LPTSTR)TEXT("该选项会让你开机时运行此程序\n但如果你需要以管理员权限自启动，请在计划任务处添加自启动任务\n而不是在此处设置自启动，该处设置与计划任务保持独立");
 				}
 			}
 			break;
@@ -362,19 +495,15 @@ INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPara
 			switch (LOWORD(wParam))
 			{
 				case IDCANCEL:
-				case 0:
 				{
 					EndDialog(hWnd, TRUE);
-					break;
-				}
-				case 1:
-				{
-					ShowWindow(hWnd, SW_SHOW);
+					DestroyWindow(g_mainWindow);
 					break;
 				}
 				case IDC_BUTTON2:
 				{
 					InvalidateRect(nullptr, nullptr, true);
+					break;
 				}
 				case IDC_COMBO1:
 				{
@@ -405,7 +534,7 @@ INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPara
 						}
 						if (!SetFlyoutEffect(dwEffect))
 						{
-							ShowBalloonTip(hWnd);
+							ShowBalloonTip(g_mainWindow);
 						}
 					}
 					break;
@@ -427,7 +556,7 @@ INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPara
 						}
 						if (!SetFlyoutBorder(dwBorder))
 						{
-							ShowBalloonTip(hWnd);
+							ShowBalloonTip(g_mainWindow);
 						}
 					}
 					break;
@@ -439,17 +568,17 @@ INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPara
 						DWORD dwColorizeOption = GetCurrentFlyoutColorizeOption();
 						TCHAR szBuffer[MAX_PATH + 1];
 						ComboBox_GetText(GetDlgItem(hWnd, IDC_COMBO3), szBuffer, MAX_PATH);
-						if (!_tcsicmp(szBuffer, TEXT("完全不透明（适用于Win10）")))
+						if (!_tcsicmp(szBuffer, TEXT("不透明")))
 						{
 							dwColorizeOption = 0;
 						}
-						if (!_tcsicmp(szBuffer, TEXT("跟随透明度（适用于Win11）")))
+						if (!_tcsicmp(szBuffer, TEXT("跟随不透明度")))
 						{
 							dwColorizeOption = 1;
 						}
 						if (!SetFlyoutColorizeOption(dwColorizeOption))
 						{
-							ShowBalloonTip(hWnd);
+							ShowBalloonTip(g_mainWindow);
 						}
 					}
 					break;
@@ -479,13 +608,18 @@ INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPara
 				{
 					if (!ClearFlyoutConfig())
 					{
-						ShowBalloonTip(hWnd);
+						ShowBalloonTip(g_mainWindow);
 					}
 					else
 					{
-						ShowBalloonTip(hWnd, _T("已删除旧的配置信息"), _T("设置已更新"), 3000, NIIF_INFO);
+						ShowBalloonTip(g_mainWindow, _T("已删除旧的配置信息\n下一次启动此应用需再次授权"), _T("设置已更新"), 3000, NIIF_INFO);
 					}
 					OnInitDialogItem(hWnd);
+					break;
+				}
+				case IDC_BUTTON3:
+				{
+					DialogBox(g_hInst, MAKEINTRESOURCE(IDD_DIALOG2), hWnd, DialogProc2);
 					break;
 				}
 				case IDC_CHECK4:
@@ -493,19 +627,21 @@ INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPara
 					HKEY hKey = nullptr;
 					if (IsDlgButtonChecked(hWnd, IDC_CHECK4))
 					{
-						TCHAR pszModuleFileName[MAX_PATH];
+						TCHAR pszModuleFileName[MAX_PATH], pszCommandLine[MAX_PATH];
 						GetModuleFileName(NULL, pszModuleFileName, MAX_PATH);
+						_stprintf_s(pszCommandLine, TEXT("\"%s\""), pszModuleFileName);
+						_stprintf_s(pszCommandLine, TEXT("%s /onboot"), pszCommandLine);
 						if (RegOpenKeyEx(HKEY_CURRENT_USER, TEXT("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run"), 0, GENERIC_WRITE | KEY_WOW64_64KEY, &hKey) == ERROR_SUCCESS)
 						{
-							if (RegSetValueEx(hKey, TEXT("TFGUI"), 0, REG_SZ, (LPBYTE)pszModuleFileName, sizeof(pszModuleFileName)) != ERROR_SUCCESS)
+							if (RegSetValueEx(hKey, TEXT("TFGUI"), 0, REG_SZ, (LPBYTE)pszCommandLine, sizeof(pszCommandLine)) != ERROR_SUCCESS)
 							{
-								ShowBalloonTip(hWnd);
+								ShowBalloonTip(g_mainWindow);
 							}
 							RegCloseKey(hKey);
 						}
 						else
 						{
-							ShowBalloonTip(hWnd);
+							ShowBalloonTip(g_mainWindow);
 						}
 					}
 					else
@@ -514,30 +650,79 @@ INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPara
 						{
 							if (RegDeleteValue(hKey, TEXT("TFGUI")) != ERROR_SUCCESS)
 							{
-								ShowBalloonTip(hWnd);
+								ShowBalloonTip(g_mainWindow);
 							}
 							RegCloseKey(hKey);
 						}
 						else
 						{
-							ShowBalloonTip(hWnd);
+							ShowBalloonTip(g_mainWindow);
 						}
 					}
 				}
 				default:
 					break;
 			}
+			FlushSettingsCache();
+			break;
+		}
+		default:
+			return FALSE;
+	}
+	return TRUE;
+}
+
+LRESULT CALLBACK WndProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam)
+{
+	switch (Message)
+	{
+		case WM_CREATE:
+		{
+			TaskbarCreateIcon(hwnd);
+			if (!RegisterHook())
+			{
+				ShowBalloonTip(hwnd);
+			}
+			if (g_showSettingsDialog)
+			{
+				PostMessage(hwnd, WM_TASKBARICON, IDI_ICON1, WM_LBUTTONUP);
+			}
+			break;
+		}
+		case WM_DESTROY:
+		{
+			if (!UnregisterHook())
+			{
+				ShowBalloonTip(hwnd);
+			}
+			TaskbarDestroyIcon(hwnd);
+			PostQuitMessage(0);
+			break;
+		}
+		case WM_TASKBARICON:
+		{
+			if (wParam == IDI_ICON1)
+			{
+				if (lParam == WM_LBUTTONUP)
+				{
+					DialogBox(g_hInst, MAKEINTRESOURCE(IDD_DIALOG1), nullptr, DialogProc);
+				}
+				if (lParam == WM_RBUTTONUP)
+				{
+					ShowMenu(hwnd);
+				}
+			}
 			break;
 		}
 		default:
 			if (Message == WM_TASKBARCREATED)
 			{
-				ShellCreateIcon(hWnd);
-				return TRUE;
+				TaskbarCreateIcon(hwnd);
+				break;
 			}
-			return FALSE;
+			return DefWindowProc(hwnd, Message, wParam, lParam);
 	}
-	return TRUE;
+	return 0;
 }
 
 int APIENTRY _tWinMain(
@@ -552,14 +737,54 @@ int APIENTRY _tWinMain(
 
 	g_hInst = hInstance;
 	OnInitDpiScailing();
+
 	if (!IsHookInstalled())
 	{
-		return (int)DialogBox(hInstance, MAKEINTRESOURCE(IDD_DIALOG1), NULL, DialogProc);
+		g_showSettingsDialog = _tcsstr(lpCmdLine, TEXT("/onboot")) == nullptr;
+		if (!IsUserAgreeLicense())
+		{
+			if (!DialogBoxParam(hInstance, MAKEINTRESOURCE(IDD_DIALOG3), nullptr, DialogProc3, 0))
+			{
+				return -1;
+			}
+			else
+			{
+				UserAgreeLicense();
+			}
+		}
+		//
+		WNDCLASS wc = {};
+		wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
+		wc.hInstance = hInstance;
+		wc.lpszClassName = L"TaskbarIconOwner";
+		wc.lpfnWndProc = WndProc;
+		if (!RegisterClass(&wc))
+		{
+			return -1;
+		}
+		g_mainWindow = CreateWindowEx(
+		                   WS_EX_PALETTEWINDOW | WS_EX_NOACTIVATE | WS_EX_NOREDIRECTIONBITMAP,
+		                   wc.lpszClassName,
+		                   nullptr,
+		                   WS_POPUP,
+		                   0, 0, 0, 0,
+		                   nullptr, nullptr, wc.hInstance, nullptr
+		               );
+		if (!g_mainWindow)
+		{
+			return -1;
+		}
+		MSG msg = {};
+		while (GetMessage(&msg, nullptr, 0, 0))
+		{
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
 	}
 	else
 	{
-		SetLastError(ERROR_ALIAS_EXISTS);
-		ShowBalloonTip(FindWindow(_T("#32770"), _T("TranslucentFlyouts 选项")), _T("如果你需要访问用户界面，请单击系统托盘图标"), _T("实例已存在"), 3000, NIIF_INFO);
+		SetLastError(ERROR_FILE_EXISTS);
+		ShowBalloonTip(g_mainWindow, _T("如果你需要访问用户界面，请单击系统托盘图标"), _T("实例已存在"), 3000, NIIF_INFO);
 		return -1;
 	}
 }

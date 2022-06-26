@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "tflapi.h"
+#include "SettingsHelper.h"
 #include "DebugHelper.h"
 #include "ThemeHelper.h"
 #include "AcrylicHelper.h"
@@ -26,6 +27,10 @@ DetoursHook DeleteDCHook("Gdi32", "DeleteDC", MyDeleteDC);
 DetoursHook DeleteObjectHook("Gdi32", "DeleteObject", MyDeleteObject);
 
 thread_local HWND g_hWnd = nullptr;
+#pragma data_seg("shared")
+Settings g_settings = {};
+#pragma data_seg()
+#pragma comment(linker,"/SECTION:shared,RWS")
 
 void SetCurrentMenuFlyout(HWND hWnd)
 {
@@ -157,7 +162,7 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 	if (
 	    IsAllowTransparent() and
 	    VerifyThemeData(hTheme, TEXT("Tooltip")) and
-	    (GetCurrentFlyoutPolicy() & Tooltip) and
+	    (g_settings.GetPolicy() & Tooltip) and
 	    (
 	        iPartId == TTP_STANDARD or
 	        iPartId == TTP_BALLOON or
@@ -170,7 +175,7 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 		    !VerifyThemeBackgroundTransparency(hTheme, iPartId, iStateId)
 		)
 		{
-			if (!DoBufferedPaint(hdc, &Rect, f, (BYTE)GetCurrentFlyoutOpacity()))
+			if (!DoBufferedPaint(hdc, &Rect, f, (BYTE)g_settings.GetOpacity()))
 			{
 				goto Default;
 			}
@@ -187,7 +192,7 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 	    VerifyThemeData(hTheme, TEXT("Toolbar")) and
 	    (iPartId == 0 and iStateId == 0) and
 	    (
-	        (GetCurrentFlyoutPolicy() & ViewControl) and
+	        (g_settings.GetPolicy() & ViewControl) and
 	        (
 	            IsViewControlFlyout(GetParent(GetWindowFromHDC(hdc))) or
 	            !IsWindow(GetWindowFromHDC(hdc))
@@ -195,7 +200,7 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 	    )
 	)
 	{
-		if (!DoBufferedPaint(hdc, &Rect, f, (BYTE)GetCurrentFlyoutOpacity()))
+		if (!DoBufferedPaint(hdc, &Rect, f, (BYTE)g_settings.GetOpacity()))
 		{
 			goto Default;
 		}
@@ -207,12 +212,12 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 	    (
 	        VerifyThemeData(hTheme, TEXT("Menu")) and
 	        (
-	            (GetCurrentFlyoutPolicy() & PopupMenu) and
+	            (g_settings.GetPolicy() & PopupMenu) and
 	            !IsViewControlFlyout(GetWindowFromHDC(hdc)) and
 	            !IsViewControlFlyout(GetParent(GetWindowFromHDC(hdc)))
 	        ) or
 	        (
-	            (GetCurrentFlyoutPolicy() & ViewControl) and
+	            (g_settings.GetPolicy() & ViewControl) and
 	            (
 	                IsViewControlFlyout(GetWindowFromHDC(hdc)) or
 	                IsViewControlFlyout(GetParent(GetWindowFromHDC(hdc)))
@@ -227,8 +232,8 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 			{
 				SetWindowEffect(
 				    GetCurrentMenuFlyout(),
-				    GetCurrentFlyoutEffect(),
-				    GetCurrentFlyoutBorder()
+				    g_settings.GetEffect(),
+				    g_settings.GetBorder()
 				);
 				SetCurrentMenuFlyout(nullptr);
 			}
@@ -238,7 +243,7 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 		    iPartId == MENU_POPUPBACKGROUND or
 		    iPartId == MENU_POPUPGUTTER or
 		    (
-		        GetCurrentFlyoutColorizeOption() == 0 ?
+		        g_settings.GetColorizeOption() == 0 ?
 		        (iPartId == MENU_POPUPITEM and iStateId != MPI_HOT) :
 		        (iPartId == MENU_POPUPITEM)
 		    ) or
@@ -253,7 +258,7 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 			    )
 			)
 			{
-				if (!DoBufferedPaint(hdc, &Rect, f, (BYTE)GetCurrentFlyoutOpacity(), BPPF_ERASE | (iPartId == MENU_POPUPBORDERS ? BPPF_NONCLIENT : 0UL)))
+				if (!DoBufferedPaint(hdc, &Rect, f, (BYTE)g_settings.GetOpacity(), BPPF_ERASE | (iPartId == MENU_POPUPBORDERS ? BPPF_NONCLIENT : 0UL)))
 				{
 					goto Default;
 				}
@@ -322,9 +327,9 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeTextEx(
 	if (
 	    IsAllowTransparent() and
 	    (
-	        (VerifyThemeData(hTheme, TEXT("Menu")) and GetCurrentFlyoutPolicy() & PopupMenu) or
-	        (VerifyThemeData(hTheme, TEXT("Toolbar")) and GetCurrentFlyoutPolicy() & ViewControl) or
-	        (VerifyThemeData(hTheme, TEXT("Tooltip")) and GetCurrentFlyoutPolicy() & Tooltip)
+	        (VerifyThemeData(hTheme, TEXT("Menu")) and g_settings.GetPolicy() & PopupMenu) or
+	        (VerifyThemeData(hTheme, TEXT("Toolbar")) and g_settings.GetPolicy() & ViewControl) or
+	        (VerifyThemeData(hTheme, TEXT("Tooltip")) and g_settings.GetPolicy() & Tooltip)
 	    ) and
 	    pOptions and
 	    (
@@ -404,9 +409,9 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeText(
 	    IsAllowTransparent() and
 	    pRect and
 	    (
-	        (VerifyThemeData(hTheme, TEXT("Menu")) and GetCurrentFlyoutPolicy() & PopupMenu) or
-	        (VerifyThemeData(hTheme, TEXT("Toolbar")) and GetCurrentFlyoutPolicy() & ViewControl) or
-	        (VerifyThemeData(hTheme, TEXT("Tooltip")) and GetCurrentFlyoutPolicy() & Tooltip)
+	        (VerifyThemeData(hTheme, TEXT("Menu")) and g_settings.GetPolicy() & PopupMenu) or
+	        (VerifyThemeData(hTheme, TEXT("Toolbar")) and g_settings.GetPolicy() & ViewControl) or
+	        (VerifyThemeData(hTheme, TEXT("Tooltip")) and g_settings.GetPolicy() & Tooltip)
 	    )
 	)
 	{
@@ -621,7 +626,7 @@ BOOL WINAPI TranslucentFlyoutsLib::MySetMenuInfo(
 	    (lpMenuInfo->fMask & MIM_BACKGROUND) and
 	    lpMenuInfo->hbrBack and
 	    IsAllowTransparent() and
-	    (GetCurrentFlyoutPolicy() & PopupMenu)
+	    (g_settings.GetPolicy() & PopupMenu)
 	)
 	{
 		PBYTE pvBits = nullptr;
@@ -639,7 +644,7 @@ BOOL WINAPI TranslucentFlyoutsLib::MySetMenuInfo(
 				    GetBValue(dwColor),
 				    GetGValue(dwColor),
 				    GetRValue(dwColor),
-				    (BYTE)GetCurrentFlyoutOpacity()
+				    (BYTE)g_settings.GetOpacity()
 				);
 				// 创建位图画刷
 				// 只有位图画刷才有Alpha值
@@ -696,7 +701,7 @@ BOOL WINAPI TranslucentFlyoutsLib::MySetMenuItemBitmaps(
 {
 	BOOL bResult = FALSE;
 
-	if (IsAllowTransparent() and GetCurrentFlyoutPolicy() & PopupMenu)
+	if (IsAllowTransparent() and g_settings.GetPolicy() & PopupMenu)
 	{
 		PrepareAlpha(hBitmapUnchecked);
 		PrepareAlpha(hBitmapChecked);
@@ -721,7 +726,7 @@ BOOL WINAPI TranslucentFlyoutsLib::MyInsertMenuItemW(
 {
 	BOOL bResult = FALSE;
 
-	if (IsAllowTransparent() and lpmii and (lpmii->fMask & MIIM_CHECKMARKS or lpmii->fMask & MIIM_BITMAP) and GetCurrentFlyoutPolicy() & PopupMenu)
+	if (IsAllowTransparent() and lpmii and (lpmii->fMask & MIIM_CHECKMARKS or lpmii->fMask & MIIM_BITMAP) and g_settings.GetPolicy() & PopupMenu)
 	{
 		PrepareAlpha(lpmii->hbmpItem);
 		PrepareAlpha(lpmii->hbmpUnchecked);
@@ -745,7 +750,7 @@ BOOL WINAPI TranslucentFlyoutsLib::MySetMenuItemInfoW(
 {
 	BOOL bResult = FALSE;
 
-	if (IsAllowTransparent() and lpmii and (lpmii->fMask & MIIM_CHECKMARKS or lpmii->fMask & MIIM_BITMAP) and GetCurrentFlyoutPolicy() & PopupMenu)
+	if (IsAllowTransparent() and lpmii and (lpmii->fMask & MIIM_CHECKMARKS or lpmii->fMask & MIIM_BITMAP) and g_settings.GetPolicy() & PopupMenu)
 	{
 		PrepareAlpha(lpmii->hbmpItem);
 		PrepareAlpha(lpmii->hbmpUnchecked);
@@ -844,16 +849,16 @@ void TranslucentFlyoutsLib::OnWindowsCreated(HWND hWnd)
 {
 	if (IsAllowTransparent())
 	{
-		if (IsPopupMenuFlyout(hWnd) and GetCurrentFlyoutPolicy() & PopupMenu)
+		if (IsPopupMenuFlyout(hWnd) and g_settings.GetPolicy() & PopupMenu)
 		{
 			SetCurrentMenuFlyout(hWnd);
 		}
-		if (IsViewControlFlyout(hWnd) and GetCurrentFlyoutPolicy() & ViewControl)
+		if (IsViewControlFlyout(hWnd) and g_settings.GetPolicy() & ViewControl)
 		{
 			SetWindowEffect(
 			    hWnd,
-			    GetCurrentFlyoutEffect(),
-			    GetCurrentFlyoutBorder()
+			    g_settings.GetEffect(),
+			    g_settings.GetBorder()
 			);
 		}
 	}
@@ -868,12 +873,12 @@ void TranslucentFlyoutsLib::OnWindowShowed(HWND hWnd)
 {
 	if (IsAllowTransparent())
 	{
-		if (IsTooltipFlyout(hWnd) and GetCurrentFlyoutPolicy() & Tooltip)
+		if (IsTooltipFlyout(hWnd) and g_settings.GetPolicy() & Tooltip)
 		{
 			SetWindowEffect(
 			    hWnd,
-			    GetCurrentFlyoutEffect(),
-			    GetCurrentFlyoutBorder()
+			    g_settings.GetEffect(),
+			    g_settings.GetBorder()
 			);
 		}
 	}
