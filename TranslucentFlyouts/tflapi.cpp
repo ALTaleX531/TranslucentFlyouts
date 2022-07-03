@@ -10,7 +10,6 @@ HWINEVENTHOOK g_hHook = nullptr;
 
 using namespace TranslucentFlyoutsLib;
 extern HMODULE g_hModule;
-extern Settings g_settings;
 
 extern "C"
 {
@@ -112,7 +111,7 @@ extern "C"
 
 	DWORD WINAPI GetDefaultFlyoutColorizeOption()
 	{
-		return 0;
+		return Auto;
 	}
 
 	DWORD WINAPI GetDefaultFlyoutPolicy()
@@ -212,7 +211,7 @@ extern "C"
 
 	BOOL WINAPI IsHookInstalled()
 	{
-		return g_hHook != 0;
+		return g_hHook != nullptr;
 	}
 
 	BOOL WINAPI ClearFlyoutConfig()
@@ -249,8 +248,11 @@ extern "C"
 		{
 			WaitForSingleObject(hMutex, INFINITE);
 		}
-		g_settings.Update();
-		ReleaseMutex(hMutex);
-		CloseHandle(hMutex);
+		if (hMutex)
+		{
+			g_settings.Update();
+			ReleaseMutex(hMutex);
+			CloseHandle(hMutex);
+		}
 	}
 }

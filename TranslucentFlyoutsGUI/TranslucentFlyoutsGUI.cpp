@@ -73,17 +73,17 @@ void ShowMenu(HWND hWnd)
 	HMENU hMenu = CreatePopupMenu();
 	POINT Pt = {};
 	GetCursorPos(&Pt);
-	AppendMenu(hMenu, MF_STRING, 1, TEXT("设置(&S)"));
-	AppendMenu(hMenu, MF_STRING, 0, TEXT("退出(&X)"));
+	AppendMenu(hMenu, MF_STRING, 3, TEXT("设置(&S)"));
+	AppendMenu(hMenu, MF_STRING, 2, TEXT("退出(&X)"));
 	SetForegroundWindow(hWnd);
 	switch (TrackPopupMenuEx(hMenu, TPM_NONOTIFY | TPM_RETURNCMD, Pt.x, Pt.y, hWnd, nullptr))
 	{
-		case 0:
+		case 2:
 		{
 			DestroyWindow(hWnd);
 			break;
 		}
-		case 1:
+		case 3:
 		{
 			if (IsWindow(g_settingsWindow))
 			{
@@ -117,20 +117,20 @@ void ShowBalloonTip(HWND hWnd, DWORD dwLastError = GetLastError())
 {
 	if (dwLastError != NO_ERROR)
 	{
-		TCHAR szErrorString[MAX_PATH];
+		TCHAR pszErrorString[MAX_PATH];
 		FormatMessage(
 		    FORMAT_MESSAGE_FROM_SYSTEM |
 		    FORMAT_MESSAGE_IGNORE_INSERTS,
 		    NULL,
 		    GetLastError(),
 		    MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-		    (LPTSTR)&szErrorString,
+		    (LPTSTR)&pszErrorString,
 		    MAX_PATH,
 		    NULL
 		);
 
 		MessageBeep(MB_ICONSTOP);
-		ShowBalloonTip(g_mainWindow, szErrorString, TEXT("出现了一个错误"), 3000, NIIF_ERROR | NIIF_NOSOUND);
+		ShowBalloonTip(g_mainWindow, pszErrorString, TEXT("出现了一个错误"), 3000, NIIF_ERROR | NIIF_NOSOUND);
 	}
 }
 
@@ -213,6 +213,11 @@ void OnInitDialogItem(HWND hWnd)
 			ComboBox_SelectString(hCombobox3, -1, TEXT("跟随不透明度"));
 			break;
 		}
+		case 2:
+		{
+			ComboBox_SelectString(hCombobox3, -1, TEXT("自动计算"));
+			break;
+		}
 		default:
 			break;
 	}
@@ -262,6 +267,7 @@ void OnInitDialog(HWND hWnd)
 	//
 	HICON hIcon = LoadIcon(g_hInst, MAKEINTRESOURCE(IDI_ICON1));
 	SendMessage(hWnd, WM_SETICON, FALSE, (LPARAM)hIcon);
+	DestroyIcon(hIcon);
 	//
 	ComboBox_AddString(hCombobox1, TEXT("无"));
 	ComboBox_AddString(hCombobox1, TEXT("不支持的选项"));
@@ -274,6 +280,7 @@ void OnInitDialog(HWND hWnd)
 	//
 	ComboBox_AddString(hCombobox3, TEXT("跟随不透明度"));
 	ComboBox_AddString(hCombobox3, TEXT("不透明"));
+	ComboBox_AddString(hCombobox3, TEXT("自动计算"));
 	//
 	TCHAR pszStartupName[MAX_PATH];
 	DWORD dwSize = sizeof(pszStartupName);
@@ -319,6 +326,13 @@ INT_PTR CALLBACK DialogProc3(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPar
 {
 	switch (Message)
 	{
+		case WM_INITDIALOG:
+		{
+			HICON hIcon = LoadIcon(g_hInst, MAKEINTRESOURCE(IDI_ICON1));
+			SendMessage(hWnd, WM_SETICON, FALSE, (LPARAM)hIcon);
+			DestroyIcon(hIcon);
+			break;
+		}
 		case WM_NOTIFY:
 		{
 			switch (((LPNMHDR)lParam)->code)
@@ -371,6 +385,9 @@ INT_PTR CALLBACK DialogProc2(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPar
 		{
 			TCHAR pszVersionInfo[MAX_PATH] = {};
 			TCHAR pszLibVersion[MAX_PATH];
+			HICON hIcon = LoadIcon(g_hInst, MAKEINTRESOURCE(IDI_ICON1));
+			SendMessage(hWnd, WM_SETICON, FALSE, (LPARAM)hIcon);
+			DestroyIcon(hIcon);
 			GetVersionString(pszLibVersion, MAX_PATH);
 			_stprintf_s(pszVersionInfo, TEXT("TranslucentFlyoutsLib v%s\nTranslucentFlyoutsGUI v1.0.1"), pszLibVersion);
 			SetWindowText(GetDlgItem(hWnd, IDC_STATIC4), pszVersionInfo);
@@ -477,11 +494,11 @@ INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPara
 				}
 				if (((LPNMHDR)lParam)->idFrom == (UINT_PTR)GetDlgItem(hWnd, IDC_COMBO3))
 				{
-					pInfo->lpszText = (LPTSTR)TEXT("此参数决定弹出菜单鼠标悬停项的主题位图混合方式\r\n这是调用AlphaBlend混合时的不透明度选择方案\r\n建议在Windows 10普通主题下选择不透明增加对比度\r\nWindows 11圆角主题具有缺陷，在较高透明度下视觉效果有瑕疵，建议使用跟随透明度设置");
+					pInfo->lpszText = (LPTSTR)TEXT("此参数决定弹出菜单鼠标悬停项的主题位图AlphaBlend混合方式，即不透明度选择方案\r\n建议在Windows 10普通主题下选择<不透明>增加对比度\r\nWindows 11默认主题黑暗模式下具有缺陷，在较高透明度下视觉效果有瑕疵，建议使用<跟随透明度>设置\r\n但是如果你什么都不知道，就选择<自动计算>");
 				}
 				if (((LPNMHDR)lParam)->idFrom == (UINT_PTR)GetDlgItem(hWnd, IDC_BUTTON1))
 				{
-					pInfo->lpszText = (LPTSTR)TEXT("注意此选项会删除默认的配置信息\r\n但是不影响用户界面选项的设置\r\n即不会影响自启动");
+					pInfo->lpszText = (LPTSTR)TEXT("注意此选项会删除默认的配置信息，清除你对此应用的授权\r\n但是不影响用户界面选项的设置，即不会影响自启动\r\n如果你想停用此应用且不残留信息，点击它我会自动帮你清理掉");
 				}
 				if (((LPNMHDR)lParam)->idFrom == (UINT_PTR)GetDlgItem(hWnd, IDC_CHECK4))
 				{
@@ -575,6 +592,10 @@ INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPara
 						if (!_tcsicmp(szBuffer, TEXT("跟随不透明度")))
 						{
 							dwColorizeOption = 1;
+						}
+						if (!_tcsicmp(szBuffer, TEXT("自动计算")))
+						{
+							dwColorizeOption = 2;
 						}
 						if (!SetFlyoutColorizeOption(dwColorizeOption))
 						{

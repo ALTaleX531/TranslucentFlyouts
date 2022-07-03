@@ -22,6 +22,11 @@ namespace TranslucentFlyoutsLib
 			dwColorizeOption = GetCurrentFlyoutColorizeOption();
 		}
 
+		inline bool IsEnableTextRenderRedirection()
+		{
+			return GetPolicy() != Null;
+		}
+
 		inline BYTE GetOpacity()
 		{
 			return bOpacity;
@@ -47,4 +52,6 @@ namespace TranslucentFlyoutsLib
 			return dwColorizeOption;
 		}
 	};
+
+	extern Settings g_settings;
 }

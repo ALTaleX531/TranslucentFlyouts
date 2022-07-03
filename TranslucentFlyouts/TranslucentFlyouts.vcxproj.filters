@@ -33,16 +33,22 @@
     <ClInclude Include="tflapi.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="WindowsRuntime.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="HookHelper.h">
+    <ClInclude Include="Win32HookHelper.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="DebugHelper.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="SettingsHelper.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="WRHelper.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="WindowsRuntime.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="WRHookHelper.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
@@ -57,6 +63,15 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="tflapi.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="WRHookHelper.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Win32HookHelper.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SettingsHelper.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
