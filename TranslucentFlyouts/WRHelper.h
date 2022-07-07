@@ -83,66 +83,114 @@ namespace TranslucentFlyoutsLib
 		return !_wcsicmp(HStringGetBuffer(instance), lpString);
 	}
 
-	/*static inline void SetAcrylicBrushRaw(
-	    UI::Xaml::Controls::IControl* pControl,
-	    DOUBLE fOpacity,
-	    UI::Color color
-	)
-	{
-		ComPtr<UI::Xaml::Media::IAcrylicBrush> pAcrylicBrush = nullptr;
-		//
-		CreateInstanceWithFactory
-		<UI::Xaml::Media::IAcrylicBrushFactory, UI::Xaml::Media::IAcrylicBrush>
-		(HStringReference(RuntimeClass_Windows_UI_Xaml_Media_AcrylicBrush).Get(), &pAcrylicBrush);
-		//
-		ThrowIfFailed(pAcrylicBrush->put_BackgroundSource(UI::Xaml::Media::AcrylicBackgroundSource_HostBackdrop));
-		ThrowIfFailed(pAcrylicBrush->put_TintOpacity(fOpacity));
-		ThrowIfFailed(pAcrylicBrush->put_TintColor(color));
-		//
-		ThrowIfFailed(pControl->put_Background(winrt_cast<UI::Xaml::Media::IBrush>(pAcrylicBrush).Get()));
-		ThrowIfFailed(pControl->put_BorderBrush(winrt_cast<UI::Xaml::Media::IBrush>(pAcrylicBrush).Get()));
-	}
-	static inline void SetAcrylicBrushRaw(
-	    UI::Xaml::Controls::IPanel *pPanel,
-	    DOUBLE fOpacity,
-	    UI::Color color
-	)
-	{
-		ComPtr<UI::Xaml::Media::IAcrylicBrush> pAcrylicBrush = nullptr;
-		//
-		CreateInstanceWithFactory
-		<UI::Xaml::Media::IAcrylicBrushFactory, UI::Xaml::Media::IAcrylicBrush>
-		(HStringReference(RuntimeClass_Windows_UI_Xaml_Media_AcrylicBrush).Get(), &pAcrylicBrush);
-		//
-		ThrowIfFailed(pAcrylicBrush->put_BackgroundSource(UI::Xaml::Media::AcrylicBackgroundSource_HostBackdrop));
-		ThrowIfFailed(pAcrylicBrush->put_TintOpacity(fOpacity));
-		ThrowIfFailed(pAcrylicBrush->put_TintColor(color));
-		//
-		ThrowIfFailed(pPanel->put_Background(winrt_cast<UI::Xaml::Media::IBrush>(pAcrylicBrush).Get()));
-	}*/
-
 	static inline auto GetAcrylicBrush(
-		DOUBLE fOpacity = 0.f,
-		UI::Color color = {0, 0, 0, 0}
+	    DOUBLE fOpacity = 0.f,
+	UI::Color color = {0, 0, 0, 0}
 	)
 	{
 		ComPtr<UI::Xaml::Media::IAcrylicBrush> pAcrylicBrush = nullptr;
-		//
+		// 简单地初始化一下工厂
 		CreateInstanceWithFactory
-			<UI::Xaml::Media::IAcrylicBrushFactory, UI::Xaml::Media::IAcrylicBrush>
-			(HStringReference(RuntimeClass_Windows_UI_Xaml_Media_AcrylicBrush).Get(), &pAcrylicBrush);
-		//
+		<UI::Xaml::Media::IAcrylicBrushFactory, UI::Xaml::Media::IAcrylicBrush>
+		(HStringReference(RuntimeClass_Windows_UI_Xaml_Media_AcrylicBrush).Get(), &pAcrylicBrush);
+		// 设置合成源为窗口背景
 		ThrowIfFailed(pAcrylicBrush->put_BackgroundSource(UI::Xaml::Media::AcrylicBackgroundSource_HostBackdrop));
-		ThrowIfFailed(pAcrylicBrush->put_TintOpacity(fOpacity));
+		// 设置叠加色
 		ThrowIfFailed(pAcrylicBrush->put_TintColor(color));
+		// 设置叠加色不透明度
+		ThrowIfFailed(pAcrylicBrush->put_TintOpacity(fOpacity));
 		//
 		return winrt_cast<UI::Xaml::Media::IAcrylicBrush>(pAcrylicBrush);
 	}
 
-	static inline void SetAcrylicBrush(
-		UI::Xaml::Controls::IControl *pControl,
+	static inline void SetAcrylicStyle(
+	    UI::Xaml::Controls::IMenuFlyout* pFlyout,
+	    DOUBLE fOpacity = 0.f,
+	    UI::Color color = {0, 0, 0, 0}
+	)
+	{
+		ComPtr<UI::Xaml::IStyle> pStyle;
+		ComPtr<UI::Xaml::ISetter> pSetter;
+		ComPtr<UI::Xaml::ISetterFactory> pSetterFactory;
+		ComPtr<UI::Xaml::IStyleFactory> pStyleFactory;
+		ComPtr<UI::Xaml::ISetterBaseCollection> pSetters;
+		ComPtr<UI::Xaml::IDependencyProperty> pProperty;
+		ComPtr<UI::Xaml::Controls::IControlStatics> pControlStatics;
+		ComPtr<Foundation::Collections::IVector<UI::Xaml::SetterBase *>> pVector;
+		// 简单地初始化一下工厂
+		pControlStatics = GetActivationFactory<UI::Xaml::Controls::IControlStatics>(HStringReference(RuntimeClass_Windows_UI_Xaml_Controls_Control).Get());
+		pSetterFactory = GetActivationFactory<UI::Xaml::ISetterFactory>(HStringReference(RuntimeClass_Windows_UI_Xaml_Setter).Get());
+		pStyleFactory = GetActivationFactory<UI::Xaml::IStyleFactory>(HStringReference(RuntimeClass_Windows_UI_Xaml_Style).Get());
+		// 获取背景属性对象
+		ThrowIfFailed(
+		    pControlStatics->get_BackgroundProperty(&pProperty)
+		);
+		// 创建一个风格样式
+		ThrowIfFailed(pStyleFactory->CreateInstance({HStringReference(RuntimeClass_Windows_UI_Xaml_Controls_MenuFlyoutPresenter).Get(), UI::Xaml::Interop::TypeKind_Primitive}, &pStyle));
+		// 创建一个值为亚克力画刷的设置器
+		ThrowIfFailed(
+		    pSetterFactory->CreateInstance(
+		        pProperty.Get(),
+		        GetAcrylicBrush().Get(),
+		        &pSetter
+		    )
+		);
+		// 获取所有设置器
+		ThrowIfFailed(pStyle->get_Setters(&pSetters));
+		// 转换为Vector来读写
+		pVector = winrt_cast<Foundation::Collections::IVector<UI::Xaml::SetterBase *>>(pSetters);
+		// 追加我们的设置器
+		ThrowIfFailed(pVector->Append(winrt_cast<UI::Xaml::ISetterBase>(pSetter).Get()));
+		// 设置风格样式到浮出菜单
+		ThrowIfFailed(pFlyout->put_MenuFlyoutPresenterStyle(pStyle.Get()));
+	}
+
+	static inline void SetAcrylicStyle(
+		UI::Xaml::Controls::IFlyout *pFlyout,
 		DOUBLE fOpacity = 0.f,
 		UI::Color color = {0, 0, 0, 0}
+	)
+	{
+		ComPtr<UI::Xaml::IStyle> pStyle;
+		ComPtr<UI::Xaml::ISetter> pSetter;
+		ComPtr<UI::Xaml::ISetterFactory> pSetterFactory;
+		ComPtr<UI::Xaml::IStyleFactory> pStyleFactory;
+		ComPtr<UI::Xaml::ISetterBaseCollection> pSetters;
+		ComPtr<UI::Xaml::IDependencyProperty> pProperty;
+		ComPtr<UI::Xaml::Controls::IControlStatics> pControlStatics;
+		ComPtr<Foundation::Collections::IVector<UI::Xaml::SetterBase *>> pVector;
+		// 简单地初始化一下工厂
+		pControlStatics = GetActivationFactory<UI::Xaml::Controls::IControlStatics>(HStringReference(RuntimeClass_Windows_UI_Xaml_Controls_Control).Get());
+		pSetterFactory = GetActivationFactory<UI::Xaml::ISetterFactory>(HStringReference(RuntimeClass_Windows_UI_Xaml_Setter).Get());
+		pStyleFactory = GetActivationFactory<UI::Xaml::IStyleFactory>(HStringReference(RuntimeClass_Windows_UI_Xaml_Style).Get());
+		// 获取背景属性对象
+		ThrowIfFailed(
+			pControlStatics->get_BackgroundProperty(&pProperty)
+		);
+		// 创建一个风格样式
+		ThrowIfFailed(pStyleFactory->CreateInstance({HStringReference(RuntimeClass_Windows_UI_Xaml_Controls_FlyoutPresenter).Get(), UI::Xaml::Interop::TypeKind_Primitive}, &pStyle));
+		// 创建一个值为亚克力画刷的设置器
+		ThrowIfFailed(
+			pSetterFactory->CreateInstance(
+			pProperty.Get(),
+			GetAcrylicBrush().Get(),
+			&pSetter
+		)
+		);
+		// 获取所有设置器
+		ThrowIfFailed(pStyle->get_Setters(&pSetters));
+		// 转换为Vector来读写
+		pVector = winrt_cast<Foundation::Collections::IVector<UI::Xaml::SetterBase *>>(pSetters);
+		// 追加我们的设置器
+		ThrowIfFailed(pVector->Append(winrt_cast<UI::Xaml::ISetterBase>(pSetter).Get()));
+		// 设置风格样式到浮出菜单
+		ThrowIfFailed(pFlyout->put_FlyoutPresenterStyle(pStyle.Get()));
+	}
+
+	static inline void SetAcrylicBrush(
+	    UI::Xaml::Controls::IControl *pControl,
+	    DOUBLE fOpacity = 0.f,
+	    UI::Color color = {0, 0, 0, 0}
 	)
 	{
 		//
@@ -151,9 +199,9 @@ namespace TranslucentFlyoutsLib
 	}
 
 	static inline void SetAcrylicBrush(
-		UI::Xaml::Controls::IPanel *pPanel,
-		DOUBLE fOpacity = 0.f,
-		UI::Color color = {0, 0, 0, 0}
+	    UI::Xaml::Controls::IPanel *pPanel,
+	    DOUBLE fOpacity = 0.f,
+	    UI::Color color = {0, 0, 0, 0}
 	)
 	{
 		//

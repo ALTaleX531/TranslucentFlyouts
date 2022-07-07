@@ -23,7 +23,7 @@
     <ProjectGuid>{97391729-9A04-40B0-9C0F-98FA395127AB}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>TranslucentFlyouts</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>
     <ProjectName>TranslucentFlyoutsLib</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />

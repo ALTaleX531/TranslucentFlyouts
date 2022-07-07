@@ -16,12 +16,12 @@ DetoursHook TranslucentFlyoutsLib::IDesktopWindowXamlSourceNative_AttachToWindow
 DetoursHook TranslucentFlyoutsLib::IDesktopWindowXamlSource_put_ContentHook;
 //
 DetoursHook TranslucentFlyoutsLib::IMenuFlyoutFactory_CreateInstanceHook;
-DetoursHook TranslucentFlyoutsLib::IMenuFlyoutPresenterFactory_CreateInstanceHook;
 DetoursHook TranslucentFlyoutsLib::IMenuFlyoutItemFactory_CreateInstanceHook;
 DetoursHook TranslucentFlyoutsLib::IMenuFlyoutSubItemFactory_ActivateInstanceHook;
 DetoursHook TranslucentFlyoutsLib::IToggleMenuFlyoutItemFactory_CreateInstanceHook;
 DetoursHook TranslucentFlyoutsLib::IMenuBarItemFlyoutFactory_CreateInstanceHook;
 //
+DetoursHook TranslucentFlyoutsLib::ICommandBarFlyoutFactory_CreateInstanceHook;
 DetoursHook TranslucentFlyoutsLib::IAppBarButtonFactory_CreateInstanceHook;
 DetoursHook TranslucentFlyoutsLib::IAppBarToggleButtonFactory_CreateInstanceHook;
 //
@@ -48,16 +48,16 @@ void TranslucentFlyoutsLib::WRHookShutdown()
 	    IDesktopWindowXamlSource_put_ContentHook, // 用于测试
 	    //
 	    IMenuFlyoutFactory_CreateInstanceHook, // 像任务栏右键弹出的主菜单
-	    IMenuFlyoutPresenterFactory_CreateInstanceHook, // 用于设置像任务栏右键弹出的主菜单的背景，但是设置了会崩溃
-	    IMenuFlyoutItemFactory_CreateInstanceHook, // 像任务栏右键弹出的展开菜单项
-	    IMenuFlyoutSubItemFactory_ActivateInstanceHook, // 像任务栏右键弹出的展开子菜单项
+	    IMenuFlyoutItemFactory_CreateInstanceHook, // 像任务栏右键弹出的菜单项
+	    IMenuFlyoutSubItemFactory_ActivateInstanceHook, // 像任务栏右键弹出的子菜单项
 	    IToggleMenuFlyoutItemFactory_CreateInstanceHook, // 菜单栏弹出的展开子菜单项
 	    IMenuBarItemFlyoutFactory_CreateInstanceHook, // 菜单栏弹出的菜单项
 	    //
+	    ICommandBarFlyoutFactory_CreateInstanceHook, // 文件管理器除桌面外的主菜单
 	    IAppBarButtonFactory_CreateInstanceHook, // 文件管理器除桌面外的菜单项
 	    IAppBarToggleButtonFactory_CreateInstanceHook, // 文件管理器除桌面外的展开子菜单项
 	    //
-	    IMenuFlyoutItem_put_TextHook// 用于整活和测试
+	    IMenuFlyoutItem_put_TextHook // 用于整活和测试
 	);
 }
 
@@ -121,22 +121,6 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyRoGetActivationFactory(
 				IMenuFlyoutFactory_CreateInstanceHook.Initialize(((IMenuFlyoutFactory *)pFactory.Get())->lpVtbl->CreateInstance, MyIMenuFlyoutFactory_CreateInstance);
 				Detours::Begin();
 				IMenuFlyoutFactory_CreateInstanceHook.SetHookState();
-				Detours::Commit();
-			}
-			catch (...)
-			{
-			}
-		}
-		if (!IMenuFlyoutPresenterFactory_CreateInstanceHook.IsHookInstalled())
-		{
-			ComPtr<UI::Xaml::Controls::IMenuFlyoutPresenterFactory> pFactory = nullptr;
-			try
-			{
-				pFactory = GetActivationFactory<UI::Xaml::Controls::IMenuFlyoutPresenterFactory>(HStringReference(RuntimeClass_Windows_UI_Xaml_Controls_MenuFlyoutPresenter).Get());
-				//
-				IMenuFlyoutPresenterFactory_CreateInstanceHook.Initialize(((IMenuFlyoutPresenterFactory *)pFactory.Get())->lpVtbl->CreateInstance, MyIMenuFlyoutPresenterFactory_CreateInstance);
-				Detours::Begin();
-				IMenuFlyoutPresenterFactory_CreateInstanceHook.SetHookState();
 				Detours::Commit();
 			}
 			catch (...)
@@ -210,6 +194,22 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyRoGetActivationFactory(
 		//
 		//
 		//
+		if (!ICommandBarFlyoutFactory_CreateInstanceHook.IsHookInstalled())
+		{
+			ComPtr<UI::Xaml::Controls::ICommandBarFlyoutFactory> pFactory = nullptr;
+			try
+			{
+				pFactory = GetActivationFactory<UI::Xaml::Controls::ICommandBarFlyoutFactory>(HStringReference(RuntimeClass_Windows_UI_Xaml_Controls_CommandBarFlyout).Get());
+				//
+				ICommandBarFlyoutFactory_CreateInstanceHook.Initialize(((ICommandBarFlyoutFactory *)pFactory.Get())->lpVtbl->CreateInstance, MyICommandBarFlyoutFactory_CreateInstance);
+				Detours::Begin();
+				ICommandBarFlyoutFactory_CreateInstanceHook.SetHookState();
+				Detours::Commit();
+			}
+			catch (...)
+			{
+			}
+		}
 		if (!IAppBarButtonFactory_CreateInstanceHook.IsHookInstalled())
 		{
 			ComPtr<UI::Xaml::Controls::IAppBarButtonFactory> pFactory = nullptr;
@@ -247,15 +247,15 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyRoGetActivationFactory(
 	return hr;
 }
 
-HRESULT STDMETHODCALLTYPE TranslucentFlyoutsLib::MyIMenuFlyoutPresenterFactory_CreateInstance(
-    IMenuFlyoutPresenterFactory *This,
+HRESULT STDMETHODCALLTYPE TranslucentFlyoutsLib::MyICommandBarFlyoutFactory_CreateInstance(
+    ICommandBarFlyoutFactory *This,
     IInspectable *baseInterface,
     IInspectable **innerInterface,
-    UI::Xaml::Controls::IMenuFlyoutPresenter **value
+    UI::Xaml::Controls::ICommandBarFlyout **value
 )
 {
 	HRESULT hr = S_OK;
-	hr = IMenuFlyoutPresenterFactory_CreateInstanceHook.OldFunction<decltype(MyIMenuFlyoutPresenterFactory_CreateInstance)>(
+	hr = ICommandBarFlyoutFactory_CreateInstanceHook.OldFunction<decltype(MyICommandBarFlyoutFactory_CreateInstance)>(
 	         This,
 	         baseInterface,
 	         innerInterface,
@@ -263,7 +263,15 @@ HRESULT STDMETHODCALLTYPE TranslucentFlyoutsLib::MyIMenuFlyoutPresenterFactory_C
 	     );
 	if (SUCCEEDED(hr))
 	{
-		//DbgPrint(L"MyIMenuFlyoutPresenterFactory_CreateInstance -> invokde");
+		DbgPrint(L"MyICommandBarFlyoutFactory_CreateInstance");
+		/*auto pFlyout = *value;
+		try
+		{
+			SetAcrylicStyle(pFlyout);
+		}
+		catch (...)
+		{
+		}*/
 	}
 	return hr;
 }
@@ -284,11 +292,12 @@ HRESULT STDMETHODCALLTYPE TranslucentFlyoutsLib::MyIAppBarButtonFactory_CreateIn
 	     );
 	if (SUCCEEDED(hr))
 	{
+		DbgPrint(L"MyIAppBarButtonFactory_CreateInstance");
 		auto pItem = *value;
 		try
 		{
 			ComPtr<UI::Xaml::Controls::IControl> pControl = winrt_cast<UI::Xaml::Controls::IControl>(pItem);
-			SetAcrylicBrush(pControl.Get(), 0.f, {0, 0, 0, 0});
+			SetAcrylicBrush(pControl.Get());
 		}
 		catch (...)
 		{
@@ -312,11 +321,12 @@ HRESULT STDMETHODCALLTYPE TranslucentFlyoutsLib::MyIAppBarToggleButtonFactory_Cr
 	     );
 	if (SUCCEEDED(hr))
 	{
+		DbgPrint(L"MyIAppBarToggleButtonFactory_CreateInstance");
 		auto pItem = *value;
 		try
 		{
 			ComPtr<UI::Xaml::Controls::IControl> pControl = winrt_cast<UI::Xaml::Controls::IControl>(pItem);
-			SetAcrylicBrush(pControl.Get(), 0.f, {0, 0, 0, 0});
+			SetAcrylicBrush(pControl.Get());
 		}
 		catch (...)
 		{
@@ -341,67 +351,15 @@ HRESULT STDMETHODCALLTYPE TranslucentFlyoutsLib::MyIMenuFlyoutFactory_CreateInst
 	     );
 	if (SUCCEEDED(hr))
 	{
+		DbgPrint(L"MyIMenuFlyoutFactory_CreateInstance");
 		auto pFlyout = *value;
 		try
 		{
-			/*ComPtr<IInspectable> pInspectable;
-			ComPtr<UI::Xaml::IStyle> pStyle;
-			ComPtr<UI::Xaml::ISetter> pSetter;
-			ComPtr<UI::Xaml::ISetterFactory> pSetterFactory;
-			ComPtr<UI::Xaml::IStyleFactory> pStyleFactory;
-			ComPtr<UI::Xaml::ISetterBaseCollection> pSetters;
-			ComPtr<UI::Xaml::IDependencyProperty> pProperty;
-			ComPtr<UI::Xaml::IDependencyPropertyStatics> pFactory;
-			ComPtr<UI::Xaml::IPropertyMetadata> pMetaData;
-			ComPtr<UI::Xaml::IPropertyMetadataFactory> pMetaDataFactory;
-			ComPtr<Foundation::Collections::IVector<UI::Xaml::SetterBase*>> pVector;
-			//
-			pMetaDataFactory = GetActivationFactory<UI::Xaml::IPropertyMetadataFactory>(HStringReference(RuntimeClass_Windows_UI_Xaml_PropertyMetadata).Get());
-			pSetterFactory = GetActivationFactory<UI::Xaml::ISetterFactory>(HStringReference(RuntimeClass_Windows_UI_Xaml_Setter).Get());
-			pFactory = GetActivationFactory<UI::Xaml::IDependencyPropertyStatics>(HStringReference(RuntimeClass_Windows_UI_Xaml_DependencyProperty).Get());
-			//
-			pStyleFactory = GetActivationFactory<UI::Xaml::IStyleFactory>(HStringReference(RuntimeClass_Windows_UI_Xaml_Style).Get());
-			ThrowIfFailed(
-			    pMetaDataFactory->CreateInstanceWithDefaultValue(
-			        nullptr,
-			        nullptr,
-			        &pInspectable,
-			        &pMetaData
-			    )
-			);
-			DbgPrint(L"ready to register dependency obj");
-			ThrowIfFailed(
-			    pFactory->Register(
-			        HStringReference(L"Background").Get(),
-			{HStringReference(RuntimeClass_Windows_UI_Xaml_Media_Brush).Get(), UI::Xaml::Interop::TypeKind_Custom},
-			{HStringReference(RuntimeClass_Windows_UI_Xaml_Controls_MenuFlyoutPresenter).Get(), UI::Xaml::Interop::TypeKind_Custom},
-			pMetaData.Get(),
-			&pProperty
-			    )
-			);
-			//
-			DbgPrint(L"ready to create setter");
-			ThrowIfFailed(
-			    pSetterFactory->CreateInstance(
-			        pProperty.Get(),
-			        GetAcrylicBrush().Get(),
-			        &pSetter
-			    )
-			);
-			DbgPrint(L"ready to create style");
-			ThrowIfFailed(pStyleFactory->CreateInstance({HStringReference(RuntimeClass_Windows_UI_Xaml_Controls_MenuFlyoutPresenter).Get(), UI::Xaml::Interop::TypeKind_Custom}, &pStyle));
-			//
-			ThrowIfFailed(pStyle->get_Setters(&pSetters));
-			DbgPrint(L"ready to cast setter");
-			pVector = winrt_cast<Foundation::Collections::IVector<UI::Xaml::SetterBase*>>(pSetters);
-			DbgPrint(L"ready to append");
-			ThrowIfFailed(pVector->Append(winrt_cast<UI::Xaml::ISetterBase>(pSetter).Get()));
-			DbgPrint(L"ready to set style");
-			ThrowIfFailed(winrt_cast<UI::Xaml::Controls::IMenuFlyout>(pFlyout)->put_MenuFlyoutPresenterStyle(pStyle.Get()));*/
-			//winrt_cast<UI::Xaml::Controls::Primitives::IFlyoutBase>(pFlyout)->
-			//winrt_cast<UI::Xaml::Controls::Primitives::IFlyoutBase>(pFlyout)->put_Placement(UI::Xaml::Controls::Primitives::FlyoutPlacementMode_Left);
+			SetAcrylicStyle(pFlyout);
 		}
-		catch (...) {}
+		catch (...)
+		{
+		}
 	}
 	return hr;
 }
@@ -418,11 +376,12 @@ HRESULT STDMETHODCALLTYPE TranslucentFlyoutsLib::MyIMenuFlyoutSubItemFactory_Act
 	     );
 	if (SUCCEEDED(hr))
 	{
+		DbgPrint(L"MyIMenuFlyoutSubItemFactory_ActivateInstance");
 		auto pItem = *instance;
 		try
 		{
 			ComPtr<UI::Xaml::Controls::IControl> pControl = winrt_cast<UI::Xaml::Controls::IControl>(pItem);
-			SetAcrylicBrush(pControl.Get(), 0.f, {0, 0, 0, 0});
+			SetAcrylicBrush(pControl.Get());
 		}
 		catch (...)
 		{
@@ -447,11 +406,12 @@ HRESULT STDMETHODCALLTYPE TranslucentFlyoutsLib::MyIMenuFlyoutItemFactory_Create
 	     );
 	if (SUCCEEDED(hr))
 	{
+		DbgPrint(L"MyIMenuFlyoutItemFactory_CreateInstance");
 		auto pItem = *value;
 		try
 		{
 			ComPtr<UI::Xaml::Controls::IControl> pControl = winrt_cast<UI::Xaml::Controls::IControl>(pItem);
-			SetAcrylicBrush(pControl.Get(), 0.f, {0, 0, 0, 0});
+			SetAcrylicBrush(pControl.Get());
 		}
 		catch (...)
 		{
@@ -485,11 +445,12 @@ HRESULT STDMETHODCALLTYPE TranslucentFlyoutsLib::MyIToggleMenuFlyoutItemFactory_
 	     );
 	if (SUCCEEDED(hr))
 	{
+		DbgPrint(L"MyIToggleMenuFlyoutItemFactory_CreateInstance");
 		auto pItem = *value;
 		try
 		{
 			ComPtr<UI::Xaml::Controls::IControl> pControl = winrt_cast<UI::Xaml::Controls::IControl>(pItem);
-			SetAcrylicBrush(pControl.Get(), 0.f, {0, 0, 0, 0});
+			SetAcrylicBrush(pControl.Get());
 		}
 		catch (...)
 		{
@@ -518,8 +479,8 @@ HRESULT STDMETHODCALLTYPE TranslucentFlyoutsLib::MyIMenuBarItemFlyoutFactory_Cre
 		auto pItem = *value;
 		try
 		{
-			ComPtr<UI::Xaml::Controls::IControl> pControl = winrt_cast<UI::Xaml::Controls::IControl>(pItem);
-			SetAcrylicBrush(pControl.Get(), 0.f, {0, 0, 0, 0});
+			ComPtr<UI::Xaml::Controls::IMenuFlyout> pFlyout = winrt_cast<UI::Xaml::Controls::IMenuFlyout>(pItem);
+			SetAcrylicStyle(pFlyout.Get());
 		}
 		catch (...)
 		{
@@ -625,6 +586,8 @@ HRESULT STDMETHODCALLTYPE TranslucentFlyoutsLib::MyIDesktopWindowXamlSource_put_
 	     );
 	if (SUCCEEDED(hr))
 	{
+		ComPtr<UI::Xaml::Hosting::IElementCompositionPreviewStatics> pCompositionPreview;
+
 		try
 		{
 			ComPtr<UI::Xaml::Controls::IPanel> pPanel = winrt_cast<UI::Xaml::Controls::IPanel>(value);

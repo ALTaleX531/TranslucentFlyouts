@@ -144,6 +144,16 @@ namespace TranslucentFlyoutsLib
 	        UI::Xaml::Controls::IMenuBarItemFlyout **value
 	    );
 	);
+	//
+	DEFINE_WINRT_OBJ(
+	    ICommandBarFlyoutFactory,
+	    HRESULT(STDMETHODCALLTYPE *CreateInstance)(
+	        ICommandBarFlyoutFactory *This,
+	        IInspectable *baseInterface,
+	        IInspectable **innerInterface,
+	        UI::Xaml::Controls::ICommandBarFlyout **value
+	    );
+	);
 	DEFINE_WINRT_OBJ(
 	    IAppBarButtonFactory,
 	    HRESULT(STDMETHODCALLTYPE *CreateInstance)(
@@ -173,17 +183,6 @@ namespace TranslucentFlyoutsLib
 	        HSTRING value
 	    );
 	);
-
-	DEFINE_WINRT_OBJ(
-	    IMenuFlyoutPresenterFactory,
-	    HRESULT(STDMETHODCALLTYPE *CreateInstance)(
-	        IMenuFlyoutPresenterFactory *This,
-	        IInspectable *baseInterface,
-	        IInspectable **innerInterface,
-	        UI::Xaml::Controls::IMenuFlyoutPresenter **value
-	    );
-	);
-
 
 	DEFINE_WINRT_OBJ(
 	    IDesktopWindowXamlSourceFactory,
@@ -218,14 +217,8 @@ namespace TranslucentFlyoutsLib
 	    HWND parentWnd
 	);
 	//
-	extern HRESULT STDMETHODCALLTYPE MyIMenuFlyoutPresenterFactory_CreateInstance(
-		IMenuFlyoutPresenterFactory *This,
-		IInspectable *baseInterface,
-		IInspectable **innerInterface,
-		UI::Xaml::Controls::IMenuFlyoutPresenter **value
-	);
 	extern HRESULT STDMETHODCALLTYPE MyIMenuFlyoutFactory_CreateInstance(
-		UI::Xaml::Controls::IMenuFlyoutFactory *This,
+	    UI::Xaml::Controls::IMenuFlyoutFactory *This,
 	    IInspectable *baseInterface,
 	    IInspectable **innerInterface,
 	    UI::Xaml::Controls::IMenuFlyout **value
@@ -247,20 +240,26 @@ namespace TranslucentFlyoutsLib
 	    UI::Xaml::Controls::IToggleMenuFlyoutItem **value
 	);
 	//
-	HRESULT STDMETHODCALLTYPE MyIMenuBarItemFlyoutFactory_CreateInstance(
+	extern HRESULT STDMETHODCALLTYPE MyIMenuBarItemFlyoutFactory_CreateInstance(
 	    IMenuBarItemFlyoutFactory *This,
 	    IInspectable *baseInterface,
 	    IInspectable **innerInterface,
 	    UI::Xaml::Controls::IMenuBarItemFlyout **value
 	);
 	//
-	HRESULT STDMETHODCALLTYPE MyIAppBarButtonFactory_CreateInstance(
+	extern HRESULT STDMETHODCALLTYPE MyICommandBarFlyoutFactory_CreateInstance(
+	    ICommandBarFlyoutFactory *This,
+	    IInspectable *baseInterface,
+	    IInspectable **innerInterface,
+	    UI::Xaml::Controls::ICommandBarFlyout **value
+	);
+	extern HRESULT STDMETHODCALLTYPE MyIAppBarButtonFactory_CreateInstance(
 	    IAppBarButtonFactory *This,
 	    IInspectable *baseInterface,
 	    IInspectable **innerInterface,
 	    UI::Xaml::Controls::IAppBarButton **value
 	);
-	HRESULT STDMETHODCALLTYPE MyIAppBarToggleButtonFactory_CreateInstance(
+	extern HRESULT STDMETHODCALLTYPE MyIAppBarToggleButtonFactory_CreateInstance(
 	    IAppBarToggleButtonFactory *This,
 	    IInspectable *baseInterface,
 	    IInspectable **innerInterface,
@@ -279,18 +278,17 @@ namespace TranslucentFlyoutsLib
 	extern DetoursHook IDesktopWindowXamlSourceNative_AttachToWindowHook;
 	extern DetoursHook IDesktopWindowXamlSource_put_ContentHook;
 	//
-	extern DetoursHook IMenuFlyoutPresenterFactory_CreateInstanceHook;
 	extern DetoursHook IMenuFlyoutFactory_CreateInstanceHook;
 	extern DetoursHook IMenuFlyoutItemFactory_CreateInstanceHook;
 	extern DetoursHook IMenuFlyoutSubItemFactory_ActivateInstanceHook;
 	extern DetoursHook IToggleMenuFlyoutItemFactory_CreateInstanceHook;
 	extern DetoursHook IMenuBarItemFlyoutFactory_CreateInstanceHook;
 	//
+	extern DetoursHook ICommandBarFlyoutFactory_CreateInstanceHook;
 	extern DetoursHook IAppBarButtonFactory_CreateInstanceHook;
 	extern DetoursHook IAppBarToggleButtonFactory_CreateInstanceHook;
 	//
 	extern DetoursHook IMenuFlyoutItem_put_TextHook;
-	extern DetoursHook IControl_put_BackgroundHook;
 	//
 	extern void WRHookStartup();
 	extern void WRHookShutdown();
