@@ -793,7 +793,16 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam)
 			{
 				if (lParam == WM_LBUTTONUP)
 				{
-					DialogBox(g_hInst, MAKEINTRESOURCE(IDD_DIALOG1), nullptr, DialogProc);
+					if (IsWindow(g_settingsWindow))
+					{
+						FlashWindow(g_settingsWindow, TRUE);
+						ShowWindow(g_settingsWindow, SW_SHOWNORMAL);
+						SetActiveWindow(g_settingsWindow);
+					}
+					else
+					{
+						DialogBox(g_hInst, MAKEINTRESOURCE(IDD_DIALOG1), nullptr, DialogProc);
+					}
 				}
 				if (lParam == WM_RBUTTONUP)
 				{
