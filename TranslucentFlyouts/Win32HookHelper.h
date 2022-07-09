@@ -49,16 +49,6 @@ namespace TranslucentFlyoutsLib
 	    UINT             format,
 	    LPDRAWTEXTPARAMS lpdtp
 	);
-	extern BOOL WINAPI MyExtTextOutW(
-	    HDC        hdc,
-	    int        x,
-	    int        y,
-	    UINT       options,
-	    const RECT *lprect,
-	    LPCWSTR    lpString,
-	    UINT       c,
-	    const INT  *lpDx
-	);
 	extern BOOL WINAPI MySetMenuInfo(
 	    HMENU hMenu,
 	    LPCMENUINFO lpMenuInfo
@@ -93,7 +83,6 @@ namespace TranslucentFlyoutsLib
 	extern DetoursHook DrawThemeTextHook;
 	extern DetoursHook DrawTextWHook;
 	extern DetoursHook DrawTextExWHook;
-	extern DetoursHook ExtTextOutWHook;
 	// Õº±Í–ﬁ∏¥
 	extern DetoursHook SetMenuInfoHook;
 	extern DetoursHook SetMenuItemBitmapsHook;

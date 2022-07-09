@@ -26,7 +26,6 @@ DetoursHook TranslucentFlyoutsLib::DrawThemeTextExHook("Uxtheme", "DrawThemeText
 DetoursHook TranslucentFlyoutsLib::DrawThemeTextHook("Uxtheme", "DrawThemeText", MyDrawThemeText);
 DetoursHook TranslucentFlyoutsLib::DrawTextWHook("User32", "DrawTextW", MyDrawTextW);
 DetoursHook TranslucentFlyoutsLib::DrawTextExWHook("User32", "DrawTextExW", MyDrawTextExW);
-DetoursHook TranslucentFlyoutsLib::ExtTextOutWHook("Gdi32", "ExtTextOutW", MyExtTextOutW);
 // Õº±Í–ﬁ∏¥
 DetoursHook TranslucentFlyoutsLib::SetMenuInfoHook("User32", "SetMenuInfo", MySetMenuInfo);
 DetoursHook TranslucentFlyoutsLib::SetMenuItemBitmapsHook("User32", "SetMenuItemBitmaps", MySetMenuItemBitmaps);
@@ -46,7 +45,6 @@ void TranslucentFlyoutsLib::Win32HookStartup()
 		DrawThemeTextHook,
 		DrawTextWHook,
 		DrawTextExWHook,
-		ExtTextOutWHook,
 		SetMenuInfoHook,
 		SetMenuItemBitmapsHook,
 		InsertMenuItemWHook,
@@ -66,7 +64,6 @@ void TranslucentFlyoutsLib::Win32HookShutdown()
 		DrawThemeTextHook,
 		DrawTextWHook,
 		DrawTextExWHook,
-		ExtTextOutWHook,
 		SetMenuInfoHook,
 		SetMenuItemBitmapsHook,
 		InsertMenuItemWHook,
@@ -550,76 +547,6 @@ Default:
 		lpdtp
 		);
 	return nResult;
-}
-
-BOOL WINAPI TranslucentFlyoutsLib::MyExtTextOutW(
-	HDC        hdc,
-	int        x,
-	int        y,
-	UINT       options,
-	const RECT *lprect,
-	LPCWSTR    lpString,
-	UINT       c,
-	const INT *lpDx
-)
-{
-	BOOL bResult = FALSE;
-
-	if (
-		lpDx == nullptr and
-		!(options | ETO_GLYPH_INDEX) and
-		IsAllowTransparent() and
-		g_settings.IsEnableTextRenderRedirection() and
-		(
-		!VerifyCaller(TEXT("Gdi32")) and
-		!VerifyCaller(TEXT("Gdi32full"))
-		)
-		)
-	{
-		RECT Rect = {};
-		if ((options | ETO_OPAQUE or options | ETO_CLIPPED) and lprect)
-		{
-			Rect = *lprect;
-		}
-		else
-		{
-			DrawText(
-				hdc,
-				lpString,
-				c,
-				&Rect,
-				DT_LEFT | DT_TOP | DT_SINGLELINE | DT_CALCRECT
-			);
-		}
-
-		DTTOPTS Options = {sizeof(DTTOPTS)};
-		HTHEME hTheme = OpenThemeData(nullptr, TEXT("Menu"));
-		Options.dwFlags = DTT_TEXTCOLOR;
-		Options.crText = GetTextColor(hdc);
-
-		if (hTheme)
-		{
-			DrawThemeTextEx(hTheme, hdc, 0, 0, lpString, c, DT_LEFT | DT_TOP | DT_SINGLELINE, &Rect, &Options);
-			CloseThemeData(hTheme);
-		}
-	}
-	else
-	{
-		goto Default;
-	}
-	return bResult;
-Default:
-	bResult = ExtTextOutWHook.OldFunction<decltype(MyExtTextOutW)>(
-		hdc,
-		x,
-		y,
-		options,
-		lprect,
-		lpString,
-		c,
-		lpDx
-		);
-	return bResult;
 }
 
 BOOL WINAPI TranslucentFlyoutsLib::MySetMenuInfo(
