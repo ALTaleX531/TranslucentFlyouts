@@ -425,7 +425,7 @@ INT_PTR CALLBACK DialogProc2(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPar
 			SendMessage(hWnd, WM_SETICON, FALSE, (LPARAM)hIcon);
 			DestroyIcon(hIcon);
 			GetVersionString(pszLibVersion, MAX_PATH);
-			_stprintf_s(pszVersionInfo, TEXT("TranslucentFlyoutsLib v%s\nTranslucentFlyoutsGUI v1.0.1"), pszLibVersion);
+			_stprintf_s(pszVersionInfo, TEXT("TranslucentFlyoutsLib v%s\nTranslucentFlyoutsGUI v1.0.2"), pszLibVersion);
 			SetWindowText(GetDlgItem(hWnd, IDC_STATIC4), pszVersionInfo);
 			break;
 		}
