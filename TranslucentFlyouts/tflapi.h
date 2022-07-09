@@ -19,6 +19,13 @@ enum FlyoutPolicy
 	ViewControl = 1 << 2,
 };
 
+enum FlyoutColorizeOption
+{
+	Opaque,
+	Opacity,
+	Auto
+};
+
 TFLAPI BOOL WINAPI RegisterHook();
 TFLAPI BOOL WINAPI UnregisterHook();
 

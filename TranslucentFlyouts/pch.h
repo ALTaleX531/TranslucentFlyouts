@@ -13,7 +13,7 @@
 #include <windowsx.h>
 #include <CommCtrl.h>
 #include <VersionHelpers.h>
-// WRL
+// Windows Runtime
 #include "WindowsRuntime.h"
 // Theme
 #include <Uxtheme.h>

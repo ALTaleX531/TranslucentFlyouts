@@ -9,6 +9,7 @@
 
 namespace TranslucentFlyoutsLib
 {
+	static bool bBatchState = false;
 	class Detours
 	{
 	public:
@@ -28,16 +29,22 @@ namespace TranslucentFlyoutsLib
 		{
 			DetourTransactionCommit();
 		}
+		void Initialize(PVOID OldAddr, PVOID NewAddr)
+		{
+			pvOldAddr = OldAddr;
+			pvNewAddr = NewAddr;
+		}
 
 		template <typename... Args>
-		static void Batch(Args&&... args)
+		static void Batch(BOOL bBatchState, Args&&... args)
 		{
+			::bBatchState = bBatchState;
 			Batch(std::forward<Args>(args)...);
 		}
 		template <typename T, typename... Args>
 		static void Batch(T& t, Args&&... args)
 		{
-			t.SetHookState();
+			t.SetHookState(bBatchState);
 			Batch(args...);
 		}
 		static void Batch() {}
@@ -68,12 +75,12 @@ namespace TranslucentFlyoutsLib
 			{
 				bHookState = !bHookInstalled;
 			}
-			if (bHookState == TRUE)
+			if (bHookState == TRUE and !bHookInstalled)
 			{
-				DetourAttach(&(PVOID&)pvOldAddr, pvNewAddr);
+				DetourAttach(&(PVOID &)pvOldAddr, pvNewAddr);
 				bHookInstalled = true;
 			}
-			else
+			else if (bHookState == FALSE and bHookInstalled)
 			{
 				DetourDetach(&(PVOID&)pvOldAddr, pvNewAddr);
 				bHookInstalled = false;
@@ -95,6 +102,12 @@ namespace TranslucentFlyoutsLib
 	{
 		HMODULE hModule = DetourGetContainingModule(pvCaller);
 		return hModule == GetModuleHandle(pszCallerModuleName);
+	}
+
+	static inline bool VerifyCaller(PVOID pvModule, PVOID pvCaller = _ReturnAddress())
+	{
+		HMODULE hModule = DetourGetContainingModule(pvCaller);
+		return hModule == pvModule;
 	}
 
 	static inline bool VerifyProcessModule(LPCTSTR pszTargetModuleName)
