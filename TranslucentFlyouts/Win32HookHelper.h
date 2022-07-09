@@ -1,5 +1,6 @@
 #pragma once
 #include "pch.h"
+#include "DetoursHelper.h"
 
 namespace TranslucentFlyoutsLib
 {
@@ -48,16 +49,6 @@ namespace TranslucentFlyoutsLib
 	    UINT             format,
 	    LPDRAWTEXTPARAMS lpdtp
 	);
-	extern BOOL WINAPI MyExtTextOutW(
-	    HDC        hdc,
-	    int        x,
-	    int        y,
-	    UINT       options,
-	    const RECT *lprect,
-	    LPCWSTR    lpString,
-	    UINT       c,
-	    const INT  *lpDx
-	);
 	extern BOOL WINAPI MySetMenuInfo(
 	    HMENU hMenu,
 	    LPCMENUINFO lpMenuInfo
@@ -84,10 +75,24 @@ namespace TranslucentFlyoutsLib
 	extern HDC WINAPI MyCreateCompatibleDC(HDC hdc);
 	extern BOOL WINAPI MyDeleteDC(HDC hdc);
 	extern BOOL WINAPI MyDeleteObject(HGDIOBJ ho);
-	extern void CALLBACK HandleWinEvent(
-	    HWINEVENTHOOK hWinEventHook, DWORD dwEvent, HWND hWnd,
-	    LONG idObject, LONG idChild,
-	    DWORD dwEventThread, DWORD dwmsEventTime
-	);
-	extern LRESULT CALLBACK SubclassProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
+	//
+	// 透明化处理
+	extern DetoursHook DrawThemeBackgroundHook;
+	// 文字渲染
+	extern DetoursHook DrawThemeTextExHook;
+	extern DetoursHook DrawThemeTextHook;
+	extern DetoursHook DrawTextWHook;
+	extern DetoursHook DrawTextExWHook;
+	// 图标修复
+	extern DetoursHook SetMenuInfoHook;
+	extern DetoursHook SetMenuItemBitmapsHook;
+	extern DetoursHook InsertMenuItemWHook;
+	extern DetoursHook SetMenuItemInfoWHook;
+	// 窗口句柄的记录
+	extern DetoursHook CreateCompatibleDCHook;
+	extern DetoursHook DeleteDCHook;
+	extern DetoursHook DeleteObjectHook;
+	//
+	extern void Win32HookStartup();
+	extern void Win32HookShutdown();
 };

@@ -94,11 +94,6 @@ namespace TranslucentFlyoutsLib
 		return VerifyWindowClass(hWnd, TOOLTIPS_CLASS, TRUE);
 	}
 
-	static inline bool IsEnableTextRenderRedirection()
-	{
-		return GetCurrentFlyoutPolicy() != Null;
-	}
-
 	static inline void Clear(HDC hdc, LPCRECT lpRect)
 	{
 		PatBlt(
