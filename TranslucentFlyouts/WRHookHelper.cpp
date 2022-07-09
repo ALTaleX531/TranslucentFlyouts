@@ -1,3 +1,8 @@
+//		!!!IMPORTANT!!!
+//
+//		THIS FILE IS UNDER TESTING!!! WHICH IS NOT RESPONSIBLE FOR THE STABILITY!!!
+//
+//		!!!IMPORTANT!!!
 #include "pch.h"
 #include "SettingsHelper.h"
 #include "DebugHelper.h"
@@ -29,16 +34,16 @@ DetoursHook TranslucentFlyoutsLib::IMenuFlyoutItem_put_TextHook;
 
 void TranslucentFlyoutsLib::WRHookStartup()
 {
-	Detours::Batch(
+	/*Detours::Batch(
 	    TRUE,
 	    RoGetActivationFactoryHook,
 	    RoActivateInstanceHook
-	);
+	);*/
 }
 
 void TranslucentFlyoutsLib::WRHookShutdown()
 {
-	Detours::Batch(
+	/*Detours::Batch(
 	    FALSE,
 	    RoGetActivationFactoryHook,
 	    RoActivateInstanceHook, // Reserved
@@ -58,10 +63,10 @@ void TranslucentFlyoutsLib::WRHookShutdown()
 	    IAppBarToggleButtonFactory_CreateInstanceHook, // 文件管理器除桌面外的展开子菜单项
 	    //
 	    IMenuFlyoutItem_put_TextHook // 用于整活和测试
-	);
+	);*/
 }
 
-// This function is nearly deprecated, there is no need to hook this function at all
+// This function is nearly deprecated, it is actually no need to hook this function at all
 HRESULT WINAPI TranslucentFlyoutsLib::MyRoActivateInstance(
     HSTRING      activatableClassId,
     IInspectable **instance
@@ -417,14 +422,14 @@ HRESULT STDMETHODCALLTYPE TranslucentFlyoutsLib::MyIMenuFlyoutItemFactory_Create
 		{
 		}
 		//
-		if (!IMenuFlyoutItem_put_TextHook.IsHookInstalled())
+		/*if (!IMenuFlyoutItem_put_TextHook.IsHookInstalled())
 		{
 			DbgPrint(L"IMenuFlyoutItem_put_Text -> Hooked");
 			IMenuFlyoutItem_put_TextHook.Initialize(((IMenuFlyoutItem *)pItem)->lpVtbl->put_Text, MyIMenuFlyoutItem_put_Text);
 			Detours::Begin();
 			IMenuFlyoutItem_put_TextHook.SetHookState();
 			Detours::Commit();
-		}
+		}*/
 	}
 	return hr;
 }
@@ -489,7 +494,7 @@ HRESULT STDMETHODCALLTYPE TranslucentFlyoutsLib::MyIMenuBarItemFlyoutFactory_Cre
 	return hr;
 }
 
-HRESULT STDMETHODCALLTYPE TranslucentFlyoutsLib::MyIMenuFlyoutItem_put_Text(
+/*HRESULT STDMETHODCALLTYPE TranslucentFlyoutsLib::MyIMenuFlyoutItem_put_Text(
     UI::Xaml::Controls::IMenuFlyoutItem *This,
     HSTRING value
 )
@@ -500,7 +505,7 @@ HRESULT STDMETHODCALLTYPE TranslucentFlyoutsLib::MyIMenuFlyoutItem_put_Text(
 	         HStringReference(L"maple真可爱！").Get()
 	     );
 	return hr;
-}
+}*/
 
 HRESULT STDMETHODCALLTYPE TranslucentFlyoutsLib::MyIDesktopWindowXamlSourceFactory_CreateInstance(
     IInspectable *baseInterface,
@@ -586,11 +591,18 @@ HRESULT STDMETHODCALLTYPE TranslucentFlyoutsLib::MyIDesktopWindowXamlSource_put_
 	     );
 	if (SUCCEEDED(hr))
 	{
-		ComPtr<UI::Xaml::Hosting::IElementCompositionPreviewStatics> pCompositionPreview;
-
 		try
 		{
+			ComPtr<UI::Composition::ICompositor> pCompositor;
+			ComPtr<UI::Composition::ISpriteVisual> pVisual;
+			ComPtr<UI::Composition::ICompositionColorBrush> pBrush;
+			ComPtr<UI::Xaml::Hosting::IElementCompositionPreviewStatics> pCompositionPreview = GetActivationFactory<UI::Xaml::Hosting::IElementCompositionPreviewStatics>(HStringReference(RuntimeClass_Windows_UI_Xaml_Hosting_ElementCompositionPreview).Get());
 			ComPtr<UI::Xaml::Controls::IPanel> pPanel = winrt_cast<UI::Xaml::Controls::IPanel>(value);
+			ActivateInstanceWithFactory(HStringReference(RuntimeClass_Windows_UI_Composition_Compositor).Get(), &pCompositor);
+			ThrowIfFailed(pCompositor->CreateSpriteVisual(&pVisual));
+			ThrowIfFailed(pCompositor->CreateColorBrushWithColor({255, 255, 0, 0}, &pBrush));
+			ThrowIfFailed(pVisual->put_Brush(winrt_cast<UI::Composition::ICompositionBrush>(pBrush).Get()));
+			ThrowIfFailed(pCompositionPreview->SetElementChildVisual(value, winrt_cast<UI::Composition::IVisual>(pVisual).Get()));
 			SetAcrylicBrush(pPanel.Get(), 0.f, {0, 0, 0, 0});
 		}
 		catch (...) {}

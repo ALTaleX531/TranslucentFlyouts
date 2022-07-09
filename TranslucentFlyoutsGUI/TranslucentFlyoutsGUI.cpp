@@ -28,6 +28,30 @@ const UINT WM_TASKBARCREATED = RegisterWindowMessage(TEXT("TaskbarCreated"));
 INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK WndProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam);
 
+TCHAR pszAcrylic[MAX_PATH] = TEXT("亚克力模糊");
+TCHAR pszAero[MAX_PATH] = TEXT("模糊");
+TCHAR pszTransparent[MAX_PATH] = TEXT("透明");
+TCHAR pszReserved[MAX_PATH] = TEXT("不支持");
+TCHAR pszNone[MAX_PATH] = TEXT("无");
+TCHAR pszShadow[MAX_PATH] = TEXT("额外的阴影");
+TCHAR pszOpaque[MAX_PATH] = TEXT("不透明");
+TCHAR pszFollow[MAX_PATH] = TEXT("跟随不透明度");
+TCHAR pszAuto[MAX_PATH] = TEXT("自动计算");
+
+void OnInitString()
+{
+	LoadString(g_hInst, IDS_AB, pszAcrylic, MAX_PATH);
+	LoadString(g_hInst, IDS_AERO, pszAero, MAX_PATH);
+	LoadString(g_hInst, IDS_TRANS, pszTransparent, MAX_PATH);
+	LoadString(g_hInst, IDS_RESERVED, pszReserved, MAX_PATH);
+	LoadString(g_hInst, IDS_NONE, pszNone, MAX_PATH);
+	LoadString(g_hInst, IDS_SHD, pszShadow, MAX_PATH);
+	LoadString(g_hInst, IDS_OPAC, pszOpaque, MAX_PATH);
+	LoadString(g_hInst, IDS_FO, pszFollow, MAX_PATH);
+	LoadString(g_hInst, IDS_AC, pszAuto, MAX_PATH);
+}
+
+
 void OnInitDpiScailing()
 {
 	static const auto pfnSetProcessDpiAwarenessContext = (BOOL(WINAPI*)(int*))GetProcAddress(GetModuleHandle(TEXT("User32")), "SetProcessDpiAwarenessContext");
@@ -70,11 +94,18 @@ HWND AssociateTooltip(HWND hwnd, int nDlgItemId)
 
 void ShowMenu(HWND hWnd)
 {
+	TCHAR pszSettings[MAX_PATH] = TEXT("设置(&S)");
+	TCHAR pszExit[MAX_PATH] = TEXT("退出(&X)");
+	if (GetUserDefaultUILanguage() != MAKELANGID(LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED))
+	{
+		LoadString(g_hInst, IDS_MENUSETTINGS, pszSettings, MAX_PATH);
+		LoadString(g_hInst, IDS_MENUEXIT, pszExit, MAX_PATH);
+	}
 	HMENU hMenu = CreatePopupMenu();
 	POINT Pt = {};
 	GetCursorPos(&Pt);
-	AppendMenu(hMenu, MF_STRING, 3, TEXT("设置(&S)"));
-	AppendMenu(hMenu, MF_STRING, 2, TEXT("退出(&X)"));
+	AppendMenu(hMenu, MF_STRING, 3, pszSettings);
+	AppendMenu(hMenu, MF_STRING, 2, pszExit);
 	SetForegroundWindow(hWnd);
 	switch (TrackPopupMenuEx(hMenu, TPM_NONOTIFY | TPM_RETURNCMD, Pt.x, Pt.y, hWnd, nullptr))
 	{
@@ -117,7 +148,7 @@ void ShowBalloonTip(HWND hWnd, DWORD dwLastError = GetLastError())
 {
 	if (dwLastError != NO_ERROR)
 	{
-		TCHAR pszErrorString[MAX_PATH];
+		TCHAR pszErrorString[MAX_PATH], pszErrorCaptionText[MAX_PATH] = TEXT("出现了一个错误");
 		FormatMessage(
 		    FORMAT_MESSAGE_FROM_SYSTEM |
 		    FORMAT_MESSAGE_IGNORE_INSERTS,
@@ -130,7 +161,11 @@ void ShowBalloonTip(HWND hWnd, DWORD dwLastError = GetLastError())
 		);
 
 		MessageBeep(MB_ICONSTOP);
-		ShowBalloonTip(g_mainWindow, pszErrorString, TEXT("出现了一个错误"), 3000, NIIF_ERROR | NIIF_NOSOUND);
+		if (GetUserDefaultUILanguage() != MAKELANGID(LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED))
+		{
+			LoadString(g_hInst, IDS_ERROR, pszErrorCaptionText, MAX_PATH);
+		}
+		ShowBalloonTip(g_mainWindow, pszErrorString, pszErrorCaptionText, 3000, NIIF_ERROR | NIIF_NOSOUND);
 	}
 }
 
@@ -158,27 +193,27 @@ void OnInitDialogItem(HWND hWnd)
 	{
 		case 0:
 		{
-			ComboBox_SelectString(hCombobox1, -1, TEXT("无"));
+			ComboBox_SelectString(hCombobox1, -1, pszNone);
 			break;
 		}
 		case 1:
 		{
-			ComboBox_SelectString(hCombobox1, -1, TEXT("不支持的选项"));
+			ComboBox_SelectString(hCombobox1, -1, pszReserved);
 			break;
 		}
 		case 2:
 		{
-			ComboBox_SelectString(hCombobox1, -1, TEXT("Transparent"));
+			ComboBox_SelectString(hCombobox1, -1, pszTransparent);
 			break;
 		}
 		case 3:
 		{
-			ComboBox_SelectString(hCombobox1, -1, TEXT("Aero"));
+			ComboBox_SelectString(hCombobox1, -1, pszAero);
 			break;
 		}
 		case 4:
 		{
-			ComboBox_SelectString(hCombobox1, -1, TEXT("Acrylic Blur"));
+			ComboBox_SelectString(hCombobox1, -1, pszAcrylic);
 			break;
 		}
 		default:
@@ -189,12 +224,12 @@ void OnInitDialogItem(HWND hWnd)
 	{
 		case 0:
 		{
-			ComboBox_SelectString(hCombobox2, -1, TEXT("无"));
+			ComboBox_SelectString(hCombobox2, -1, pszNone);
 			break;
 		}
 		case 1:
 		{
-			ComboBox_SelectString(hCombobox2, -1, TEXT("额外的阴影"));
+			ComboBox_SelectString(hCombobox2, -1, pszShadow);
 			break;
 		}
 		default:
@@ -205,17 +240,17 @@ void OnInitDialogItem(HWND hWnd)
 	{
 		case 0:
 		{
-			ComboBox_SelectString(hCombobox3, -1, TEXT("不透明"));
+			ComboBox_SelectString(hCombobox3, -1, pszOpaque);
 			break;
 		}
 		case 1:
 		{
-			ComboBox_SelectString(hCombobox3, -1, TEXT("跟随不透明度"));
+			ComboBox_SelectString(hCombobox3, -1, pszFollow);
 			break;
 		}
 		case 2:
 		{
-			ComboBox_SelectString(hCombobox3, -1, TEXT("自动计算"));
+			ComboBox_SelectString(hCombobox3, -1, pszAuto);
 			break;
 		}
 		default:
@@ -251,6 +286,7 @@ void OnInitDialogItem(HWND hWnd)
 void OnInitDialog(HWND hWnd)
 {
 	g_settingsWindow = hWnd;
+	OnInitString();
 	//
 	HWND hCombobox1 = GetDlgItem(hWnd, IDC_COMBO1);
 	HWND hCombobox2 = GetDlgItem(hWnd, IDC_COMBO2);
@@ -269,18 +305,18 @@ void OnInitDialog(HWND hWnd)
 	SendMessage(hWnd, WM_SETICON, FALSE, (LPARAM)hIcon);
 	DestroyIcon(hIcon);
 	//
-	ComboBox_AddString(hCombobox1, TEXT("无"));
-	ComboBox_AddString(hCombobox1, TEXT("不支持的选项"));
-	ComboBox_AddString(hCombobox1, TEXT("Transparent"));
-	ComboBox_AddString(hCombobox1, TEXT("Aero"));
-	ComboBox_AddString(hCombobox1, TEXT("Acrylic Blur"));
+	ComboBox_AddString(hCombobox1, pszAcrylic);
+	ComboBox_AddString(hCombobox1, pszAero);
+	ComboBox_AddString(hCombobox1, pszTransparent);
+	ComboBox_AddString(hCombobox1, pszNone);
+	ComboBox_AddString(hCombobox1, pszReserved);
 	//
-	ComboBox_AddString(hCombobox2, TEXT("无"));
-	ComboBox_AddString(hCombobox2, TEXT("额外的阴影"));
+	ComboBox_AddString(hCombobox2, pszShadow);
+	ComboBox_AddString(hCombobox2, pszNone);
 	//
-	ComboBox_AddString(hCombobox3, TEXT("跟随不透明度"));
-	ComboBox_AddString(hCombobox3, TEXT("不透明"));
-	ComboBox_AddString(hCombobox3, TEXT("自动计算"));
+	ComboBox_AddString(hCombobox3, pszAuto);
+	ComboBox_AddString(hCombobox3, pszOpaque);
+	ComboBox_AddString(hCombobox3, pszFollow);
 	//
 	TCHAR pszStartupName[MAX_PATH];
 	DWORD dwSize = sizeof(pszStartupName);
@@ -443,7 +479,14 @@ INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPara
 		}
 		case WM_CLOSE:
 		{
-			ShowBalloonTip(g_mainWindow, _T("如果要退出，请右键系统托盘图标"), _T("已最小化至系统托盘"), 3000, NIIF_INFO);
+			TCHAR pszNoticeText[MAX_PATH] = _T("如果要退出，请右键系统托盘图标");
+			TCHAR pszNotice[MAX_PATH] = _T("已最小化至系统托盘");
+			if (GetUserDefaultUILanguage() != MAKELANGID(LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED))
+			{
+				LoadString(g_hInst, IDS_EXIT, pszNotice, MAX_PATH);
+				LoadString(g_hInst, IDS_EXITTEXT, pszNoticeText, MAX_PATH);
+			}
+			ShowBalloonTip(g_mainWindow, pszNoticeText, pszNotice, 3000, NIIF_INFO);
 			EndDialog(hWnd, TRUE);
 			break;
 		}
@@ -471,6 +514,23 @@ INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPara
 		}
 		case WM_NOTIFY:
 		{
+			TCHAR pszEffectTip[512] = TEXT("此参数决定对弹出窗口应用的特效\n如使用亚克力模糊作为背景\n我们推荐使用<亚克力模糊>");
+			TCHAR pszOpacityTip[512] = TEXT("当前不透明度：");
+			TCHAR pszOpacity2Tip[512] = TEXT("此参数决定弹出窗口的不透明度\n此值越高，越不透明(Opaque)，窗口背后的内容可见度越低，反之亦然\n只有渲染完全不透明的主题位图会受此影响，正常情况下不应也不需要设置为255或0");
+			TCHAR pszBorderTip[512] = TEXT("此参数决定弹出窗口是否具有一个额外的边框或是阴影\n当窗口被设置特效时，边框也会被同步添加到窗口\n当使用高透明度设置时，这对于增强视觉对比度十分有用\n");
+			TCHAR pszColorizeOptionTip[512] = TEXT("此参数决定弹出菜单鼠标悬停项的主题位图AlphaBlend混合方式，即不透明度选择方案\n通常情况下选择<不透明>增加对比度，但Windows 11默认主题黑暗模式下具有缺陷\n其在较高透明度下菜单项会又一层黑边，所以推荐使用<跟随透明度>设置\n但是如果你什么都不知道，就选择<自动计算(Auto)>");
+			TCHAR pszResetTip[512] = TEXT("注意此选项会删除默认的配置信息，清除你对此应用的授权\n但是不影响用户界面选项的设置，即不会影响自启动\n如果你想停用此应用且不残留信息，点击它我会自动帮你清理掉");
+			TCHAR pszAutoRunTip[512] = TEXT("该选项会让你开机时运行此程序\n但如果你需要以管理员权限自启动，请在计划任务处添加自启动任务\n而不是在此处设置自启动，该处设置与计划任务保持独立");
+			if (GetUserDefaultUILanguage() != MAKELANGID(LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED))
+			{
+				LoadString(g_hInst, IDS_EFFECT, pszEffectTip, 512);
+				LoadString(g_hInst, IDS_OPACITY1, pszOpacityTip, 512);
+				LoadString(g_hInst, IDS_OPACITY2, pszOpacity2Tip, 512);
+				LoadString(g_hInst, IDS_BORDER, pszBorderTip, 512);
+				LoadString(g_hInst, IDS_COPTION, pszColorizeOptionTip, 512);
+				LoadString(g_hInst, IDS_RESET, pszResetTip, 512);
+				LoadString(g_hInst, IDS_AUTORUN, pszAutoRunTip, 512);
+			}
 			if (((LPNMHDR)lParam)->code == TTN_GETDISPINFO)
 			{
 				LPNMTTDISPINFO pInfo = (LPNMTTDISPINFO)lParam;
@@ -479,30 +539,30 @@ INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPara
 				SendMessage(pInfo->hdr.hwndFrom, TTM_SETDELAYTIME, TTDT_AUTOPOP, MAKELPARAM(30000, 0));
 				if (((LPNMHDR)lParam)->idFrom == (UINT_PTR)GetDlgItem(hWnd, IDC_COMBO1))
 				{
-					pInfo->lpszText = (LPTSTR)TEXT("此参数决定对弹出窗口应用的特效\r\n如使用Acrylic Blur背景为亚克力模糊\r\n当窗口第一次渲染时设置特效");
+					pInfo->lpszText = (LPTSTR)pszEffectTip;
 				}
 				if (((LPNMHDR)lParam)->idFrom == (UINT_PTR)GetDlgItem(hWnd, IDC_COMBO2))
 				{
-					pInfo->lpszText = (LPTSTR)TEXT("此参数决定弹出窗口是否具有一个额外的边框或者说阴影\r\n当窗口被设置特效时，边框也会被同步添加到窗口\r\n当使用高透明度设置时，这对于增强视觉对比度十分有用\r\n");
+					pInfo->lpszText = (LPTSTR)pszBorderTip;
 				}
 				if (((LPNMHDR)lParam)->idFrom == (UINT_PTR)GetDlgItem(hWnd, IDC_SLIDER1))
 				{
-					TCHAR lpText[MAX_PATH] = {};
-					_stprintf_s(lpText, TEXT("当前不透明度：%d/255\r\n"), GetCurrentFlyoutOpacity());
-					_stprintf_s(lpText, TEXT("%s%s"), lpText, TEXT("此参数决定弹出窗口的不透明度\r\n此值越高，越不透明，窗口背后的内容可见度越低，反之亦然\r\n只有渲染完全不透明的主题位图会受此影响，正常情况下不应也不需要设置为255或0"));
+					TCHAR lpText[1024] = {};
+					_stprintf_s(lpText, TEXT("%s%d/255\n"), pszOpacityTip, GetCurrentFlyoutOpacity());
+					_stprintf_s(lpText, TEXT("%s%s"), lpText, pszOpacity2Tip);
 					pInfo->lpszText = (LPTSTR)lpText;
 				}
 				if (((LPNMHDR)lParam)->idFrom == (UINT_PTR)GetDlgItem(hWnd, IDC_COMBO3))
 				{
-					pInfo->lpszText = (LPTSTR)TEXT("此参数决定弹出菜单鼠标悬停项的主题位图AlphaBlend混合方式，即不透明度选择方案\r\n建议在Windows 10普通主题下选择<不透明>增加对比度\r\nWindows 11默认主题黑暗模式下具有缺陷，在较高透明度下视觉效果有瑕疵，建议使用<跟随透明度>设置\r\n但是如果你什么都不知道，就选择<自动计算>");
+					pInfo->lpszText = (LPTSTR)pszColorizeOptionTip;
 				}
 				if (((LPNMHDR)lParam)->idFrom == (UINT_PTR)GetDlgItem(hWnd, IDC_BUTTON1))
 				{
-					pInfo->lpszText = (LPTSTR)TEXT("注意此选项会删除默认的配置信息，清除你对此应用的授权\r\n但是不影响用户界面选项的设置，即不会影响自启动\r\n如果你想停用此应用且不残留信息，点击它我会自动帮你清理掉");
+					pInfo->lpszText = (LPTSTR)pszResetTip;
 				}
 				if (((LPNMHDR)lParam)->idFrom == (UINT_PTR)GetDlgItem(hWnd, IDC_CHECK4))
 				{
-					pInfo->lpszText = (LPTSTR)TEXT("该选项会让你开机时运行此程序\n但如果你需要以管理员权限自启动，请在计划任务处添加自启动任务\n而不是在此处设置自启动，该处设置与计划任务保持独立");
+					pInfo->lpszText = (LPTSTR)pszAutoRunTip;
 				}
 			}
 			break;
@@ -529,23 +589,23 @@ INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPara
 						DWORD dwEffect = GetCurrentFlyoutEffect();
 						TCHAR szBuffer[MAX_PATH + 1];
 						ComboBox_GetText(GetDlgItem(hWnd, IDC_COMBO1), szBuffer, MAX_PATH);
-						if (!_tcsicmp(szBuffer, TEXT("无")))
+						if (!_tcsicmp(szBuffer, pszNone))
 						{
 							dwEffect = 0;
 						}
-						if (!_tcsicmp(szBuffer, TEXT("不支持的选项")))
+						if (!_tcsicmp(szBuffer, pszReserved))
 						{
 							dwEffect = 1;
 						}
-						if (!_tcsicmp(szBuffer, TEXT("Transparent")))
+						if (!_tcsicmp(szBuffer, pszTransparent))
 						{
 							dwEffect = 2;
 						}
-						if (!_tcsicmp(szBuffer, TEXT("Aero")))
+						if (!_tcsicmp(szBuffer, pszAero))
 						{
 							dwEffect = 3;
 						}
-						if (!_tcsicmp(szBuffer, TEXT("Acrylic Blur")))
+						if (!_tcsicmp(szBuffer, pszAcrylic))
 						{
 							dwEffect = 4;
 						}
@@ -563,11 +623,11 @@ INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPara
 						DWORD dwBorder = GetCurrentFlyoutBorder();
 						TCHAR szBuffer[MAX_PATH + 1];
 						ComboBox_GetText(GetDlgItem(hWnd, IDC_COMBO2), szBuffer, MAX_PATH);
-						if (!_tcsicmp(szBuffer, TEXT("无")))
+						if (!_tcsicmp(szBuffer, pszNone))
 						{
 							dwBorder = 0;
 						}
-						if (!_tcsicmp(szBuffer, TEXT("额外的阴影")))
+						if (!_tcsicmp(szBuffer, pszShadow))
 						{
 							dwBorder = 1;
 						}
@@ -585,15 +645,15 @@ INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPara
 						DWORD dwColorizeOption = GetCurrentFlyoutColorizeOption();
 						TCHAR szBuffer[MAX_PATH + 1];
 						ComboBox_GetText(GetDlgItem(hWnd, IDC_COMBO3), szBuffer, MAX_PATH);
-						if (!_tcsicmp(szBuffer, TEXT("不透明")))
+						if (!_tcsicmp(szBuffer, pszOpaque))
 						{
 							dwColorizeOption = 0;
 						}
-						if (!_tcsicmp(szBuffer, TEXT("跟随不透明度")))
+						if (!_tcsicmp(szBuffer, pszFollow))
 						{
 							dwColorizeOption = 1;
 						}
-						if (!_tcsicmp(szBuffer, TEXT("自动计算")))
+						if (!_tcsicmp(szBuffer, pszAuto))
 						{
 							dwColorizeOption = 2;
 						}
@@ -633,7 +693,14 @@ INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPara
 					}
 					else
 					{
-						ShowBalloonTip(g_mainWindow, _T("已删除旧的配置信息\n下一次启动此应用需再次授权"), _T("设置已更新"), 3000, NIIF_INFO);
+						TCHAR pszUpdateText[MAX_PATH] = _T("已删除旧的配置信息\n下一次启动此应用需再次授权");
+						TCHAR pszUpdate[MAX_PATH] = _T("设置已更新");
+						if (GetUserDefaultUILanguage() != MAKELANGID(LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED))
+						{
+							LoadString(g_hInst, IDS_UPDATE, pszUpdate, MAX_PATH);
+							LoadString(g_hInst, IDS_UPDATETEXT, pszUpdateText, MAX_PATH);
+						}
+						ShowBalloonTip(g_mainWindow, pszUpdateText, pszUpdate, 3000, NIIF_INFO);
 					}
 					OnInitDialogItem(hWnd);
 					break;
@@ -759,25 +826,29 @@ int APIENTRY _tWinMain(
 	g_hInst = hInstance;
 	OnInitDpiScailing();
 
+	if (GetUserDefaultUILanguage() != MAKELANGID(LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED))
+	{
+		SetThreadUILanguage(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US));
+	}
+	if (!IsUserAgreeLicense())
+	{
+		if (!DialogBoxParam(hInstance, MAKEINTRESOURCE(IDD_DIALOG3), nullptr, DialogProc3, 0))
+		{
+			return -1;
+		}
+		else
+		{
+			UserAgreeLicense();
+		}
+	}
 	if (!IsHookInstalled())
 	{
 		g_showSettingsDialog = _tcsstr(lpCmdLine, TEXT("/onboot")) == nullptr;
-		if (!IsUserAgreeLicense())
-		{
-			if (!DialogBoxParam(hInstance, MAKEINTRESOURCE(IDD_DIALOG3), nullptr, DialogProc3, 0))
-			{
-				return -1;
-			}
-			else
-			{
-				UserAgreeLicense();
-			}
-		}
-		//
+
 		WNDCLASS wc = {};
 		wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
 		wc.hInstance = hInstance;
-		wc.lpszClassName = L"TaskbarIconOwner";
+		wc.lpszClassName = L"TranslucentFlyoutsHostWindow";
 		wc.lpfnWndProc = WndProc;
 		if (!RegisterClass(&wc))
 		{
@@ -805,7 +876,10 @@ int APIENTRY _tWinMain(
 	else
 	{
 		SetLastError(ERROR_FILE_EXISTS);
-		ShowBalloonTip(g_mainWindow, _T("如果你需要访问用户界面，请单击系统托盘图标"), _T("实例已存在"), 3000, NIIF_INFO);
+		TCHAR pszCaption[MAX_PATH], pszText[MAX_PATH];
+		LoadString(hInstance, IDS_INSTEXIST, pszCaption, MAX_PATH);
+		LoadString(hInstance, IDS_INSTEXISTTEXT, pszText, MAX_PATH);
+		ShowBalloonTip(g_mainWindow, pszText, pszCaption, 3000, NIIF_INFO);
 		return -1;
 	}
 }
