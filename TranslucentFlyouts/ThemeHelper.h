@@ -148,45 +148,57 @@ namespace TranslucentFlyoutsLib
 
 	static void PrepareAlpha(HBITMAP hBitmap)
 	{
+		if (!hBitmap)
+		{
+			return;
+		}
+
+		if (GetObjectType(hBitmap) != OBJ_BITMAP)
+		{
+			return;
+		}
+
 		HDC hdc = CreateCompatibleDC(nullptr);
 		BITMAPINFO BitmapInfo = {sizeof(BitmapInfo.bmiHeader)};
 
 		if (hdc)
 		{
-			if (GetDIBits(hdc, hBitmap, 0, 0, nullptr, &BitmapInfo, DIB_RGB_COLORS))
+			if (GetDIBits(hdc, hBitmap, 0, 0, nullptr, &BitmapInfo, DIB_RGB_COLORS) and BitmapInfo.bmiHeader.biBitCount == 32)
 			{
-				BYTE *pvBits = new BYTE[BitmapInfo.bmiHeader.biSizeImage];
-
 				BitmapInfo.bmiHeader.biCompression = BI_RGB;
-				BitmapInfo.bmiHeader.biBitCount = 32;
 
-				if (pvBits and GetDIBits(hdc, hBitmap, 0, BitmapInfo.bmiHeader.biHeight, (LPVOID)pvBits, &BitmapInfo, DIB_RGB_COLORS))
+				BYTE *pvBits = new(std::nothrow) BYTE[BitmapInfo.bmiHeader.biSizeImage];
+
+				if (pvBits)
 				{
-					bool bHasAlpha = false;
-
-					for (UINT i = 0; i < BitmapInfo.bmiHeader.biSizeImage; i += 4)
+					if (GetDIBits(hdc, hBitmap, 0, BitmapInfo.bmiHeader.biHeight, (LPVOID)pvBits, &BitmapInfo, DIB_RGB_COLORS))
 					{
-						if (pvBits[i + 3] != 0)
-						{
-							bHasAlpha = true;
-							break;
-						}
-					}
+						bool bHasAlpha = false;
 
-					if (!bHasAlpha)
-					{
 						for (UINT i = 0; i < BitmapInfo.bmiHeader.biSizeImage; i += 4)
 						{
-							pvBits[i] = (pvBits[i] * 256) >> 8;
-							pvBits[i + 1] = (pvBits[i + 1] * 256) >> 8;
-							pvBits[i + 2] = (pvBits[i + 2] * 256) >> 8;
-							pvBits[i + 3] = 255;
+							if (pvBits[i + 3] != 0)
+							{
+								bHasAlpha = true;
+								break;
+							}
 						}
-					}
 
-					SetDIBits(hdc, hBitmap, 0, BitmapInfo.bmiHeader.biHeight, pvBits, &BitmapInfo, DIB_RGB_COLORS);
+						if (!bHasAlpha)
+						{
+							for (UINT i = 0; i < BitmapInfo.bmiHeader.biSizeImage; i += 4)
+							{
+								pvBits[i] = (pvBits[i] * 256) >> 8;
+								pvBits[i + 1] = (pvBits[i + 1] * 256) >> 8;
+								pvBits[i + 2] = (pvBits[i + 2] * 256) >> 8;
+								pvBits[i + 3] = 255;
+							}
+						}
+
+						SetDIBits(hdc, hBitmap, 0, BitmapInfo.bmiHeader.biHeight, pvBits, &BitmapInfo, DIB_RGB_COLORS);
+					}
+					delete[] pvBits;
 				}
-				delete[] pvBits;
 			}
 			DeleteDC(hdc);
 		}

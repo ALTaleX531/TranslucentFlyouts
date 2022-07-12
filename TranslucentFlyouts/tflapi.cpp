@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "tflapi.h"
-#include "SettingsHelper.h"
+//#include "SettingsHelper.h"
 #include "TranslucentFlyoutsLib.h"
 
 #pragma data_seg("shared")
@@ -238,7 +238,7 @@ extern "C"
 
 	VOID WINAPI FlushSettingsCache()
 	{
-		TCHAR pszMutexName[] = TEXT("Local\\FlushSettingsCache");
+		/*TCHAR pszMutexName[] = TEXT("Local\\FlushSettingsCache");
 		HANDLE hMutex = OpenMutex(SYNCHRONIZE, FALSE, pszMutexName);
 		if (!hMutex)
 		{
@@ -253,6 +253,6 @@ extern "C"
 			g_settings.Update();
 			ReleaseMutex(hMutex);
 			CloseHandle(hMutex);
-		}
+		}*/
 	}
 }

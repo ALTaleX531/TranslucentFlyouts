@@ -159,7 +159,6 @@
     <ClInclude Include="AcrylicHelper.h" />
     <ClInclude Include="DebugHelper.h" />
     <ClInclude Include="Win32HookHelper.h" />
-    <ClInclude Include="SettingsHelper.h" />
     <ClInclude Include="DetoursHelper.h" />
     <ClInclude Include="tflapi.h" />
     <ClInclude Include="TranslucentFlyoutsLib.h" />
@@ -171,7 +170,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp" />
-    <ClCompile Include="SettingsHelper.cpp" />
     <ClCompile Include="tflapi.cpp" />
     <ClCompile Include="TranslucentFlyoutsLib.cpp" />
     <ClCompile Include="pch.cpp">

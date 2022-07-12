@@ -40,15 +40,18 @@ TCHAR pszAuto[MAX_PATH] = TEXT("自动计算");
 
 void OnInitString()
 {
-	LoadString(g_hInst, IDS_AB, pszAcrylic, MAX_PATH);
-	LoadString(g_hInst, IDS_AERO, pszAero, MAX_PATH);
-	LoadString(g_hInst, IDS_TRANS, pszTransparent, MAX_PATH);
-	LoadString(g_hInst, IDS_RESERVED, pszReserved, MAX_PATH);
-	LoadString(g_hInst, IDS_NONE, pszNone, MAX_PATH);
-	LoadString(g_hInst, IDS_SHD, pszShadow, MAX_PATH);
-	LoadString(g_hInst, IDS_OPAC, pszOpaque, MAX_PATH);
-	LoadString(g_hInst, IDS_FO, pszFollow, MAX_PATH);
-	LoadString(g_hInst, IDS_AC, pszAuto, MAX_PATH);
+	if (GetUserDefaultUILanguage() != MAKELANGID(LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED))
+	{
+		LoadString(g_hInst, IDS_AB, pszAcrylic, MAX_PATH);
+		LoadString(g_hInst, IDS_AERO, pszAero, MAX_PATH);
+		LoadString(g_hInst, IDS_TRANS, pszTransparent, MAX_PATH);
+		LoadString(g_hInst, IDS_RESERVED, pszReserved, MAX_PATH);
+		LoadString(g_hInst, IDS_NONE, pszNone, MAX_PATH);
+		LoadString(g_hInst, IDS_SHD, pszShadow, MAX_PATH);
+		LoadString(g_hInst, IDS_OPAC, pszOpaque, MAX_PATH);
+		LoadString(g_hInst, IDS_FO, pszFollow, MAX_PATH);
+		LoadString(g_hInst, IDS_AC, pszAuto, MAX_PATH);
+	}
 }
 
 

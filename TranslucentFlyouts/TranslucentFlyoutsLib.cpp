@@ -1,12 +1,13 @@
 #include "pch.h"
-#include "SettingsHelper.h"
+#include "tflapi.h"
+//#include "SettingsHelper.h"
 #include "ThemeHelper.h"
 #include "AcrylicHelper.h"
 #include "TranslucentFlyoutsLib.h"
 
 using namespace TranslucentFlyoutsLib;
 extern HMODULE g_hModule;
-extern void SetCurrentMenuFlyout(HWND hWnd);
+extern HWND g_hWnd;
 
 void TranslucentFlyoutsLib::Startup()
 {
@@ -75,16 +76,16 @@ void TranslucentFlyoutsLib::OnWindowsCreated(HWND hWnd)
 {
 	if (IsAllowTransparent())
 	{
-		if (IsPopupMenuFlyout(hWnd) and g_settings.GetPolicy() & PopupMenu)
+		if (IsPopupMenuFlyout(hWnd) and GetCurrentFlyoutPolicy() & PopupMenu)
 		{
-			SetCurrentMenuFlyout(hWnd);
+			g_hWnd = hWnd;
 		}
-		if (IsViewControlFlyout(hWnd) and g_settings.GetPolicy() & ViewControl)
+		if (IsViewControlFlyout(hWnd) and GetCurrentFlyoutPolicy() & ViewControl)
 		{
 			SetWindowEffect(
 			    hWnd,
-			    g_settings.GetEffect(),
-			    g_settings.GetBorder()
+			    GetCurrentFlyoutEffect(),
+			    GetCurrentFlyoutBorder()
 			);
 		}
 	}
@@ -99,12 +100,12 @@ void TranslucentFlyoutsLib::OnWindowShowed(HWND hWnd)
 {
 	if (IsAllowTransparent())
 	{
-		if (IsTooltipFlyout(hWnd) and g_settings.GetPolicy() & Tooltip)
+		if (IsTooltipFlyout(hWnd) and GetCurrentFlyoutPolicy() & Tooltip)
 		{
 			SetWindowEffect(
 			    hWnd,
-			    g_settings.GetEffect(),
-			    g_settings.GetBorder()
+				GetCurrentFlyoutEffect(),
+				GetCurrentFlyoutBorder()
 			);
 		}
 	}

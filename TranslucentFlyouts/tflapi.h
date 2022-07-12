@@ -50,7 +50,9 @@ TFLAPI BOOL WINAPI SetFlyoutPolicy(DWORD dwPolicy);
 TFLAPI BOOL WINAPI IsHookInstalled();
 TFLAPI BOOL WINAPI ClearFlyoutConfig();
 TFLAPI VOID WINAPI GetVersionString(LPWSTR pszClassName, const int cchClassName);
+// !!!DEPRECATED!!!
 TFLAPI VOID WINAPI FlushSettingsCache();
+// !!!DEPRECATED!!!
 
 #ifdef __cplusplus
 }

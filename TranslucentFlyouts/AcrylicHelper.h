@@ -91,7 +91,7 @@ namespace TranslucentFlyoutsLib
 		        "SetWindowCompositionAttribute"
 		    );
 
-		ACCENT_POLICY policy = {static_cast<ACCENT_STATE>(dwEffect), bBorderOption ? ACCENT_ALL_BORDER : ACCENT_NONE_BORDER, 0x1, 0};
+		ACCENT_POLICY policy = {static_cast<ACCENT_STATE>(dwEffect), bBorderOption ? ACCENT_ALL_BORDER : ACCENT_NONE_BORDER, 0x01000000, 0};
 		WINDOWCOMPOSITIONATTRIBUTEDATA data = {WCA_ACCENT_POLICY, &policy, sizeof(ACCENT_POLICY)};
 		
 		if (dwEffect == ACCENT_ENABLE_TRANSPARENTGRADIENT)

@@ -4,7 +4,7 @@
 //
 //		!!!IMPORTANT!!!
 #include "pch.h"
-#include "SettingsHelper.h"
+//#include "SettingsHelper.h"
 #include "DebugHelper.h"
 #include "DetoursHelper.h"
 #include "WRHookHelper.h"

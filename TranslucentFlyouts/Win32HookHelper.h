@@ -72,6 +72,13 @@ namespace TranslucentFlyoutsLib
 	    BOOL             fByPositon,
 	    LPCMENUITEMINFOW lpmii
 	);
+	extern BOOL WINAPI MyModifyMenuW(
+	    HMENU    hMnu,
+	    UINT     uPosition,
+	    UINT     uFlags,
+	    UINT_PTR uIDNewItem,
+	    LPCWSTR  lpNewItem
+	);
 	extern HDC WINAPI MyCreateCompatibleDC(HDC hdc);
 	extern BOOL WINAPI MyDeleteDC(HDC hdc);
 	extern BOOL WINAPI MyDeleteObject(HGDIOBJ ho);
@@ -88,6 +95,7 @@ namespace TranslucentFlyoutsLib
 	extern DetoursHook SetMenuItemBitmapsHook;
 	extern DetoursHook InsertMenuItemWHook;
 	extern DetoursHook SetMenuItemInfoWHook;
+	extern DetoursHook ModifyMenuWHook;
 	// ´°¿Ú¾ä±úµÄ¼ÇÂ¼
 	extern DetoursHook CreateCompatibleDCHook;
 	extern DetoursHook DeleteDCHook;
