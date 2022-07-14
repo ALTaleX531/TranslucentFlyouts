@@ -142,7 +142,7 @@ HRESULT STDMETHODCALLTYPE TranslucentFlyoutsLib::MyIUIFramework_LoadUI(
     LPCWSTR resourceName
 )
 {
-	TCHAR pszModule[MAX_PATH];
+	TCHAR pszModule[MAX_PATH + 1];
 	GetModuleFileName(instance, pszModule, MAX_PATH);
 	DbgPrint(L"MyIUIFramework_LoadUI -> %s - %s", resourceName, pszModule);
 	HRESULT hr =  IUIFramework_LoadUIHook.OldFunction<decltype(MyIUIFramework_LoadUI)>(This, instance, resourceName);

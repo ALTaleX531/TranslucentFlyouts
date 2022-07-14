@@ -28,15 +28,15 @@ const UINT WM_TASKBARCREATED = RegisterWindowMessage(TEXT("TaskbarCreated"));
 INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK WndProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam);
 
-TCHAR pszAcrylic[MAX_PATH] = TEXT("亚克力模糊");
-TCHAR pszAero[MAX_PATH] = TEXT("模糊");
-TCHAR pszTransparent[MAX_PATH] = TEXT("透明");
-TCHAR pszReserved[MAX_PATH] = TEXT("不支持");
-TCHAR pszNone[MAX_PATH] = TEXT("无");
-TCHAR pszShadow[MAX_PATH] = TEXT("额外的阴影");
-TCHAR pszOpaque[MAX_PATH] = TEXT("不透明");
-TCHAR pszFollow[MAX_PATH] = TEXT("跟随不透明度");
-TCHAR pszAuto[MAX_PATH] = TEXT("自动计算");
+TCHAR pszAcrylic[MAX_PATH + 1] = TEXT("亚克力模糊");
+TCHAR pszAero[MAX_PATH + 1] = TEXT("模糊");
+TCHAR pszTransparent[MAX_PATH + 1] = TEXT("透明");
+TCHAR pszReserved[MAX_PATH + 1] = TEXT("不支持");
+TCHAR pszNone[MAX_PATH + 1] = TEXT("无");
+TCHAR pszShadow[MAX_PATH + 1] = TEXT("额外的阴影");
+TCHAR pszOpaque[MAX_PATH + 1] = TEXT("不透明");
+TCHAR pszFollow[MAX_PATH + 1] = TEXT("跟随不透明度");
+TCHAR pszAuto[MAX_PATH + 1] = TEXT("自动计算");
 
 void OnInitString()
 {
@@ -97,8 +97,8 @@ HWND AssociateTooltip(HWND hwnd, int nDlgItemId)
 
 void ShowMenu(HWND hWnd)
 {
-	TCHAR pszSettings[MAX_PATH] = TEXT("设置(&S)");
-	TCHAR pszExit[MAX_PATH] = TEXT("退出(&X)");
+	TCHAR pszSettings[MAX_PATH + 1] = TEXT("设置(&S)");
+	TCHAR pszExit[MAX_PATH + 1] = TEXT("退出(&X)");
 	if (GetUserDefaultUILanguage() != MAKELANGID(LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED))
 	{
 		LoadString(g_hInst, IDS_MENUSETTINGS, pszSettings, MAX_PATH);
@@ -151,7 +151,7 @@ void ShowBalloonTip(HWND hWnd, DWORD dwLastError = GetLastError())
 {
 	if (dwLastError != NO_ERROR)
 	{
-		TCHAR pszErrorString[MAX_PATH], pszErrorCaptionText[MAX_PATH] = TEXT("出现了一个错误");
+		TCHAR pszErrorString[MAX_PATH + 1], pszErrorCaptionText[MAX_PATH + 1] = TEXT("出现了一个错误");
 		FormatMessage(
 		    FORMAT_MESSAGE_FROM_SYSTEM |
 		    FORMAT_MESSAGE_IGNORE_INSERTS,
@@ -321,7 +321,7 @@ void OnInitDialog(HWND hWnd)
 	ComboBox_AddString(hCombobox3, pszOpaque);
 	ComboBox_AddString(hCombobox3, pszFollow);
 	//
-	TCHAR pszStartupName[MAX_PATH];
+	TCHAR pszStartupName[MAX_PATH + 1];
 	DWORD dwSize = sizeof(pszStartupName);
 	if (RegGetValue(HKEY_CURRENT_USER, TEXT("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run"), TEXT("TFGUI"), RRF_RT_REG_SZ, nullptr, pszStartupName, &dwSize) == ERROR_SUCCESS)
 	{
@@ -422,8 +422,8 @@ INT_PTR CALLBACK DialogProc2(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPar
 	{
 		case WM_INITDIALOG:
 		{
-			TCHAR pszVersionInfo[MAX_PATH] = {};
-			TCHAR pszLibVersion[MAX_PATH];
+			TCHAR pszVersionInfo[MAX_PATH + 1] = {};
+			TCHAR pszLibVersion[MAX_PATH + 1];
 			HICON hIcon = LoadIcon(g_hInst, MAKEINTRESOURCE(IDI_ICON1));
 			SendMessage(hWnd, WM_SETICON, FALSE, (LPARAM)hIcon);
 			DestroyIcon(hIcon);
@@ -482,8 +482,8 @@ INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPara
 		}
 		case WM_CLOSE:
 		{
-			TCHAR pszNoticeText[MAX_PATH] = _T("如果要退出，请右键系统托盘图标");
-			TCHAR pszNotice[MAX_PATH] = _T("已最小化至系统托盘");
+			TCHAR pszNoticeText[MAX_PATH + 1] = _T("如果要退出，请右键系统托盘图标");
+			TCHAR pszNotice[MAX_PATH + 1] = _T("已最小化至系统托盘");
 			if (GetUserDefaultUILanguage() != MAKELANGID(LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED))
 			{
 				LoadString(g_hInst, IDS_EXIT, pszNotice, MAX_PATH);
@@ -696,8 +696,8 @@ INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPara
 					}
 					else
 					{
-						TCHAR pszUpdateText[MAX_PATH] = _T("已删除旧的配置信息\n下一次启动此应用需再次授权");
-						TCHAR pszUpdate[MAX_PATH] = _T("设置已更新");
+						TCHAR pszUpdateText[MAX_PATH + 1] = _T("已删除旧的配置信息\n下一次启动此应用需再次授权");
+						TCHAR pszUpdate[MAX_PATH + 1] = _T("设置已更新");
 						if (GetUserDefaultUILanguage() != MAKELANGID(LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED))
 						{
 							LoadString(g_hInst, IDS_UPDATE, pszUpdate, MAX_PATH);
@@ -718,7 +718,7 @@ INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPara
 					HKEY hKey = nullptr;
 					if (IsDlgButtonChecked(hWnd, IDC_CHECK4))
 					{
-						TCHAR pszModuleFileName[MAX_PATH], pszCommandLine[MAX_PATH];
+						TCHAR pszModuleFileName[MAX_PATH + 1], pszCommandLine[MAX_PATH + 1];
 						GetModuleFileName(NULL, pszModuleFileName, MAX_PATH);
 						_stprintf_s(pszCommandLine, TEXT("\"%s\""), pszModuleFileName);
 						_stprintf_s(pszCommandLine, TEXT("%s /onboot"), pszCommandLine);
@@ -888,7 +888,7 @@ int APIENTRY _tWinMain(
 	else
 	{
 		SetLastError(ERROR_FILE_EXISTS);
-		TCHAR pszCaption[MAX_PATH], pszText[MAX_PATH];
+		TCHAR pszCaption[MAX_PATH + 1], pszText[MAX_PATH + 1];
 		LoadString(hInstance, IDS_INSTEXIST, pszCaption, MAX_PATH);
 		LoadString(hInstance, IDS_INSTEXISTTEXT, pszText, MAX_PATH);
 		ShowBalloonTip(g_mainWindow, pszText, pszCaption, 3000, NIIF_INFO);
