@@ -49,6 +49,13 @@ namespace TranslucentFlyoutsLib
 	}
 
 	template <typename T>
+	static inline auto com_cast(IUnknown *pInspectable)
+	{
+		ComPtr<T> instance {nullptr};
+		ThrowIfFailed(pInspectable->QueryInterface(IID_PPV_ARGS(&instance)));
+		return instance;
+	}
+	template <typename T>
 	static inline auto winrt_cast(IInspectable* pInspectable)
 	{
 		ComPtr<T> instance{nullptr};

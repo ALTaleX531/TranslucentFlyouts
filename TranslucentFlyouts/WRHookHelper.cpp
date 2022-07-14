@@ -4,7 +4,6 @@
 //
 //		!!!IMPORTANT!!!
 #include "pch.h"
-//#include "SettingsHelper.h"
 #include "DebugHelper.h"
 #include "DetoursHelper.h"
 #include "WRHookHelper.h"
@@ -12,6 +11,9 @@
 using namespace TranslucentFlyoutsLib;
 extern HMODULE g_hModule;
 
+DetoursHook TranslucentFlyoutsLib::IUIFramework_LoadUIHook;
+DetoursHook TranslucentFlyoutsLib::IUIFramework_InitializeHook;
+DetoursHook TranslucentFlyoutsLib::CoCreateInstanceHook("Combase", "CoCreateInstance", MyCoCreateInstance);
 // Windows Runtime
 DetoursHook TranslucentFlyoutsLib::RoGetActivationFactoryHook("Combase", "RoGetActivationFactory", MyRoGetActivationFactory);
 DetoursHook TranslucentFlyoutsLib::RoActivateInstanceHook("Combase", "RoActivateInstance", MyRoActivateInstance);
@@ -36,6 +38,7 @@ void TranslucentFlyoutsLib::WRHookStartup()
 {
 	/*Detours::Batch(
 	    TRUE,
+	    CoCreateInstanceHook,
 	    RoGetActivationFactoryHook,
 	    RoActivateInstanceHook
 	);*/
@@ -43,27 +46,153 @@ void TranslucentFlyoutsLib::WRHookStartup()
 
 void TranslucentFlyoutsLib::WRHookShutdown()
 {
-	/*Detours::Batch(
-	    FALSE,
-	    RoGetActivationFactoryHook,
-	    RoActivateInstanceHook, // Reserved
-	    //
-	    IDesktopWindowXamlSourceFactory_CreateInstanceHook, // 用于测试
-	    IDesktopWindowXamlSourceNative_AttachToWindowHook, // 用于测试
-	    IDesktopWindowXamlSource_put_ContentHook, // 用于测试
-	    //
-	    IMenuFlyoutFactory_CreateInstanceHook, // 像任务栏右键弹出的主菜单
-	    IMenuFlyoutItemFactory_CreateInstanceHook, // 像任务栏右键弹出的菜单项
-	    IMenuFlyoutSubItemFactory_ActivateInstanceHook, // 像任务栏右键弹出的子菜单项
-	    IToggleMenuFlyoutItemFactory_CreateInstanceHook, // 菜单栏弹出的展开子菜单项
-	    IMenuBarItemFlyoutFactory_CreateInstanceHook, // 菜单栏弹出的菜单项
-	    //
-	    ICommandBarFlyoutFactory_CreateInstanceHook, // 文件管理器除桌面外的主菜单
-	    IAppBarButtonFactory_CreateInstanceHook, // 文件管理器除桌面外的菜单项
-	    IAppBarToggleButtonFactory_CreateInstanceHook, // 文件管理器除桌面外的展开子菜单项
-	    //
-	    IMenuFlyoutItem_put_TextHook // 用于整活和测试
-	);*/
+	//Detours::Batch(
+	//    FALSE,
+	//    CoCreateInstanceHook,
+	//    IUIFramework_InitializeHook,
+	//    IUIFramework_LoadUIHook,
+	//    RoGetActivationFactoryHook,
+	//    RoActivateInstanceHook, // Reserved
+	//    //
+	//    IDesktopWindowXamlSourceFactory_CreateInstanceHook, // 用于测试
+	//    IDesktopWindowXamlSourceNative_AttachToWindowHook, // 用于测试
+	//    IDesktopWindowXamlSource_put_ContentHook, // 用于测试
+	//    //
+	//    IMenuFlyoutFactory_CreateInstanceHook, // 像任务栏右键弹出的主菜单
+	//    IMenuFlyoutItemFactory_CreateInstanceHook, // 像任务栏右键弹出的菜单项
+	//    IMenuFlyoutSubItemFactory_ActivateInstanceHook, // 像任务栏右键弹出的子菜单项
+	//    IToggleMenuFlyoutItemFactory_CreateInstanceHook, // 菜单栏弹出的展开子菜单项
+	//    IMenuBarItemFlyoutFactory_CreateInstanceHook, // 菜单栏弹出的菜单项
+	//    //
+	//    ICommandBarFlyoutFactory_CreateInstanceHook, // 文件管理器除桌面外的主菜单
+	//    IAppBarButtonFactory_CreateInstanceHook, // 文件管理器除桌面外的菜单项
+	//    IAppBarToggleButtonFactory_CreateInstanceHook, // 文件管理器除桌面外的展开子菜单项
+	//    //
+	//    IMenuFlyoutItem_put_TextHook // 用于整活和测试
+	//);
+}
+
+HRESULT WINAPI TranslucentFlyoutsLib::MyCoCreateInstance(
+    REFCLSID  rclsid,
+    LPUNKNOWN pUnkOuter,
+    DWORD     dwClsContext,
+    REFIID    riid,
+    LPVOID *ppv
+)
+{
+	HRESULT hr = S_OK;
+	hr = CoCreateInstanceHook.OldFunction<decltype(MyCoCreateInstance)>(
+	         rclsid,
+	         pUnkOuter,
+	         dwClsContext,
+	         riid,
+	         ppv
+	     );
+	if (SUCCEEDED(hr))
+	{
+		if (!IUIFramework_InitializeHook.IsHookInstalled())
+		{
+			try
+			{
+				ComPtr<::IUIFramework> pFramework;
+				ThrowIfFailed(
+				    CoCreateInstanceHook.OldFunction<decltype(MyCoCreateInstance)>(
+				        CLSID_UIRibbonFramework,
+				        nullptr,
+				        CLSCTX_INPROC_SERVER,
+				        IID_PPV_ARGS(&pFramework)
+				    )
+				);
+				IUIFramework_InitializeHook.Initialize(((IUIFramework*)pFramework.Get())->lpVtbl->Initialize, MyIUIFramework_Initialize);
+				Detours::Begin();
+				IUIFramework_InitializeHook.SetHookState();
+				Detours::Commit();
+			}
+			catch (...) { }
+		}
+		if (!IUIFramework_LoadUIHook.IsHookInstalled())
+		{
+			try
+			{
+				ComPtr<::IUIFramework> pFramework;
+				ThrowIfFailed(
+				    CoCreateInstanceHook.OldFunction<decltype(MyCoCreateInstance)>(
+				        CLSID_UIRibbonFramework,
+				        nullptr,
+				        CLSCTX_INPROC_SERVER,
+				        IID_PPV_ARGS(&pFramework)
+				    )
+				);
+				IUIFramework_LoadUIHook.Initialize(((IUIFramework *)pFramework.Get())->lpVtbl->LoadUI, MyIUIFramework_LoadUI);
+				Detours::Begin();
+				IUIFramework_LoadUIHook.SetHookState();
+				Detours::Commit();
+			}
+			catch (...)
+			{
+			}
+		}
+	}
+	return hr;
+}
+
+HRESULT STDMETHODCALLTYPE TranslucentFlyoutsLib::MyIUIFramework_LoadUI(
+    ::IUIFramework *This,
+    HINSTANCE instance,
+    LPCWSTR resourceName
+)
+{
+	TCHAR pszModule[MAX_PATH];
+	GetModuleFileName(instance, pszModule, MAX_PATH);
+	DbgPrint(L"MyIUIFramework_LoadUI -> %s - %s", resourceName, pszModule);
+	HRESULT hr =  IUIFramework_LoadUIHook.OldFunction<decltype(MyIUIFramework_LoadUI)>(This, instance, resourceName);
+	try
+	{
+		ComPtr<IPropertyStore> spPropertyStore = com_cast<IPropertyStore>(This);
+
+		PROPVARIANT propvarBackground;
+		PROPVARIANT propvarHighlight;
+		PROPVARIANT propvarText;
+
+		// UI_HSBCOLOR is a type defined in UIRibbon.h that is composed of
+		// three component values: hue, saturation and brightness, respectively.
+		UI_HSBCOLOR HighlightColor = UI_HSB(0, 0xFF, 0xFF);
+		UI_HSBCOLOR BackgroundColor = UI_HSB(0, 0xAA, 0xAA);
+		UI_HSBCOLOR TextColor = UI_HSB(0, 0, 0xFF);
+
+		InitPropVariantFromUInt32(BackgroundColor, &propvarBackground);
+		InitPropVariantFromUInt32(HighlightColor, &propvarHighlight);
+		InitPropVariantFromUInt32(TextColor, &propvarText);
+
+		spPropertyStore->SetValue(UI_PKEY_GlobalHighlightColor, propvarHighlight);
+		spPropertyStore->SetValue(UI_PKEY_GlobalBackgroundColor, propvarBackground);
+		spPropertyStore->SetValue(UI_PKEY_GlobalTextColor, propvarText);
+
+		spPropertyStore->Commit();
+	}
+	catch (...)
+	{
+	}
+	return hr;
+}
+
+HRESULT STDMETHODCALLTYPE TranslucentFlyoutsLib::MyIUIFramework_Initialize(
+    ::IUIFramework *This,
+    HWND frameWnd,
+    IUIApplication *application
+)
+{
+	HRESULT hr = S_OK;
+	hr = IUIFramework_InitializeHook.OldFunction<decltype(MyIUIFramework_Initialize)>(
+	         This,
+	         frameWnd,
+	         application
+	     );
+	if (SUCCEEDED(hr))
+	{
+		WindowDbgPrint(frameWnd, L"MyIUIFramework_Initialize");
+	}
+	return hr;
 }
 
 // This function is nearly deprecated, it is actually no need to hook this function at all

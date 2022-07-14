@@ -199,6 +199,67 @@ namespace TranslucentFlyoutsLib
 	    );
 	);
 
+	DEFINE_COM_OBJ(
+	    IUIFramework,
+	    HRESULT(STDMETHODCALLTYPE*Initialize)(
+	        IUIFramework* This,
+	        HWND frameWnd,
+	        IUIApplication *application
+	    );
+	    HRESULT(STDMETHODCALLTYPE*Destroy)(IUIFramework *This);
+	    HRESULT(STDMETHODCALLTYPE*LoadUI)(
+	        IUIFramework *This,
+	        HINSTANCE instance,
+	        LPCWSTR resourceName
+	    );
+	    HRESULT(STDMETHODCALLTYPE*GetView)(
+	        IUIFramework *This,
+	        UINT32 viewId,
+	        REFIID riid,
+	        void **ppv
+	    );
+	    HRESULT(STDMETHODCALLTYPE*GetUICommandProperty)(
+	        IUIFramework *This,
+	        UINT32 commandId,
+	        REFPROPERTYKEY key,
+	        PROPVARIANT *value
+	    );
+	    HRESULT(STDMETHODCALLTYPE*SetUICommandProperty)(
+	        IUIFramework *This,
+	        UINT32 commandId,
+	        REFPROPERTYKEY key,
+	        REFPROPVARIANT value
+	    );
+	    HRESULT(STDMETHODCALLTYPE*InvalidateUICommand)(
+	        IUIFramework *This,
+	        UINT32 commandId,
+	        UI_INVALIDATIONS flags,
+	        const PROPERTYKEY *key
+	    );
+	    HRESULT(STDMETHODCALLTYPE*FlushPendingInvalidations)(IUIFramework *This);
+	    HRESULT(STDMETHODCALLTYPE*SetModes)(
+	        IUIFramework *This,
+	        INT32 iModes
+	    );
+	);
+
+	extern HRESULT STDMETHODCALLTYPE MyIUIFramework_LoadUI(
+		::IUIFramework *This,
+	    HINSTANCE instance,
+	    LPCWSTR resourceName
+	);
+	extern HRESULT STDMETHODCALLTYPE MyIUIFramework_Initialize(
+	    ::IUIFramework *This,
+	    HWND frameWnd,
+	    IUIApplication *application
+	);
+	extern HRESULT WINAPI MyCoCreateInstance(
+	    REFCLSID  rclsid,
+	    LPUNKNOWN pUnkOuter,
+	    DWORD     dwClsContext,
+	    REFIID    riid,
+	    LPVOID *ppv
+	);
 	extern HRESULT WINAPI MyRoGetActivationFactory(
 	    HSTRING activatableClassId,
 	    REFIID  iid,
@@ -275,6 +336,10 @@ namespace TranslucentFlyoutsLib
 	    UI::Xaml::Controls::IMenuFlyoutItem *This,
 	    HSTRING value
 	);
+	// COM
+	extern DetoursHook IUIFramework_LoadUIHook;
+	extern DetoursHook IUIFramework_InitializeHook;
+	extern DetoursHook CoCreateInstanceHook;
 	// Windows Runtime
 	extern DetoursHook RoActivateInstanceHook;
 	extern DetoursHook RoGetActivationFactoryHook;

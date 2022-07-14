@@ -158,7 +158,7 @@ namespace TranslucentFlyoutsLib
 			return;
 		}
 
-		HDC hdc = CreateCompatibleDC(nullptr);
+		HDC hdc = GetDC(nullptr);
 		BITMAPINFO BitmapInfo = {sizeof(BitmapInfo.bmiHeader)};
 
 		if (hdc)
@@ -200,7 +200,7 @@ namespace TranslucentFlyoutsLib
 					delete[] pvBits;
 				}
 			}
-			DeleteDC(hdc);
+			ReleaseDC(nullptr, hdc);
 		}
 	}
 

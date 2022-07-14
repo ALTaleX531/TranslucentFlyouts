@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "tflapi.h"
-//#include "SettingsHelper.h"
 #include "TranslucentFlyoutsLib.h"
 
 #pragma data_seg("shared")

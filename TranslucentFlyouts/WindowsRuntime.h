@@ -25,6 +25,10 @@
 #include <windows.ui.xaml.controls.maps.h>
 #include <windows.ui.xaml.controls.primitives.h>
 #include <windows.ui.xaml.media.h>
+//
+#include <UIRibbon.h>
+#include <UIRibbonKeydef.h>
+#include <UIRibbonPropertyHelpers.h>
 
 #pragma comment(lib, "runtimeobject.lib")
 

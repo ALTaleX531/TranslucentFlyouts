@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "tflapi.h"
-//#include "SettingsHelper.h"
 #include "ThemeHelper.h"
 #include "AcrylicHelper.h"
 #include "TranslucentFlyoutsLib.h"

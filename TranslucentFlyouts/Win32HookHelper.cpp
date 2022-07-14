@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "tflapi.h"
-//#include "SettingsHelper.h"
 #include "DebugHelper.h"
 #include "ThemeHelper.h"
 #include "DetoursHelper.h"
@@ -249,6 +248,11 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 					case Opacity:
 					{
 						bOpacity = (BYTE)GetCurrentFlyoutOpacity();
+						break;
+					}
+					case Opaque:
+					{
+						bOpacity = (iPartId == MENU_POPUPITEM and iStateId == MPI_HOT) ? 255 : (BYTE)GetCurrentFlyoutOpacity();
 						break;
 					}
 					case Auto:
