@@ -344,8 +344,7 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeTextEx(
 	            !(pOptions->dwFlags & DTT_CALCRECT) and
 	            !(pOptions->dwFlags & DTT_COMPOSITED)
 	        )
-	    ) and
-		!VerifyCaller(g_hModule)
+	    )
 	)
 	{
 		DTTOPTS Options = *pOptions;
@@ -456,7 +455,7 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeText(
 
 int WINAPI TranslucentFlyoutsLib::MyDrawTextW(
     HDC     hdc,
-    LPCTSTR lpchText,
+    LPCWSTR lpchText,
     int     cchText,
     LPRECT  lprc,
     UINT    format
@@ -494,12 +493,13 @@ int WINAPI TranslucentFlyoutsLib::MyDrawTextW(
 	return nResult;
 Default:
 	nResult =
-	    DrawTextWHook.OldFunction<decltype(MyDrawTextW)>(
+	    DrawTextExWHook.OldFunction<decltype(MyDrawTextExW)>(
 	        hdc,
-	        lpchText,
+	        (LPWSTR)lpchText,
 	        cchText,
 	        lprc,
-	        format
+	        format,
+	        nullptr
 	    );
 	return nResult;
 }
@@ -523,7 +523,8 @@ int WINAPI TranslucentFlyoutsLib::MyDrawTextExW(
 	    lpdtp or
 	    !(GetCurrentFlyoutPolicy() != Null) or
 	    VerifyCaller(TEXT("Uxtheme")) or
-	    VerifyCaller(TEXT("MToolExtend"))
+	    VerifyCaller(TEXT("MToolExtend")) or
+	    VerifyCaller(g_hModule)
 	)
 	{
 		goto Default;
