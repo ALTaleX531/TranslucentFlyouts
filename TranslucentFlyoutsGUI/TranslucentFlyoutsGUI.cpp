@@ -894,4 +894,5 @@ int APIENTRY _tWinMain(
 		ShowBalloonTip(g_mainWindow, pszText, pszCaption, 3000, NIIF_INFO);
 		return -1;
 	}
+	return 0;
 }

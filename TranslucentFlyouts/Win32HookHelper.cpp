@@ -34,6 +34,7 @@ void TranslucentFlyoutsLib::Win32HookStartup()
 	Detours::Batch(
 	    TRUE,
 	    DrawThemeBackgroundHook,
+	    //
 	    DrawThemeTextExHook,
 	    DrawThemeTextHook,
 	    DrawTextWHook,
@@ -56,6 +57,7 @@ void TranslucentFlyoutsLib::Win32HookShutdown()
 	Detours::Batch(
 	    FALSE,
 	    DrawThemeBackgroundHook,
+	    //
 	    DrawThemeTextExHook,
 	    DrawThemeTextHook,
 	    DrawTextWHook,
@@ -327,6 +329,7 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeTextEx(
 	// pOptions可以为NULL，使用NULL时与DrawThemeText效果无异
 	HRESULT hr = S_OK;
 
+	// GdiDbgPrint(hdc, pszText);
 	if (
 	    IsAllowTransparent() and
 	    (
@@ -341,7 +344,8 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeTextEx(
 	            !(pOptions->dwFlags & DTT_CALCRECT) and
 	            !(pOptions->dwFlags & DTT_COMPOSITED)
 	        )
-	    )
+	    ) and
+		!VerifyCaller(g_hModule)
 	)
 	{
 		DTTOPTS Options = *pOptions;

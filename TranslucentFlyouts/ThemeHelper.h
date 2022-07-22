@@ -3,9 +3,29 @@
 
 namespace TranslucentFlyoutsLib
 {
-	typedef HRESULT(WINAPI*pfnGetThemeClass)(HTHEME hTheme, LPCTSTR pszClassName, int cchClassName);
-	typedef BOOL(WINAPI*pfnIsThemeClassDefined)(HTHEME hTheme, LPCTSTR pszAppName, LPCTSTR pszClassName, BOOL bMatchClass);
-	typedef BOOL(WINAPI*pfnIsTopLevelWindow)(HWND hWnd);
+	typedef UINT(WINAPI *pfnGetWindowDPI)(HWND hwnd);
+	typedef HRESULT(WINAPI *pfnGetThemeClass)(HTHEME hTheme, LPCTSTR pszClassName, int cchClassName);
+	typedef BOOL(WINAPI *pfnIsThemeClassDefined)(HTHEME hTheme, LPCTSTR pszAppName, LPCTSTR pszClassName, BOOL bMatchClass);
+	typedef BOOL(WINAPI *pfnIsTopLevelWindow)(HWND hWnd);
+
+	static inline UINT GetWindowDPI(HWND hwnd)
+	{
+		static const auto &GetWindowDPI = (pfnGetWindowDPI)GetProcAddress(GetModuleHandle(TEXT("User32")), MAKEINTRESOURCEA(2707));
+		if (GetWindowDPI)
+		{
+			return GetWindowDPI(hwnd);
+		}
+		else
+		{
+			return 96;
+		}
+	}
+
+	// From UIRibbon.dll
+	float inline MsoScaleForWindowDPI(HWND hwnd, float size)
+	{
+		return fmaxf(1.0, (float)GetWindowDPI(hwnd) / 96.f) * size;
+	}
 
 	static inline bool IsAllowTransparent()
 	{
@@ -62,7 +82,7 @@ namespace TranslucentFlyoutsLib
 	{
 		TCHAR pszClass[MAX_PATH + 1] = {};
 		GetClassName(hWnd, pszClass, MAX_PATH);
-		return (!_tcscmp(pszClass, pszClassName) and (bRequireTopLevel ? IsTopLevelWindow(hWnd) : TRUE));
+		return (!_tcscmp(pszClass, pszClassName) and (bRequireTopLevel ? IsTopLevelWindow(hWnd) : !IsTopLevelWindow(hWnd)));
 	}
 
 	static inline bool IsPopupMenuFlyout(HWND hWnd)
@@ -130,13 +150,6 @@ namespace TranslucentFlyoutsLib
 		return lbr.lbColor;
 	}
 
-	static inline int GetBrushType(HBRUSH hBrush)
-	{
-		LOGBRUSH lbr = {};
-		GetObject(hBrush, sizeof(lbr), &lbr);
-		return lbr.lbStyle;
-	}
-
 	static inline void SetPixel(PBYTE pvBits, BYTE b, BYTE g, BYTE r, BYTE a)
 	{
 		// Alpha‘§≥À
@@ -167,7 +180,7 @@ namespace TranslucentFlyoutsLib
 			{
 				BitmapInfo.bmiHeader.biCompression = BI_RGB;
 
-				BYTE *pvBits = new(std::nothrow) BYTE[BitmapInfo.bmiHeader.biSizeImage];
+				BYTE *pvBits = new (std::nothrow) BYTE[BitmapInfo.bmiHeader.biSizeImage];
 
 				if (pvBits)
 				{
