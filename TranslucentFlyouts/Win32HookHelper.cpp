@@ -10,6 +10,7 @@ using namespace TranslucentFlyoutsLib;
 extern HMODULE g_hModule;
 
 thread_local HWND g_hWnd = nullptr;
+thread_local bool g_alphaFixedState = false;
 
 // 透明化处理
 DetoursHook TranslucentFlyoutsLib::DrawThemeBackgroundHook("Uxtheme", "DrawThemeBackground", MyDrawThemeBackground);
@@ -110,7 +111,6 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 			                 &Rect,
 			                 nullptr
 			             );
-			GdiFlush();
 
 			if (SUCCEEDED(hr))
 			{
@@ -144,7 +144,6 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 		         pClipRect
 		     );
 
-		GdiFlush();
 		BufferedPaintSetAlpha(hPaintBuffer, &Rect, 0xFF);
 	};
 
@@ -229,15 +228,27 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 			}
 		}
 
+		// 在Windows 11 22H2中，Immersive弹出菜单使用的iPartId发生了改变
+		// MENU_POPUPBACKGROUND -> 26 (MENU_INTERNAL_POPUPBACKGROUND)
+		// MENU_POPUPITEM -> 27 (MENU_INTERNAL_POPUPITEM)
 		if (
-		    iPartId == MENU_POPUPBACKGROUND or
+		    (
+		        iPartId == MENU_POPUPBACKGROUND or
+		        iPartId == MENU_INTERNAL_POPUPBACKGROUND
+		    ) or
 		    iPartId == MENU_POPUPGUTTER or
-		    iPartId == MENU_POPUPITEM or
+		    (
+		        iPartId == MENU_POPUPITEM or
+		        iPartId == MENU_INTERNAL_POPUPITEM
+		    ) or
 		    iPartId == MENU_POPUPBORDERS
 		)
 		{
 			if (
-			    iPartId == MENU_POPUPBACKGROUND or
+			    (
+			        iPartId == MENU_POPUPBACKGROUND or
+			        iPartId == MENU_INTERNAL_POPUPBACKGROUND
+			    ) or
 			    (
 			        !IsThemeBackgroundPartiallyTransparent(hTheme, iPartId, iStateId) or
 			        !VerifyThemeBackgroundTransparency(hTheme, iPartId, iStateId)
@@ -254,12 +265,12 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 					}
 					case Opaque:
 					{
-						bOpacity = (iPartId == MENU_POPUPITEM and iStateId == MPI_HOT) ? 255 : (BYTE)GetCurrentFlyoutOpacity();
+						bOpacity = ((iPartId == MENU_POPUPITEM or iPartId == MENU_INTERNAL_POPUPITEM) and iStateId == MPI_HOT) ? 255 : (BYTE)GetCurrentFlyoutOpacity();
 						break;
 					}
 					case Auto:
 					{
-						bOpacity = (iPartId == MENU_POPUPITEM and iStateId == MPI_HOT) ? BYTE(min(255 - ((BYTE)GetCurrentFlyoutOpacity() - 204), 255)) : (BYTE)GetCurrentFlyoutOpacity();
+						bOpacity = ((iPartId == MENU_POPUPITEM or iPartId == MENU_INTERNAL_POPUPITEM) and iStateId == MPI_HOT) ? BYTE(min(255 - ((BYTE)GetCurrentFlyoutOpacity() - 204), 255)) : (BYTE)GetCurrentFlyoutOpacity();
 						break;
 					}
 				}
@@ -270,25 +281,56 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 			}
 			else
 			{
-				MyDrawThemeBackground(
-				    hTheme,
-				    hdc,
-				    MENU_POPUPBACKGROUND,
-				    0,
-				    pRect,
-				    pClipRect
-				);
-				if (iPartId != MENU_POPUPITEM or (iPartId == MENU_POPUPITEM and iStateId != MPI_NORMAL))
+				// 对Windows 11 22H2的支持
+				// 先检查是否定义了MENU_INTERNAL_POPUPITEM和MENU_INTERNAL_POPUPBACKGROUND
+				if (
+				    IsThemePartDefined(hTheme, MENU_INTERNAL_POPUPBACKGROUND, 0) and
+				    IsThemePartDefined(hTheme, MENU_INTERNAL_POPUPITEM, 0)
+				)
 				{
 					MyDrawThemeBackground(
 					    hTheme,
 					    hdc,
-					    MENU_POPUPITEM,
-					    MPI_NORMAL,
+					    MENU_INTERNAL_POPUPBACKGROUND,
+					    0,
 					    pRect,
 					    pClipRect
 					);
+					if (iPartId != MENU_INTERNAL_POPUPITEM or (iPartId == MENU_INTERNAL_POPUPITEM and iStateId != MPI_NORMAL))
+					{
+						MyDrawThemeBackground(
+						    hTheme,
+						    hdc,
+						    MENU_INTERNAL_POPUPITEM,
+						    MPI_NORMAL,
+						    pRect,
+						    pClipRect
+						);
+					}
 				}
+				else
+				{
+					MyDrawThemeBackground(
+					    hTheme,
+					    hdc,
+					    MENU_POPUPBACKGROUND,
+					    0,
+					    pRect,
+					    pClipRect
+					);
+					if (iPartId != MENU_POPUPITEM or (iPartId == MENU_POPUPITEM and iStateId != MPI_NORMAL))
+					{
+						MyDrawThemeBackground(
+						    hTheme,
+						    hdc,
+						    MENU_POPUPITEM,
+						    MPI_NORMAL,
+						    pRect,
+						    pClipRect
+						);
+					}
+				}
+				// 对Windows 11 22H2的支持
 				goto Default;
 			}
 		}
@@ -329,14 +371,7 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeTextEx(
 	// pOptions可以为NULL，使用NULL时与DrawThemeText效果无异
 	HRESULT hr = S_OK;
 
-	// GdiDbgPrint(hdc, pszText);
 	if (
-	    IsAllowTransparent() and
-	    (
-	        (VerifyThemeData(hTheme, TEXT("Menu")) and GetCurrentFlyoutPolicy() & PopupMenu) or
-	        (VerifyThemeData(hTheme, TEXT("Toolbar")) and GetCurrentFlyoutPolicy() & ViewControl) or
-	        (VerifyThemeData(hTheme, TEXT("Tooltip")) and GetCurrentFlyoutPolicy() & Tooltip)
-	    ) and
 	    pOptions and
 	    (
 	        !pOptions or
@@ -344,6 +379,12 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeTextEx(
 	            !(pOptions->dwFlags & DTT_CALCRECT) and
 	            !(pOptions->dwFlags & DTT_COMPOSITED)
 	        )
+	    ) and
+	    IsAllowTransparent() and
+	    (
+	        (VerifyThemeData(hTheme, TEXT("Menu")) and GetCurrentFlyoutPolicy() & PopupMenu) or
+	        (VerifyThemeData(hTheme, TEXT("Toolbar")) and GetCurrentFlyoutPolicy() & ViewControl) or
+	        (VerifyThemeData(hTheme, TEXT("Tooltip")) and GetCurrentFlyoutPolicy() & Tooltip)
 	    )
 	)
 	{
@@ -352,6 +393,8 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeTextEx(
 
 		auto f = [&](HDC hMemDC, HPAINTBUFFER hPaintBuffer)
 		{
+			g_alphaFixedState = true;
+
 			hr = DrawThemeTextExHook.OldFunction<decltype(MyDrawThemeTextEx)>(
 			         hTheme,
 			         hMemDC,
@@ -364,8 +407,7 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeTextEx(
 			         &Options
 			     );
 
-			GdiFlush();
-
+			g_alphaFixedState = false;
 		};
 
 		if (!DoBufferedPaint(hdc, pRect, f))
@@ -381,6 +423,8 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeTextEx(
 	}
 	return hr;
 Default:
+	g_alphaFixedState = true;
+
 	hr = DrawThemeTextExHook.OldFunction<decltype(MyDrawThemeTextEx)>(
 	         hTheme,
 	         hdc,
@@ -392,6 +436,8 @@ Default:
 	         pRect,
 	         pOptions
 	     );
+
+	g_alphaFixedState = false;
 	return hr;
 }
 
@@ -412,8 +458,8 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeText(
 	HRESULT hr = S_OK;
 
 	if (
-	    IsAllowTransparent() and
 	    pRect and
+	    IsAllowTransparent() and
 	    (
 	        (VerifyThemeData(hTheme, TEXT("Menu")) and GetCurrentFlyoutPolicy() & PopupMenu) or
 	        (VerifyThemeData(hTheme, TEXT("Toolbar")) and GetCurrentFlyoutPolicy() & ViewControl) or
@@ -465,12 +511,11 @@ int WINAPI TranslucentFlyoutsLib::MyDrawTextW(
 	thread_local int nLastResult = 0;
 
 	if (
-	    !IsAllowTransparent() or
-	    GetBkMode(hdc) != TRANSPARENT or
 	    (format & DT_CALCRECT) or
-	    !(GetCurrentFlyoutPolicy() != Null) or
-	    VerifyCaller(TEXT("Uxtheme")) or
-	    VerifyCaller(TEXT("MToolExtend"))
+	    GetBkMode(hdc) != TRANSPARENT or
+	    g_alphaFixedState == true or
+	    !IsAllowTransparent() or
+	    !(GetCurrentFlyoutPolicy() != Null)
 	)
 	{
 		goto Default;
@@ -493,13 +538,12 @@ int WINAPI TranslucentFlyoutsLib::MyDrawTextW(
 	return nResult;
 Default:
 	nResult =
-	    DrawTextExWHook.OldFunction<decltype(MyDrawTextExW)>(
+	    DrawTextWHook.OldFunction<decltype(MyDrawTextW)>(
 	        hdc,
-	        (LPWSTR)lpchText,
+	        lpchText,
 	        cchText,
 	        lprc,
-	        format,
-	        nullptr
+	        format
 	    );
 	return nResult;
 }
@@ -517,14 +561,12 @@ int WINAPI TranslucentFlyoutsLib::MyDrawTextExW(
 	thread_local int nLastResult = 0;
 
 	if (
-	    !IsAllowTransparent() or
-	    GetBkMode(hdc) != TRANSPARENT or
-	    (format & DT_CALCRECT) or
 	    lpdtp or
-	    !(GetCurrentFlyoutPolicy() != Null) or
-	    VerifyCaller(TEXT("Uxtheme")) or
-	    VerifyCaller(TEXT("MToolExtend")) or
-	    VerifyCaller(g_hModule)
+	    (format & DT_CALCRECT) or
+	    GetBkMode(hdc) != TRANSPARENT or
+	    g_alphaFixedState == true or
+	    !IsAllowTransparent() or
+	    !(GetCurrentFlyoutPolicy() != Null)
 	)
 	{
 		goto Default;

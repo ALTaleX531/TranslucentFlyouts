@@ -36,7 +36,7 @@ namespace TranslucentFlyoutsLib
 	);
 	extern int WINAPI MyDrawTextW(
 	    HDC     hdc,
-		LPCWSTR lpchText,
+	    LPCWSTR lpchText,
 	    int     cchText,
 	    LPRECT  lprc,
 	    UINT    format

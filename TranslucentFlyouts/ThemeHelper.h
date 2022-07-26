@@ -8,6 +8,12 @@ namespace TranslucentFlyoutsLib
 	typedef BOOL(WINAPI *pfnIsThemeClassDefined)(HTHEME hTheme, LPCTSTR pszAppName, LPCTSTR pszClassName, BOOL bMatchClass);
 	typedef BOOL(WINAPI *pfnIsTopLevelWindow)(HWND hWnd);
 
+	enum MENUPARTSEX
+	{
+		MENU_INTERNAL_POPUPBACKGROUND = 26,
+		MENU_INTERNAL_POPUPITEM
+	};
+
 	static inline UINT GetWindowDPI(HWND hwnd)
 	{
 		static const auto &GetWindowDPI = (pfnGetWindowDPI)GetProcAddress(GetModuleHandle(TEXT("User32")), MAKEINTRESOURCEA(2707));
