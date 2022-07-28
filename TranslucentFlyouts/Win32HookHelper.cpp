@@ -90,19 +90,18 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 	{
 		RECT Rect = {0, 0, 1, 1};
 		bool bResult = false;
-
-		auto verify = [&](int y, int x, RGBQUAD * pRGBAInfo)
-		{
-			if (pRGBAInfo->rgbReserved != 0xFF)
-			{
-				bResult = true;
-				return false;
-			}
-			return true;
-		};
-
 		auto f = [&](HDC hMemDC, HPAINTBUFFER hPaintBuffer)
 		{
+			auto verify = [&](int y, int x, RGBQUAD * pRGBAInfo)
+			{
+				if (pRGBAInfo->rgbReserved != 0xFF)
+				{
+					bResult = true;
+					return false;
+				}
+				return true;
+			};
+
 			HRESULT hr = DrawThemeBackgroundHook.OldFunction<decltype(MyDrawThemeBackground)>(
 			                 hTheme,
 			                 hMemDC,
@@ -118,7 +117,13 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 			}
 		};
 
-		DoBufferedPaint(hdc, &Rect, f, 0xFF, BPPF_ERASE | BPPF_NOCLIP, FALSE);
+		MARGINS mr = {};
+		if (SUCCEEDED(GetThemeMargins(hTheme, hdc, iPartId, iStateId, TMT_SIZINGMARGINS, nullptr, &mr)))
+		{
+			Rect.right = max(mr.cxLeftWidth + mr.cxRightWidth, 1);
+			Rect.bottom = max(mr.cyTopHeight + mr.cyBottomHeight, 1);
+		}
+		DoBufferedPaint(hdc, &Rect, f, 0xFF, BPPF_ERASE | BPPF_NOCLIP, FALSE, FALSE);
 
 		return bResult;
 	};
@@ -131,6 +136,7 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 		::IntersectRect(&Rect, pRect, pClipRect);
 	}
 
+	// 通用绘制函数
 	auto f = [&](HDC hMemDC, HPAINTBUFFER hPaintBuffer)
 	{
 		Clear(hdc, &Rect);
@@ -144,7 +150,123 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 		         pClipRect
 		     );
 
-		BufferedPaintSetAlpha(hPaintBuffer, &Rect, 0xFF);
+		// 为Windows 11准备的特化实现
+		COLORREF Color = 0;
+		if (
+		    SUCCEEDED(hr) and
+		    SUCCEEDED(GetThemeColor(hTheme, iPartId, iStateId, TMT_FILLCOLOR, &Color))
+		)
+		{
+			// 修复Windows 11以来的FILLCOLOR的丑陋边框
+			bool bHasOpaqueBorder = false;
+			if (iPartId == MENU_POPUPITEM or iPartId == MENU_INTERNAL_POPUPITEM)
+			{
+				BYTE r = 0;
+				BYTE g = 0;
+				BYTE b = 0;
+				BYTE a = 0;
+				auto remove_opaque_border = [&](int y, int x, RGBQUAD * pRGBAInfo)
+				{
+					// 初始化要过滤的颜色
+					if (x == 0 and y == 0)
+					{
+						RECT rect = {0, 0, 1, 1};
+						auto f = [&](HDC hMemDC, HPAINTBUFFER hPaintBuffer)
+						{
+							HRESULT hr = S_OK;
+							auto initialize = [&](int y, int x, RGBQUAD * pRGBAInfo)
+							{
+								r = pRGBAInfo->rgbRed;
+								g = pRGBAInfo->rgbGreen;
+								b = pRGBAInfo->rgbBlue;
+								a = pRGBAInfo->rgbReserved;
+								return false;
+							};
+
+							if (iPartId == MENU_POPUPITEM)
+							{
+								hr = DrawThemeBackgroundHook.OldFunction<decltype(MyDrawThemeBackground)>(
+								         hTheme,
+								         hMemDC,
+								         MENU_POPUPBACKGROUND,
+								         0,
+								         &rect,
+								         nullptr
+								     );
+								hr = DrawThemeBackgroundHook.OldFunction<decltype(MyDrawThemeBackground)>(
+								         hTheme,
+								         hMemDC,
+								         MENU_POPUPITEM,
+								         MPI_NORMAL,
+								         &rect,
+								         nullptr
+								     );
+							}
+							if (iPartId == MENU_INTERNAL_POPUPITEM)
+							{
+								hr = DrawThemeBackgroundHook.OldFunction<decltype(MyDrawThemeBackground)>(
+								         hTheme,
+								         hMemDC,
+								         MENU_INTERNAL_POPUPBACKGROUND,
+								         0,
+								         &rect,
+								         nullptr
+								     );
+								hr = DrawThemeBackgroundHook.OldFunction<decltype(MyDrawThemeBackground)>(
+								         hTheme,
+								         hMemDC,
+								         MENU_INTERNAL_POPUPITEM,
+								         MPI_NORMAL,
+								         &rect,
+								         nullptr
+								     );
+							}
+							if (SUCCEEDED(hr))
+							{
+								BufferedPaintWalkBits(hPaintBuffer, initialize);
+							}
+						};
+						DoBufferedPaint(hdc, &rect, f, 0xFF, BPPF_ERASE | BPPF_NOCLIP, FALSE);
+
+						// 没有边框，是完全透明的
+						if (r == 0 and g == 0 and b == 0 and a == 0)
+						{
+							return false;
+						}
+						else
+						{
+							bHasOpaqueBorder = true;
+						}
+					}
+
+					if (
+					    pRGBAInfo->rgbRed == r and
+					    pRGBAInfo->rgbGreen == g and
+					    pRGBAInfo->rgbBlue == b and
+					    pRGBAInfo->rgbReserved == a
+					)
+					{
+						pRGBAInfo->rgbRed = 0;
+						pRGBAInfo->rgbGreen = 0;
+						pRGBAInfo->rgbBlue = 0;
+						pRGBAInfo->rgbReserved = 0;
+					}
+					return true;
+				};
+				// Windows 11聚焦的菜单项会有纯色Alpha为255的边框，之前我们抠掉了这层边框，这里我们与不透明度做一次运算再画到HDC
+				if (BufferedPaintWalkBits(hPaintBuffer, remove_opaque_border) and bHasOpaqueBorder)
+				{
+					auto partimage_background = [&](HDC hMemDC, HPAINTBUFFER hPaintBuffer)
+					{
+						HBRUSH hBrush = CreateSolidBrush(RGB(r, g, b));
+						FillRect(hMemDC, &Rect, hBrush);
+						DeleteObject(hBrush);
+						BufferedPaintSetAlpha(hPaintBuffer, &Rect, a);
+					};
+					DoBufferedPaint(hdc, &Rect, partimage_background, (BYTE)GetCurrentFlyoutOpacity(), BPPF_ERASE, TRUE);
+				}
+			}
+		}
 	};
 
 	// 工具提示
@@ -244,6 +366,7 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 		    iPartId == MENU_POPUPBORDERS
 		)
 		{
+			// 完全不透明的位图
 			if (
 			    (
 			        iPartId == MENU_POPUPBACKGROUND or
@@ -280,6 +403,7 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 				}
 			}
 			else
+			// 主题位图有透明部分
 			{
 				// 对Windows 11 22H2的支持
 				// 先检查是否定义了MENU_INTERNAL_POPUPITEM和MENU_INTERNAL_POPUPBACKGROUND
@@ -288,15 +412,18 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 				    IsThemePartDefined(hTheme, MENU_INTERNAL_POPUPITEM, 0)
 				)
 				{
-					MyDrawThemeBackground(
-					    hTheme,
-					    hdc,
-					    MENU_INTERNAL_POPUPBACKGROUND,
-					    0,
-					    pRect,
-					    pClipRect
-					);
-					if (iPartId != MENU_INTERNAL_POPUPITEM or (iPartId == MENU_INTERNAL_POPUPITEM and iStateId != MPI_NORMAL))
+					if (iPartId != MENU_INTERNAL_POPUPBACKGROUND)
+					{
+						MyDrawThemeBackground(
+						    hTheme,
+						    hdc,
+						    MENU_INTERNAL_POPUPBACKGROUND,
+						    0,
+						    pRect,
+						    pClipRect
+						);
+					}
+					if (!(iPartId == MENU_INTERNAL_POPUPITEM and iStateId == MPI_NORMAL))
 					{
 						MyDrawThemeBackground(
 						    hTheme,
@@ -308,17 +435,21 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 						);
 					}
 				}
+
 				else
 				{
-					MyDrawThemeBackground(
-					    hTheme,
-					    hdc,
-					    MENU_POPUPBACKGROUND,
-					    0,
-					    pRect,
-					    pClipRect
-					);
-					if (iPartId != MENU_POPUPITEM or (iPartId == MENU_POPUPITEM and iStateId != MPI_NORMAL))
+					if (iPartId != MENU_POPUPBACKGROUND)
+					{
+						MyDrawThemeBackground(
+						    hTheme,
+						    hdc,
+						    MENU_POPUPBACKGROUND,
+						    0,
+						    pRect,
+						    pClipRect
+						);
+					}
+					if (!(iPartId == MENU_POPUPITEM and iStateId == MPI_NORMAL))
 					{
 						MyDrawThemeBackground(
 						    hTheme,
@@ -330,7 +461,6 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeBackground(
 						);
 					}
 				}
-				// 对Windows 11 22H2的支持
 				goto Default;
 			}
 		}

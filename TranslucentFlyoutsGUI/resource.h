@@ -32,6 +32,9 @@
 #define IDS_FO                          160
 #define IDS_AC                          161
 #define IDS_OPAC                        162
+#define IDS_DEPRECATED                  163
+#define IDS_DC_V_T                      164
+#define IDS_DEPRECATEDTEXT              164
 #define IDC_COMBO1                      1001
 #define IDC_COMBO2                      1002
 #define IDC_SLIDER1                     1003

@@ -428,7 +428,7 @@ INT_PTR CALLBACK DialogProc2(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPar
 			SendMessage(hWnd, WM_SETICON, FALSE, (LPARAM)hIcon);
 			DestroyIcon(hIcon);
 			GetVersionString(pszLibVersion, MAX_PATH);
-			_stprintf_s(pszVersionInfo, TEXT("TranslucentFlyoutsLib v%s\nTranslucentFlyoutsGUI v1.0.2"), pszLibVersion);
+			_stprintf_s(pszVersionInfo, TEXT("TranslucentFlyoutsLib v%s\nTranslucentFlyoutsGUI v1.0.3"), pszLibVersion);
 			SetWindowText(GetDlgItem(hWnd, IDC_STATIC4), pszVersionInfo);
 			break;
 		}
@@ -521,7 +521,7 @@ INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPara
 			TCHAR pszOpacityTip[512] = TEXT("当前不透明度：");
 			TCHAR pszOpacity2Tip[512] = TEXT("此参数决定弹出窗口的不透明度\n此值越高，越不透明(Opaque)，窗口背后的内容可见度越低，反之亦然\n只有渲染完全不透明的主题位图会受此影响，正常情况下不应也不需要设置为255或0");
 			TCHAR pszBorderTip[512] = TEXT("此参数决定弹出窗口是否具有一个额外的边框或是阴影\n当窗口被设置特效时，边框也会被同步添加到窗口\n当使用高透明度设置时，这对于增强视觉对比度十分有用\n");
-			TCHAR pszColorizeOptionTip[512] = TEXT("此参数决定弹出菜单鼠标悬停项的主题位图AlphaBlend混合方式，即不透明度选择方案\n通常情况下选择<不透明>增加对比度，但Windows 11默认主题黑暗模式下具有缺陷\n其在较高透明度下菜单项会又一层黑边，所以推荐使用<跟随透明度>设置\n但是如果你什么都不知道，就选择<自动计算(Auto)>");
+			TCHAR pszColorizeOptionTip[512] = TEXT("此参数决定弹出菜单鼠标悬停项的主题位图AlphaBlend混合方式，即不透明度选择方案\n通常情况下选择<不透明>增加对比度，但Windows 11 22H2之前默认主题黑暗模式下具有缺陷\n其在较高透明度下菜单项会又一层黑边，所以推荐使用<跟随透明度>设置\n但是如果你什么都不知道，就选择<自动计算>");
 			TCHAR pszResetTip[512] = TEXT("注意此选项会删除默认的配置信息，清除你对此应用的授权\n但是不影响用户界面选项的设置，即不会影响自启动\n如果你想停用此应用且不残留信息，点击它我会自动帮你清理掉");
 			TCHAR pszAutoRunTip[512] = TEXT("该选项会让你开机时运行此程序\n但如果你需要以管理员权限自启动，请在计划任务处添加自启动任务\n而不是在此处设置自启动，该处设置与计划任务保持独立");
 			if (GetUserDefaultUILanguage() != MAKELANGID(LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED))
@@ -654,6 +654,14 @@ INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPara
 						}
 						if (!_tcsicmp(szBuffer, pszFollow))
 						{
+							TCHAR pszText[MAX_PATH + 1] = _T("注意，自1.0.3开始<跟随透明度>已被弃用。其依旧可以正常工作，但用户没有理由也不需要继续使用该值");
+							TCHAR pszCaption[MAX_PATH + 1] = _T("被弃用的值");
+							if (GetUserDefaultUILanguage() != MAKELANGID(LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED))
+							{
+								LoadString(g_hInst, IDS_DEPRECATED, pszCaption, MAX_PATH);
+								LoadString(g_hInst, IDS_DEPRECATEDTEXT, pszText, MAX_PATH);
+							}
+							ShowBalloonTip(g_mainWindow, pszText, pszCaption, 3000, NIIF_INFO);
 							dwColorizeOption = 1;
 						}
 						if (!_tcsicmp(szBuffer, pszAuto))

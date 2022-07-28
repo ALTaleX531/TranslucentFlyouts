@@ -230,12 +230,13 @@ namespace TranslucentFlyoutsLib
 	    T&& t,
 	    BYTE dwOpacity = 255,
 	    DWORD dwFlag = BPPF_ERASE,
-	    BOOL bUpdateTarget = TRUE
+	    BOOL bUpdateTarget = TRUE,
+		BOOL bUseBlendFunction = TRUE
 	)
 	{
 		HDC hMemDC = nullptr;
 		BLENDFUNCTION BlendFunction = {AC_SRC_OVER, 0, dwOpacity, AC_SRC_ALPHA};
-		BP_PAINTPARAMS PaintParams = {sizeof(BP_PAINTPARAMS), dwFlag, nullptr, &BlendFunction};
+		BP_PAINTPARAMS PaintParams = {sizeof(BP_PAINTPARAMS), dwFlag, nullptr, bUseBlendFunction ? &BlendFunction : nullptr};
 		HPAINTBUFFER hPaintBuffer = BeginBufferedPaint(hdc, Rect, BPBF_TOPDOWNDIB, &PaintParams, &hMemDC);
 		if (hPaintBuffer and hMemDC)
 		{
@@ -246,7 +247,7 @@ namespace TranslucentFlyoutsLib
 			SetTextAlign(hMemDC, GetTextAlign(hdc));
 
 			t(hMemDC, hPaintBuffer);
-			EndBufferedPaint(hPaintBuffer, TRUE);
+			EndBufferedPaint(hPaintBuffer, bUpdateTarget);
 		}
 		else
 		{

@@ -232,26 +232,10 @@ extern "C"
 
 	VOID WINAPI GetVersionString(LPWSTR pszClassName, const int cchClassName)
 	{
-		wcscpy_s(pszClassName, cchClassName, L"1.0.2");
+		wcscpy_s(pszClassName, cchClassName, L"1.0.3");
 	}
 
 	VOID WINAPI FlushSettingsCache()
 	{
-		/*TCHAR pszMutexName[] = TEXT("Local\\FlushSettingsCache");
-		HANDLE hMutex = OpenMutex(SYNCHRONIZE, FALSE, pszMutexName);
-		if (!hMutex)
-		{
-			hMutex = CreateMutex(nullptr, TRUE, pszMutexName);
-		}
-		else
-		{
-			WaitForSingleObject(hMutex, INFINITE);
-		}
-		if (hMutex)
-		{
-			g_settings.Update();
-			ReleaseMutex(hMutex);
-			CloseHandle(hMutex);
-		}*/
 	}
 }
