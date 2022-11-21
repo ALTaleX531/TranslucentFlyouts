@@ -3,11 +3,11 @@
 #include "TranslucentFlyoutsLib.h"
 
 #ifdef _WIN64
-	#pragma comment(lib, "..\\Libraries\\x64\\libkcrt.lib")
-	#pragma comment(lib, "..\\Libraries\\x64\\ntdll.lib")
+	//#pragma comment(lib, "..\\Libraries\\x64\\libkcrt.lib")
+	//#pragma comment(lib, "..\\Libraries\\x64\\ntdll.lib")
 #else
-	#pragma comment(lib, "..\\Libraries\\x86\\libkcrt.lib")
-	#pragma comment(lib, "..\\Libraries\\x86\\ntdll.lib")
+	//#pragma comment(lib, "..\\Libraries\\x86\\libkcrt.lib")
+	//#pragma comment(lib, "..\\Libraries\\x86\\ntdll.lib")
 #endif // _WIN64
 
 HMODULE g_hModule = nullptr;

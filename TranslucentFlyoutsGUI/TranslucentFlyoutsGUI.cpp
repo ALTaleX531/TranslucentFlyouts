@@ -4,15 +4,16 @@
 #include "pch.h"
 #include "TranslucentFlyoutsGUI.h"
 #include "..\TranslucentFlyouts\tflapi.h"
+#include <string>
 #define WM_TASKBARICON WM_APP + 1
 #ifdef _WIN64
 	#pragma comment(lib, "..\\x64\\Release\\TranslucentFlyoutsLib.lib")
-	#pragma comment(lib, "..\\Libraries\\x64\\libkcrt.lib")
-	#pragma comment(lib, "..\\Libraries\\x64\\ntdll.lib")
+	//#pragma comment(lib, "..\\Libraries\\x64\\libkcrt.lib")
+	//#pragma comment(lib, "..\\Libraries\\x64\\ntdll.lib")
 #else
 	#pragma comment(lib, "..\\Release\\TranslucentFlyoutsLib.lib")
-	#pragma comment(lib, "..\\Libraries\\x86\\libkcrt.lib")
-	#pragma comment(lib, "..\\Libraries\\x86\\ntdll.lib")
+	//#pragma comment(lib, "..\\Libraries\\x86\\libkcrt.lib")
+	//#pragma comment(lib, "..\\Libraries\\x86\\ntdll.lib")
 #endif
 #pragma comment(linker, "/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
@@ -728,11 +729,14 @@ INT_PTR CALLBACK DialogProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPara
 					{
 						TCHAR pszModuleFileName[MAX_PATH + 1], pszCommandLine[MAX_PATH + 1];
 						GetModuleFileName(NULL, pszModuleFileName, MAX_PATH);
-						_stprintf_s(pszCommandLine, TEXT("\"%s\""), pszModuleFileName);
-						_stprintf_s(pszCommandLine, TEXT("%s /onboot"), pszCommandLine);
+						std::wstring path = L"\"";
+						path += pszModuleFileName;
+						path += L"\" /onboot";
+						/*_stprintf_s(pszCommandLine, TEXT("\"%s\""), pszModuleFileName);
+						_stprintf_s(pszCommandLine, TEXT("%s /onboot"), pszCommandLine);*/
 						if (RegOpenKeyEx(HKEY_CURRENT_USER, TEXT("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run"), 0, GENERIC_WRITE | KEY_WOW64_64KEY, &hKey) == ERROR_SUCCESS)
 						{
-							if (RegSetValueEx(hKey, TEXT("TFGUI"), 0, REG_SZ, (LPBYTE)pszCommandLine, sizeof(pszCommandLine)) != ERROR_SUCCESS)
+							if (RegSetValueExW(hKey, TEXT("TFGUI"), 0, REG_SZ, (LPBYTE)path.c_str(), path.length() * sizeof(wchar_t)) != ERROR_SUCCESS)
 							{
 								ShowBalloonTip(g_mainWindow);
 							}
