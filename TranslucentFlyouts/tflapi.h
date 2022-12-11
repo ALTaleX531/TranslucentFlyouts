@@ -16,7 +16,7 @@ enum FlyoutPolicy
 	Null,
 	PopupMenu = 1,
 	Tooltip = 1 << 1,
-	ViewControl = 1 << 2,
+	ViewControl = 1 << 2,// !!!DEPRECATED!!!
 };
 
 enum FlyoutColorizeOption

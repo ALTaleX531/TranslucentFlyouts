@@ -18,5 +18,4 @@ namespace TranslucentFlyoutsLib
 	    LONG idObject, LONG idChild,
 	    DWORD dwEventThread, DWORD dwmsEventTime
 	);
-	extern LRESULT CALLBACK SubclassProc(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
 };

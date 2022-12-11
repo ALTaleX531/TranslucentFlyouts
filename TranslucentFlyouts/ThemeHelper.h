@@ -10,8 +10,8 @@ namespace TranslucentFlyoutsLib
 
 	enum MENUPARTSEX
 	{
-		MENU_INTERNAL_POPUPBACKGROUND = 26,
-		MENU_INTERNAL_POPUPITEM
+		MENU_POPUPBACKGROUND_IMMERSIVE = 26,
+		MENU_POPUPITEM_IMMERSIVE
 	};
 
 	static inline UINT GetWindowDPI(HWND hwnd)
@@ -67,6 +67,14 @@ namespace TranslucentFlyoutsLib
 		}
 	}
 
+	static inline BOOL IsThemeAvailable()
+	{
+		return
+			IsAppThemed() and
+			IsThemeActive() and
+			(GetThemeAppProperties() & STAP_VALIDBITS);
+	}
+
 	static inline bool VerifyThemeData(HTHEME hTheme, LPCTSTR pszThemeClassName)
 	{
 		TCHAR pszClassName[MAX_PATH + 1];
@@ -108,11 +116,6 @@ namespace TranslucentFlyoutsLib
 		            !_tcscmp(pszClass, TEXT("DropDown"))
 		        )
 		    );
-	}
-
-	static inline bool IsViewControlFlyout(HWND hWnd)
-	{
-		return VerifyWindowClass(hWnd, TEXT("ViewControlClass"), TRUE);
 	}
 
 	static inline bool IsTooltipFlyout(HWND hWnd)
@@ -241,10 +244,13 @@ namespace TranslucentFlyoutsLib
 		if (hPaintBuffer and hMemDC)
 		{
 			SetLayout(hMemDC, GetLayout(hdc));
+			SetMapMode(hMemDC, GetMapMode(hdc));
+			SetGraphicsMode(hMemDC, GetGraphicsMode(hdc));
 			SelectObject(hMemDC, GetCurrentObject(hdc, OBJ_FONT));
 			SelectObject(hMemDC, GetCurrentObject(hdc, OBJ_BRUSH));
 			SelectObject(hMemDC, GetCurrentObject(hdc, OBJ_PEN));
 			SetTextAlign(hMemDC, GetTextAlign(hdc));
+			SetTextCharacterExtra(hMemDC, GetTextCharacterExtra(hdc));
 
 			t(hMemDC, hPaintBuffer);
 			EndBufferedPaint(hPaintBuffer, bUpdateTarget);
@@ -287,93 +293,5 @@ namespace TranslucentFlyoutsLib
 			}
 		}
 		return FALSE;
-	}
-
-	// Special thanks to MapleSpe!
-	// 每一个线程都有一个设备上下文对照表，即hMemDC -> hWindowDC或hMemDC
-	static std::unordered_map<DWORD, std::unordered_map<HDC, HDC>> g_deviceContextList;
-	static Microsoft::WRL::Wrappers::SRWLock g_SRWdcLock;
-	//
-	static void ClearDeviceContextList()
-	{
-		auto lock = g_SRWdcLock.LockExclusive();
-		g_deviceContextList.clear();
-	}
-	// 此函数可以获取大部分HDC所属的窗口句柄，极少数情况下如弹出菜单淡入时会获取失败
-	// 这个时候一般是WM_ERASEBKGND提供的内存DC
-	// 由BeginPaint触发
-	static HWND GetWindowFromHDC(HDC hMemDC)
-	{
-		HWND hwnd = WindowFromDC(hMemDC);
-		auto it = g_deviceContextList.find(GetCurrentThreadId());
-		auto lock = g_SRWdcLock.LockShared();
-		// 获取当前线程的设备上下文对照表
-		if (it != g_deviceContextList.end() and (!hwnd and !IsWindow(hwnd)))
-		{
-			// 寻找标志
-			bool bfirstTime = true;
-			// 设备上下文对照表
-			auto item = it->second.find(hMemDC);
-			// 上一次找到的 设备上下文对照表
-			auto lastItem = item;
-			do
-			{
-				// 这包括第一次搜索的判断，搜索成功
-				if (item != it->second.end())
-				{
-					// 第一次搜索成功
-					if (bfirstTime)
-					{
-						bfirstTime = false;
-					}
-					// 存储上一次的结果
-					lastItem = item;
-				}
-				else
-				{
-					// 还原为上一次的结果
-					item = lastItem;
-					break;
-				}
-				// item->second 就是窗口DC或内存DC
-				// 我们用这个再搜索一遍
-				item = it->second.find(item->second);
-			}
-			while (true);
-
-			if (!bfirstTime)
-			{
-				// 根设备上下文，这种就可以直接拿到窗口句柄
-				hwnd = WindowFromDC(item->second);
-			}
-			// else
-			// 找不到相关联的设备上下文，有可能是未记录到的
-		}
-		return hwnd;
-	}
-
-	static void AssociateMemoryDC(HDC hdc, HDC hMemDC)
-	{
-		auto lock = g_SRWdcLock.LockExclusive();
-		g_deviceContextList[GetCurrentThreadId()][hMemDC] = hdc;
-	}
-	static void DisassociateMemoryDC(HDC hMemDC)
-	{
-		auto it = g_deviceContextList.find(GetCurrentThreadId());
-		auto lock = g_SRWdcLock.LockExclusive();
-		// 获取当前线程的设备上下文对照表
-		if (it != g_deviceContextList.end())
-		{
-			// 第二项为设备上下文对照表
-			auto item = it->second.find(hMemDC);
-			if (item != it->second.end())
-			{
-				// item->second 就是窗口DC或内存DC
-				if (item->first == hMemDC)
-				{
-					it->second.erase(item);
-				}
-			}
-		}
 	}
 };

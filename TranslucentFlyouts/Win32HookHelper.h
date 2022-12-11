@@ -79,9 +79,6 @@ namespace TranslucentFlyoutsLib
 	    UINT_PTR uIDNewItem,
 	    LPCWSTR  lpNewItem
 	);
-	extern HDC WINAPI MyCreateCompatibleDC(HDC hdc);
-	extern BOOL WINAPI MyDeleteDC(HDC hdc);
-	extern BOOL WINAPI MyDeleteObject(HGDIOBJ ho);
 	//
 	// 透明化处理
 	extern DetoursHook DrawThemeBackgroundHook;
@@ -96,10 +93,6 @@ namespace TranslucentFlyoutsLib
 	extern DetoursHook InsertMenuItemWHook;
 	extern DetoursHook SetMenuItemInfoWHook;
 	extern DetoursHook ModifyMenuWHook;
-	// 窗口句柄的记录
-	extern DetoursHook CreateCompatibleDCHook;
-	extern DetoursHook DeleteDCHook;
-	extern DetoursHook DeleteObjectHook;
 	//
 	extern void Win32HookStartup();
 	extern void Win32HookShutdown();

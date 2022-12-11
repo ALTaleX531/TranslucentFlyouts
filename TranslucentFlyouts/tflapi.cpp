@@ -232,7 +232,7 @@ extern "C"
 
 	VOID WINAPI GetVersionString(LPWSTR pszClassName, const int cchClassName)
 	{
-		wcscpy_s(pszClassName, cchClassName, L"1.0.3");
+		wcscpy_s(pszClassName, cchClassName, L"1.0.5");
 	}
 
 	VOID WINAPI FlushSettingsCache()

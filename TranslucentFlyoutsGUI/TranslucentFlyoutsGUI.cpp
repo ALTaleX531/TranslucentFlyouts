@@ -8,12 +8,8 @@
 #define WM_TASKBARICON WM_APP + 1
 #ifdef _WIN64
 	#pragma comment(lib, "..\\x64\\Release\\TranslucentFlyoutsLib.lib")
-	//#pragma comment(lib, "..\\Libraries\\x64\\libkcrt.lib")
-	//#pragma comment(lib, "..\\Libraries\\x64\\ntdll.lib")
 #else
 	#pragma comment(lib, "..\\Release\\TranslucentFlyoutsLib.lib")
-	//#pragma comment(lib, "..\\Libraries\\x86\\libkcrt.lib")
-	//#pragma comment(lib, "..\\Libraries\\x86\\ntdll.lib")
 #endif
 #pragma comment(linker, "/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
@@ -429,7 +425,7 @@ INT_PTR CALLBACK DialogProc2(HWND hWnd, UINT Message, WPARAM wParam, LPARAM lPar
 			SendMessage(hWnd, WM_SETICON, FALSE, (LPARAM)hIcon);
 			DestroyIcon(hIcon);
 			GetVersionString(pszLibVersion, MAX_PATH);
-			_stprintf_s(pszVersionInfo, TEXT("TranslucentFlyoutsLib v%s\nTranslucentFlyoutsGUI v1.0.3"), pszLibVersion);
+			_stprintf_s(pszVersionInfo, TEXT("TranslucentFlyoutsLib v%s\nTranslucentFlyoutsGUI v1.0.5"), pszLibVersion);
 			SetWindowText(GetDlgItem(hWnd, IDC_STATIC4), pszVersionInfo);
 			break;
 		}

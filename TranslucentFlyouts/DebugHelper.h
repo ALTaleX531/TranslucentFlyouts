@@ -38,32 +38,6 @@ namespace TranslucentFlyoutsLib
 		DbgPrint(TEXT("%s -> [%s - %s]0x%x"), pszCustomString, pszClassName, pszWindowText, hwnd);
 	}
 
-	static inline void ThemeDbgPrint(HTHEME hTheme, HDC hdc, LPCTSTR pszCustomString = TEXT(""), PVOID pvCaller = _ReturnAddress())
-	{
-		TCHAR pszThemeClass[MAX_PATH + 1] = {};
-		TCHAR pszClassName[MAX_PATH + 1] = {};
-		TCHAR pszWindowText[MAX_PATH + 1] = {};
-		TCHAR pszCallerModule[MAX_PATH + 1] = {};
-		HWND hwnd = GetWindowFromHDC(hdc);
-		GetClassName(hwnd, pszClassName, MAX_PATH);
-		InternalGetWindowText(hwnd, pszWindowText, MAX_PATH);
-		GetThemeClass(hTheme, pszThemeClass, 260);
-		GetModuleFileName(DetourGetContainingModule(pvCaller), pszCallerModule, MAX_PATH);
-		DbgPrint(TEXT("[0x%p][%s - %s] -> [%s] from [%s]"), hwnd, pszClassName, pszWindowText, pszThemeClass, pszCallerModule);
-	}
-
-	static inline void GdiDbgPrint(HDC hdc, LPCTSTR pszCustomString, PVOID pvCaller = _ReturnAddress())
-	{
-		TCHAR pszClassName[MAX_PATH + 1] = {};
-		TCHAR pszWindowText[MAX_PATH + 1] = {};
-		TCHAR pszCallerModule[MAX_PATH + 1] = {};
-		HWND hwnd = GetWindowFromHDC(hdc);
-		GetClassName(hwnd, pszClassName, MAX_PATH);
-		InternalGetWindowText(hwnd, pszWindowText, MAX_PATH);
-		GetModuleFileName(DetourGetContainingModule(pvCaller), pszCallerModule, MAX_PATH);
-		DbgPrint(TEXT("[0x%p][%s - %s] -> %s [%s]"), hwnd, pszClassName, pszWindowText, pszCustomString, pszCallerModule);
-	}
-
 	static inline void FunctionDbgPrint(LPCTSTR pszCustomString = TEXT(""), PVOID pvCaller = _ReturnAddress())
 	{
 		TCHAR pszCallerModule[MAX_PATH + 1] = {};
