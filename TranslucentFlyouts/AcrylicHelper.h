@@ -59,15 +59,12 @@ namespace TranslucentFlyoutsLib
 	typedef enum _ACCENT_FLAG
 	{
 		ACCENT_NONE,
-		ACCENT_ENABLE_LUMINOSITY = 1 << 1,
-		// unknown parameters here
-		// ...
 		ACCENT_ENABLE_BORDER_LEFT = 1 << 5,
 		ACCENT_ENABLE_BORDER_TOP = 1 << 6,
 		ACCENT_ENABLE_BORDER_RIGHT = 1 << 7,
 		ACCENT_ENABLE_BORDER_BOTTOM = 1 << 8,
 		ACCENT_ENABLE_BORDER = ACCENT_ENABLE_BORDER_LEFT | ACCENT_ENABLE_BORDER_TOP | ACCENT_ENABLE_BORDER_RIGHT | ACCENT_ENABLE_BORDER_BOTTOM,
-		ACCENT_ENABLE_ALL = ACCENT_ENABLE_BORDER
+		ACCENT_ENABLE_ALL = ACCENT_ENABLE_BORDER | ACCENT_ENABLE_LUMINOSITY
 	} ACCENT_FLAG;
 
 	typedef struct _ACCENT_POLICY
@@ -95,7 +92,7 @@ namespace TranslucentFlyoutsLib
 		        "SetWindowCompositionAttribute"
 		    );
 
-		ACCENT_POLICY policy = {static_cast<ACCENT_STATE>(dwEffect), bBorderOption ? ACCENT_ENABLE_ALL : ACCENT_NONE, 0x01000000, 0};
+		ACCENT_POLICY policy = {static_cast<ACCENT_STATE>(dwEffect), bBorderOption ? ACCENT_ENABLE_ALL : ACCENT_ENABLE_LUMINOSITY, 0x01000000, 0};
 		WINDOWCOMPOSITIONATTRIBUTEDATA data = {WCA_ACCENT_POLICY, &policy, sizeof(ACCENT_POLICY)};
 		
 		if (dwEffect == ACCENT_ENABLE_TRANSPARENTGRADIENT)
@@ -111,5 +108,19 @@ namespace TranslucentFlyoutsLib
 		}
 
 		SetWindowCompositionAttribute(hwnd, &data);
+	}
+
+	static void RemoveAllEffects(HWND hWnd)
+	{
+		DWM_BLURBEHIND bb = { DWM_BB_ENABLE, FALSE, nullptr, FALSE};
+		DwmEnableBlurBehindWindow(hWnd, &bb);
+		static const auto& SetWindowCompositionAttribute =
+			(pfnSetWindowCompositionAttribute)GetProcAddress(
+				GetModuleHandle(TEXT("User32")),
+				"SetWindowCompositionAttribute"
+			);
+		ACCENT_POLICY policy = { ACCENT_DISABLED, ACCENT_NONE, 0, 0};
+		WINDOWCOMPOSITIONATTRIBUTEDATA data = { WCA_ACCENT_POLICY, &policy, sizeof(ACCENT_POLICY) };
+		SetWindowCompositionAttribute(hWnd, &data);
 	}
 };

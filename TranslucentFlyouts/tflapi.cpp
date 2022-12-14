@@ -20,7 +20,7 @@ extern "C"
 			bResult = (
 			              (
 			                  g_hHook = SetWinEventHook(
-			                                EVENT_OBJECT_CREATE, EVENT_OBJECT_SHOW,
+			                                EVENT_OBJECT_CREATE, EVENT_OBJECT_HIDE,
 			                                g_hModule,
 			                                TranslucentFlyoutsLib::HandleWinEvent,
 			                                0, 0,

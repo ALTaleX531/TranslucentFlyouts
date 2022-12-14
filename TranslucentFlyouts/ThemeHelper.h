@@ -148,24 +148,9 @@ namespace TranslucentFlyoutsLib
 		return CreateDIBSection(hdc, &bitmapInfo, DIB_RGB_COLORS, pvBits, nullptr, 0);
 	}
 
-	static inline COLORREF GetBrushColor(HBRUSH hBrush)
+	static inline BYTE PremultiplyColor(BYTE color, BYTE alpha = 255)
 	{
-		LOGBRUSH lbr = {};
-		GetObject(hBrush, sizeof(lbr), &lbr);
-		if (lbr.lbStyle != BS_SOLID)
-		{
-			return CLR_NONE;
-		}
-		return lbr.lbColor;
-	}
-
-	static inline void SetPixel(PBYTE pvBits, BYTE b, BYTE g, BYTE r, BYTE a)
-	{
-		// AlphaÔ¤³Ë
-		pvBits[0] = (b * (a + 1)) >> 8;
-		pvBits[1] = (g * (a + 1)) >> 8;
-		pvBits[2] = (r * (a + 1)) >> 8;
-		pvBits[3] = a;
+		return (color * (alpha + 1) >> 8);
 	}
 
 	static void PrepareAlpha(HBITMAP hBitmap)
@@ -210,9 +195,9 @@ namespace TranslucentFlyoutsLib
 						{
 							for (UINT i = 0; i < BitmapInfo.bmiHeader.biSizeImage; i += 4)
 							{
-								pvBits[i] = (pvBits[i] * 256) >> 8;
-								pvBits[i + 1] = (pvBits[i + 1] * 256) >> 8;
-								pvBits[i + 2] = (pvBits[i + 2] * 256) >> 8;
+								pvBits[i] = PremultiplyColor(pvBits[0]);
+								pvBits[i + 1] = PremultiplyColor(pvBits[i + 1]);
+								pvBits[i + 2] = PremultiplyColor(pvBits[i + 2]);
 								pvBits[i + 3] = 255;
 							}
 						}

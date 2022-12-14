@@ -12,6 +12,7 @@ namespace TranslucentFlyoutsLib
 	extern void OnWindowsCreated(HWND hWnd);
 	extern void OnWindowsDestroyed(HWND hWnd);
 	extern void OnWindowShowed(HWND hWnd);
+	extern void OnWindowHid(HWND hWnd);
 
 	extern void CALLBACK HandleWinEvent(
 	    HWINEVENTHOOK hWinEventHook, DWORD dwEvent, HWND hWnd,

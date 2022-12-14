@@ -10,6 +10,7 @@ using namespace TranslucentFlyoutsLib;
 extern HMODULE g_hModule;
 
 thread_local HWND g_hWnd = nullptr;
+thread_local DWORD g_referenceCount = 0;
 thread_local bool g_alphaFixedState = false;
 
 // 透明化处理
@@ -481,7 +482,6 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeTextEx(
 		auto f = [&](HDC hMemDC, HPAINTBUFFER hPaintBuffer)
 		{
 			g_alphaFixedState = true;
-
 			hr = DrawThemeTextExHook.OldFunction<decltype(MyDrawThemeTextEx)>(
 			         hTheme,
 			         hMemDC,
@@ -493,10 +493,9 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeTextEx(
 			         pRect,
 			         &Options
 			     );
-
 			g_alphaFixedState = false;
 		};
-
+		
 		if (!DoBufferedPaint(hdc, pRect, f))
 		{
 			goto Default;
@@ -511,7 +510,6 @@ HRESULT WINAPI TranslucentFlyoutsLib::MyDrawThemeTextEx(
 	return hr;
 Default:
 	g_alphaFixedState = true;
-
 	hr = DrawThemeTextExHook.OldFunction<decltype(MyDrawThemeTextEx)>(
 	         hTheme,
 	         hdc,
@@ -523,7 +521,6 @@ Default:
 	         pRect,
 	         pOptions
 	     );
-
 	g_alphaFixedState = false;
 	return hr;
 }
@@ -726,38 +723,32 @@ BOOL WINAPI TranslucentFlyoutsLib::MySetMenuInfo(
 
 		if (hBitmap and pvBits)
 		{
-			COLORREF dwColor = GetBrushColor(lpMenuInfo->hbrBack);
-
-			// 获取提供的画刷颜色，设置位图画刷的像素
-			if (dwColor != CLR_NONE)
+			BYTE bAlpha = (BYTE)GetCurrentFlyoutOpacity();
+			RECT rcPaint = { 0, 0, 1, 1 };
+			HDC hMemDC = CreateCompatibleDC(nullptr);
+			if (hMemDC)
 			{
-				dwLastColor = dwColor;
+				SelectObject(hMemDC, hBitmap);
+				FillRect(hMemDC, &rcPaint, lpMenuInfo->hbrBack);
+				pvBits[0] = PremultiplyColor(pvBits[0], bAlpha);
+				pvBits[1] = PremultiplyColor(pvBits[1], bAlpha);
+				pvBits[2] = PremultiplyColor(pvBits[2], bAlpha);
+				pvBits[3] = bAlpha;
 
-				SetPixel(
-				    pvBits,
-				    GetBValue(dwColor),
-				    GetGValue(dwColor),
-				    GetRValue(dwColor),
-				    (BYTE)GetCurrentFlyoutOpacity()
-				);
+				DeleteDC(hMemDC);
 			}
 			else
 			{
-				SetPixel(
-				    pvBits,
-				    GetBValue(dwLastColor),
-				    GetGValue(dwLastColor),
-				    GetRValue(dwLastColor),
-				    (BYTE)GetCurrentFlyoutOpacity()
-				);
+				DeleteObject(hBitmap);
+				goto Default;
 			}
+			
 
 			// 创建位图画刷
 			// 只有位图画刷才有Alpha值
 			HBRUSH hBrush = CreatePatternBrush(hBitmap);
 
 			DeleteObject(hBitmap);
-
 			if (hBrush)
 			{
 				// 此画刷会被内核自动释放

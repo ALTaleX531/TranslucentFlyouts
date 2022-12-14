@@ -7,6 +7,7 @@
 using namespace TranslucentFlyoutsLib;
 extern HMODULE g_hModule;
 extern HWND g_hWnd;
+extern DWORD g_referenceCount;
 
 void TranslucentFlyoutsLib::Startup()
 {
@@ -41,7 +42,6 @@ void TranslucentFlyoutsLib::OnWindowsCreated(HWND hWnd)
 
 void TranslucentFlyoutsLib::OnWindowsDestroyed(HWND hWnd)
 {
-
 }
 
 void TranslucentFlyoutsLib::OnWindowShowed(HWND hWnd)
@@ -57,6 +57,10 @@ void TranslucentFlyoutsLib::OnWindowShowed(HWND hWnd)
 			);
 		}
 	}
+}
+
+void TranslucentFlyoutsLib::OnWindowHid(HWND hWnd)
+{
 }
 
 void CALLBACK TranslucentFlyoutsLib::HandleWinEvent(
@@ -80,6 +84,11 @@ void CALLBACK TranslucentFlyoutsLib::HandleWinEvent(
 		if (dwEvent == EVENT_OBJECT_SHOW)
 		{
 			OnWindowShowed(hWnd);
+		}
+
+		if (dwEvent == EVENT_OBJECT_HIDE)
+		{
+			OnWindowHid(hWnd);
 		}
 	}
 }
