@@ -1,3 +1,9 @@
+> # TranslucentFlyouts is now being rewritten
+> 
+> The current branch of TranslucentFlyouts is no longer being updated.
+> When TranslucentFlyouts V2 is complete, I will sync the code to Github.
+> This is expected to be completed in July, when new features and functionality, as well as improvements, will be available. 
+
 ## TranslucentFlyouts
 A lightweight utility that makes the Windows flyouts (popup menu, or sth. else) translucent/transparent on Windows 10/11.
 ## Overview
