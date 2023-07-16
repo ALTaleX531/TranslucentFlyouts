@@ -1,20 +1,89 @@
-> # TranslucentFlyouts is now being rewritten
-> 
-> The current branch of TranslucentFlyouts is no longer being updated.
-> When TranslucentFlyouts V2 is complete, I will sync the code to Github.
-> This is expected to be completed in July, when new features and functionality, as well as improvements, will be available. 
+## TranslucentFlyouts V2
+An application that makes most of the win32 popup menus translucent/transparent on Windows 10/11, providing more options to tweak it to meet your need.
 
-> One more thing I need to say that TranslucentFlyouts V1 may cause explorer to crash while using with [ExplorerBlurMica](https://github.com/Maplespe/ExplorerBlurMica)
-> This issue has actually been around for a long time, I just forgot to mention it on Github (sorry about that...)
+Compared to V1, TranslucentFlyouts V2 has better compatibility and the ability to customize.   
+**TranslucentFlyouts uses [LGNU V3 license](./COPYING.LESSER) started from V2.**  
 
-## TranslucentFlyouts
-A lightweight utility that makes the Windows flyouts (popup menu, or sth. else) translucent/transparent on Windows 10/11.
-## Overview
-![Win10Dark](https://github.com/ALTaleX531/TranslucentFlyouts/blob/master/Images/popup_menu_sample_1.png)
-![Win10Light](https://github.com/ALTaleX531/TranslucentFlyouts/blob/master/Images/popup_menu_sample_6.png)
-![Win11Dark](https://github.com/ALTaleX531/TranslucentFlyouts/blob/master/Images/popup_menu_sample_7.png)
-![Win11Light](https://github.com/ALTaleX531/TranslucentFlyouts/blob/master/Images/popup_menu_sample_8.png)
-## Limitations
-TranslucentFlyouts cannot blur windows 2000 style popup menu and ownerdrawn popup menu
+<img src="https://img.shields.io/badge/language-c++-F34B7D.svg"/>
+<img src="https://img.shields.io/github/repo-size/ALTaleX531/TranslucentFlyouts.svg"/>
+<img src="https://img.shields.io/github/last-commit/ALTaleX531/TranslucentFlyouts.svg"/>
+
+[简体中文](./ReadMe/zh-cn.md)  
+## Catalog
+- [Gallery](#gallery)
+- [How to use](#how-to-use)
+- [Config](./Config/zh-cn.md)
+- [Limitations & Compatibility](#limitations-and-compatibility)
+- [Dependencies & References](#dependencies-and-references)
+## Gallery
+
+<details><summary><b>Acrylic</b></summary>
+
+Windows 10
+> ![Windows10 Light Mode](./Images/Acrylic/LightMode_Windows10.png)
+![Windows10 Dark Mode](./Images/Acrylic/DarkMode_Windows10.png)
+
+Windows 11  
+> ![Windows11 Light Mode](./Images/Acrylic/LightMode_Windows11.png)
+![Windows11 Dark Mode](./Images/Acrylic/DarkMode_Windows11.png)
+</details>
+
+<details><summary><b>Mica/MicaAlt (Windows 11 Only)</b></summary>
+
+> ![Mica](./Images/Mica/DarkMode_Windows11.png)
+![MicaAlt](./Images/Mica/DarkMode_Windows11(MicaAlt).png)
+</details>
+
+## How to use
+
+### Install
+1. Download the compiled program archive from the [Release](https://github.com/ALTaleX531/TranslucentFlyouts/releases/latest) page.
+2. Unzip it to a location such as "`C:\Program Files`".
+3. Run "`install.cmd`" as administrator.
+4. Logoff to take effect.  
+
+**Downloading symbol files from Microsoft server is required at the first time or after a windows update, otherwise some functionalities will be unavailable!**  
+cmd: `Rundll32 "your path/TFMain64.dll",Main /install"`
+
+### Uninstall
+1. Run "`uninstall.cmd`" as administrator.
+2. Delete the remaining files.
+
+cmd: `Rundll32 "your path/TFMain64.dll",Main /uninstall"`
+## Limitations and Compatibility
+### Here are some situations that TranslucentFlyouts will always be automatically disabled.
+### 1. Windows 2000 Style popup menu  
+> ![Windows2000](./Images/Unsupported/Windows2000.png)
+
+Outdated.
+### 2. Ownerdrawn popup menu
+> ![Ownerdrawn](./Images/Unsupported/Ownerdrawn.png)
+
+As you can see, it is a QT popup menu.  
+It really looks like the default menu, isn't it?  
+But it's rendering procedure is completely different from the defualt one, making TranslucentFlyout hard to modify its visual content.  
+### **4. StartAllBack**
+**You can use TranslucentFlyouts with StartAllback but you really need to pay attention to the followings...**  
+StartAllBack has built-in support for translucent popup menu, its rendering procedure priority is higher than TranslucentFlyouts, so TranslucentFlyouts will actually do nothing for Windows Explorer. (maybe it's time to let StartAllBack know they should add an option to disable it entirely! )
+
+**It wil also cause following possible issues when using together with TranslucentFlyouts**  
+### 1. Hovered menu item with flaws  
+>    ![StartAllBack_MenuItemWithFlaws](./Images/StartAllBack/MenuItemWithFlaws.png)
+    ![StartAllBack_MenuItemColoredWithFlaws](./Images/StartAllBack/MenuItemColoredWithFlaws.png)   
+As you can see there is a white border around the menu item, it will always exist until you disable or uninstall StartAllBack...  
+**To solve this, you should set the dword value "EnableCustomRendering" to non-zero for TranslucentFlyouts.**  
+Registry path: HKEY_CURRENT_USER\SOFTWARE\TranslucentFlyouts\Menu\EnableCustomRendering
+
+### 2. Abnormal DropDown flyout
+>    ![DropDownComparison](./Images/StartAllBack/DropDownComparison.png)  
+It become opaque... :(  
+**To solve this, you should set the dword value "Disabled" to non-zero for TranslucentFlyouts.**  
+Registry path: HKEY_CURRENT_USER\SOFTWARE\TranslucentFlyouts\DropDown\Disabled
+
 ## Dependencies and References
-[Detours](https://github.com/microsoft/Detours)
+### [Microsoft Research Detours Package](https://github.com/microsoft/Detours)  
+Detours is a software package for monitoring and instrumenting API calls on Windows.  
+### [VC-LTL - An elegant way to compile lighter binaries.](https://github.com/Chuyu-Team/VC-LTL5)  
+VC-LTL is an open source CRT library based on the MS VCRT that reduce program binary size and say goodbye to Microsoft runtime DLLs, such as msvcr120.dll, api-ms-win-crt-time-l1-1-0.dll and other dependencies.  
+### [Windows Implementation Libraries (WIL)](https://github.com/Microsoft/wil)  
+The Windows Implementation Libraries (WIL) is a header-only C++ library created to make life easier for developers on Windows through readable type-safe C++ interfaces for common Windows coding patterns.  

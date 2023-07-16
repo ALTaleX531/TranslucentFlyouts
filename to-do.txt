@@ -1,0 +1,19 @@
+自定义绘制
+Menu->(default)
+Menu
+->Hot
+->Focusing
+->DisabledHot
+->Separator
+->->Disabled
+->->CornerRadius
+->->LightMode_Color
+->->LightMode_Opacity
+->->DarkMode_Color
+->->DarkMode_Opacity
+
+//2、StartAllBack 冲突和解决
+6、配置文件
+7、UI
+8、Readme
+9、动画
