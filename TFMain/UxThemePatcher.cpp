@@ -658,6 +658,6 @@ void TranslucentFlyouts::UxThemePatcher::ShutdownHook()
 
 	Hooking::Detours::Write([&]()
 	{
-		Hooking::Detours::Attach(&m_actualCThemeMenu_DrawItemBitmap, detourDestination);
+		Hooking::Detours::Detach(&m_actualCThemeMenu_DrawItemBitmap, detourDestination);
 	});
 }
