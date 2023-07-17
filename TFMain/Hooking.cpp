@@ -565,12 +565,11 @@ std::byte* TranslucentFlyouts::Hooking::FunctionCallHook::AllocJmpCode(PVOID det
 	}
 
 #ifdef _WIN64
-	std::byte jmpCode[12] {std::byte{0x48}, std::byte{0xb8}};
-	jmpCode[10] = std::byte{0xFF};
-	jmpCode[11] = std::byte{0xE0};
-	memcpy_s(&jmpCode[2], sizeof(PVOID), &detourDestination, sizeof(detourDestination));
+	std::byte jmpCode[14] {std::byte{0xFF}, std::byte{0x25}};
+	memcpy_s(&jmpCode[6], sizeof(PVOID), &detourDestination, sizeof(detourDestination));
 #else
-	std::byte jmpCode[5] {std::byte{0xE9}};
+	std::byte jmpCode[] {std::byte{0xB8}, std::byte{0}, std::byte{0}, std::byte{0}, std::byte{0}, std::byte{0xFF}, std::byte{0xE0}, std::byte{0}};
+	memcpy_s(&jmpCode[1], sizeof(PVOID), &detourDestination, sizeof(detourDestination));
 #endif
 
 	if (m_current + sizeof(jmpCode) > m_end)
@@ -582,11 +581,6 @@ std::byte* TranslucentFlyouts::Hooking::FunctionCallHook::AllocJmpCode(PVOID det
 	memcpy(startPos, jmpCode, sizeof(jmpCode));
 	m_current += sizeof(jmpCode);
 
-#ifndef _WIN64
-	DWORD offset{reinterpret_cast<DWORD>(detourDestination) - reinterpret_cast<DWORD>(startPos) - sizeof(jmpCode)};
-	memcpy_s(&startPos[1], sizeof(DWORD), &offset, sizeof(offset));
-#endif
-
 	return startPos;
 }
 
@@ -597,10 +591,6 @@ void TranslucentFlyouts::Hooking::FunctionCallHook::Attach(PVOID functionThunkAd
 	LOG_HR_IF(E_INVALIDARG, !detourDestination);
 	LOG_HR_IF(E_INVALIDARG, !callersCount);
 
-	if (!m_jumpRegion)
-	{
-		InitJumpRegion(functionThunkAddress);
-	}
 	if (!functionThunkAddress)
 	{
 		return;
@@ -613,7 +603,11 @@ void TranslucentFlyouts::Hooking::FunctionCallHook::Attach(PVOID functionThunkAd
 	{
 		return;
 	}
-
+	if (!m_jumpRegion)
+	{
+		InitJumpRegion(functionThunkAddress);
+	}
+	
 	auto jmpBytes{AllocJmpCode(detourDestination)};
 	auto functionBytes{reinterpret_cast<std::byte*>(functionThunkAddress)};
 	auto functionIsEnd = [](std::byte * bytes, int offset)

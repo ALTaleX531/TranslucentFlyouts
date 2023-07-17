@@ -212,7 +212,11 @@ BOOL APIENTRY DllMain(
 			}
 			else
 			{
-				if (MainDLL::IsHookGlobalInstalled() && ThemeHelper::IsThemeAvailable())
+				if (
+					MainDLL::IsHookGlobalInstalled() &&
+					ThemeHelper::IsThemeAvailable() &&
+					!GetSystemMetrics(SM_CLEANBOOT)
+				)
 				{
 					MainDLL::GetInstance().Startup();
 				}

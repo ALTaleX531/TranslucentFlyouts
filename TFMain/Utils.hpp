@@ -14,32 +14,27 @@ namespace TranslucentFlyouts
 		};
 		typedef wil::unique_any<HDC, decltype(&external_dc::close), external_dc::close, wil::details::pointer_access_noaddress, external_dc> unique_ext_hdc;
 
-		[[deprecated("Deprecated, because this helper function is no use at all, it will always return false.")]] static inline bool IsWinEventHookValid(HWINEVENTHOOK hook)
+		static inline bool IsBadReadPtr(const void* ptr)
 		{
-			static const auto pfnHMValidateHandle
+			bool result{false};
+			MEMORY_BASIC_INFORMATION mbi{};
+			if (::VirtualQuery(ptr, &mbi, sizeof(mbi)))
 			{
-				reinterpret_cast<bool(WINAPI*)(PVOID, UCHAR)>([]() -> PVOID
+				DWORD mask{PAGE_READONLY | PAGE_READWRITE | PAGE_WRITECOPY | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY};
+				result = !(mbi.Protect & mask);
+
+				// Check the page is not a guard page
+				if (mbi.Protect & (PAGE_GUARD | PAGE_NOACCESS))
 				{
-					auto pfnIsMenu{reinterpret_cast<BYTE*>(DetourFindFunction("user32.dll", "IsMenu"))};
-					for (int i = 0; i < 12; i++)
-					{
-						if (pfnIsMenu[i] == 0xE8)
-						{
-							auto offset{*reinterpret_cast<int*>(&pfnIsMenu[i + 1])};
-							return reinterpret_cast<PVOID>(&pfnIsMenu[i + 5] + offset);
-						}
-					}
-
-					return nullptr;
-				}())
-			};
-
-			if (pfnHMValidateHandle)
+					result = true;
+				}
+			}
+			else
 			{
-				return pfnHMValidateHandle(hook, 15);
+				result = true;
 			}
 
-			return true;
+			return result;
 		}
 
 		static inline BOOL IsTopLevelWindow(HWND hWnd)

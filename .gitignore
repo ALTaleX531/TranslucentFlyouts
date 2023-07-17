@@ -4,3 +4,7 @@
 
 /.vs/TranslucentFlyouts/v16
 /packages
+/Build
+/TFMain/Debug/VC-LTL5.tmp/10.0.10240.0/Win32
+/TFMain/x64
+/TFMain/x86/Debug

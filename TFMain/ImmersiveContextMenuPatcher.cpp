@@ -93,6 +93,7 @@ HRESULT WINAPI TranslucentFlyouts::ImmersiveContextMenuPatcher::DrawThemeBackgro
 		RETURN_HR_IF_NULL_EXPECTED(E_INVALIDARG, hTheme);
 		RETURN_HR_IF_NULL_EXPECTED(E_INVALIDARG, hdc);
 		RETURN_HR_IF_NULL_EXPECTED(E_INVALIDARG, pRect);
+		RETURN_HR_IF(E_INVALIDARG, Utils::IsBadReadPtr(pRect));
 		RETURN_HR_IF_EXPECTED(E_INVALIDARG, IsRectEmpty(pRect) == TRUE);
 
 		RETURN_HR_IF_EXPECTED(
@@ -230,6 +231,7 @@ int WINAPI TranslucentFlyouts::ImmersiveContextMenuPatcher::DrawTextW(
 			MenuHandler::GetCurrentListviewDC() != hdc &&
 			MenuHandler::GetCurrentMenuDC() != hdc
 		);
+		RETURN_HR_IF(E_INVALIDARG, Utils::IsBadReadPtr(lprc));
 		RETURN_HR_IF_EXPECTED(E_NOTIMPL, ((format & DT_CALCRECT) || (format & DT_INTERNAL) || (format & DT_NOCLIP)));
 		return ThemeHelper::DrawTextWithAlpha(
 				   hdc,

@@ -491,7 +491,7 @@ HRESULT TranslucentFlyouts::MenuRendering::BltWithAlpha(
 	RETURN_HR_IF_NULL_EXPECTED(E_INVALIDARG, hdcDest);
 	RETURN_HR_IF_NULL_EXPECTED(E_INVALIDARG, hdcSrc);
 	HBITMAP hBitmap{reinterpret_cast<HBITMAP>(GetCurrentObject(hdcSrc, OBJ_BITMAP))};
-	RETURN_LAST_ERROR_IF_NULL(hBitmap);
+	RETURN_HR_IF_NULL(E_INVALIDARG, hBitmap);
 	RETURN_HR_IF_EXPECTED(
 		E_NOTIMPL,
 		ThemeHelper::IsOemBitmap(hBitmap)
