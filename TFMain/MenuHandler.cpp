@@ -323,7 +323,8 @@ LRESULT CALLBACK TranslucentFlyouts::MenuHandler::SubclassProc(HWND hWnd, UINT u
 					RegHelper::GetDword(
 						L"Menu\\Border",
 						L"NoBorderColor",
-						0
+						0,
+						false
 					)
 				};
 
@@ -352,10 +353,10 @@ LRESULT CALLBACK TranslucentFlyouts::MenuHandler::SubclassProc(HWND hWnd, UINT u
 						DWORD enableThemeColorization
 						{
 							RegHelper::GetDword(
-									  L"Menu\\Border",
-									  L"EnableThemeColorization",
-									  0,
-									  false
+								L"Menu\\Border",
+								L"EnableThemeColorization",
+								0,
+								false
 							)
 						};
 
@@ -380,7 +381,8 @@ LRESULT CALLBACK TranslucentFlyouts::MenuHandler::SubclassProc(HWND hWnd, UINT u
 					RegHelper::GetDword(
 						L"Menu\\Border",
 						L"CornerType",
-						3
+						3,
+						false
 					)
 				};
 				if (cornerType == 0)
@@ -435,10 +437,10 @@ LRESULT CALLBACK TranslucentFlyouts::MenuHandler::SubclassProc(HWND hWnd, UINT u
 						DWORD enableThemeColorization
 						{
 							RegHelper::GetDword(
-									  L"Menu\\Border",
-									  L"EnableThemeColorization",
-									  0,
-									  false
+								L"Menu\\Border",
+								L"EnableThemeColorization",
+								0,
+								false
 							)
 						};
 
@@ -502,10 +504,10 @@ LRESULT CALLBACK TranslucentFlyouts::MenuHandler::SubclassProc(HWND hWnd, UINT u
 						DWORD enableThemeColorization
 						{
 							RegHelper::GetDword(
-									  L"Menu\\Border",
-									  L"EnableThemeColorization",
-									  0,
-									  false
+								L"Menu\\Border",
+								L"EnableThemeColorization",
+								0,
+								false
 							)
 						};
 

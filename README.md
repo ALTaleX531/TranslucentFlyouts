@@ -2,12 +2,14 @@
 An application that makes most of the win32 popup menus translucent/transparent on Windows 10/11, providing more options to tweak it to meet your need.
 
 Compared to V1, TranslucentFlyouts V2 has better compatibility and the ability to customize.   
+TranslucentFlyouts V1 has been moved to [TranslucentFlyoutsV1](https://github.com/ALTaleX531/TranslucentFlyoutsV1).   
 **TranslucentFlyouts uses [LGNU V3 license](./COPYING.LESSER) started from V2.**  
 
 <img src="https://img.shields.io/badge/language-c++-F34B7D.svg"/>
 <img src="https://img.shields.io/github/repo-size/ALTaleX531/TranslucentFlyouts.svg"/>
-<img src="https://img.shields.io/github/last-commit/ALTaleX531/TranslucentFlyouts.svg"/>
+<img src="https://img.shields.io/github/last-commit/ALTaleX531/TranslucentFlyouts.svg"/>  
 
+###  Other Languages
 [简体中文](./ReadMe/zh-cn.md)  
 ## Catalog
 - [Gallery](#gallery)
@@ -32,6 +34,12 @@ Windows 11
 
 > ![Mica](./Images/Mica/DarkMode_Windows11.png)
 ![MicaAlt](./Images/Mica/DarkMode_Windows11(MicaAlt).png)
+</details>
+
+<details><summary><b>Custom Rendering Sample</b></summary>
+
+> ![Sample 1](./Images/CustomRendering/LightMode_Sample1.png)
+![Sample 2](./Images/CustomRendering/LightMode_Sample2.png)
 </details>
 
 ## How to use
@@ -62,7 +70,7 @@ Outdated.
 As you can see, it is a QT popup menu.  
 It really looks like the default menu, isn't it?  
 But it's rendering procedure is completely different from the defualt one, making TranslucentFlyout hard to modify its visual content.  
-### **4. StartAllBack**
+### **3. StartAllBack**
 **You can use TranslucentFlyouts with StartAllback but you really need to pay attention to the followings...**  
 StartAllBack has built-in support for translucent popup menu, its rendering procedure priority is higher than TranslucentFlyouts, so TranslucentFlyouts will actually do nothing for Windows Explorer. (maybe it's time to let StartAllBack know they should add an option to disable it entirely! )
 
@@ -76,7 +84,7 @@ Registry path: HKEY_CURRENT_USER\SOFTWARE\TranslucentFlyouts\Menu\EnableCustomRe
 
 ### 2. Abnormal DropDown flyout
 >    ![DropDownComparison](./Images/StartAllBack/DropDownComparison.png)  
-It become opaque... :(  
+It become opaque... 
 **To solve this, you should set the dword value "Disabled" to non-zero for TranslucentFlyouts.**  
 Registry path: HKEY_CURRENT_USER\SOFTWARE\TranslucentFlyouts\DropDown\Disabled
 
