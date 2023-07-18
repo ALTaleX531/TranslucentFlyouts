@@ -39,8 +39,8 @@ namespace TranslucentFlyouts
 		);
 		struct CThemeMenu
 		{
-			static void WINAPI DrawItemBitmap(CThemeMenu* This, HWND hWnd, HDC hdc, HBITMAP hBitmap, bool fromPopupMenu, int iStateId, const RECT* lprc);
-			static void WINAPI DrawItemBitmap2(CThemeMenu* This, HWND hWnd, HDC hdc, HBITMAP hBitmap, bool fromPopupMenu, bool noStretch, int iStateId, const RECT* lprc);	// Windows 11
+			void __thiscall DrawItemBitmap(HWND hWnd, HDC hdc, HBITMAP hBitmap, bool fromPopupMenu, int iStateId, const RECT* lprc);
+			void __thiscall DrawItemBitmap2(HWND hWnd, HDC hdc, HBITMAP hBitmap, bool fromPopupMenu, bool noStretch, int iStateId, const RECT* lprc);	// Windows 11
 		};
 
 		static void InitUxThemeOffset() noexcept(false);

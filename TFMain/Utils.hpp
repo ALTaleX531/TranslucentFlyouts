@@ -14,6 +14,18 @@ namespace TranslucentFlyouts
 		};
 		typedef wil::unique_any<HDC, decltype(&external_dc::close), external_dc::close, wil::details::pointer_access_noaddress, external_dc> unique_ext_hdc;
 
+		template <typename T, typename Type>
+		T member_function_pointer_cast(Type pointer)
+		{
+			union
+			{
+				Type real_ptr;
+				T fake_ptr;
+			} rf{.real_ptr{pointer}};
+
+			return rf.fake_ptr;
+		}
+
 		static inline bool IsBadReadPtr(const void* ptr)
 		{
 			bool result{false};

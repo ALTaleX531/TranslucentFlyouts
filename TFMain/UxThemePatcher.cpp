@@ -336,12 +336,18 @@ HRESULT WINAPI TranslucentFlyouts::UxThemePatcher::DrawThemeText(
 	return hr;
 }
 
-void WINAPI TranslucentFlyouts::UxThemePatcher::CThemeMenu::DrawItemBitmap(CThemeMenu* This, HWND hWnd, HDC hdc, HBITMAP hBitmap, bool fromPopupMenu, int iStateId, const RECT* lprc)
+void __thiscall TranslucentFlyouts::UxThemePatcher::CThemeMenu::DrawItemBitmap(HWND hWnd, HDC hdc, HBITMAP hBitmap, bool fromPopupMenu, int iStateId, const RECT* lprc)
 {
-#ifndef _WIN64
-#error This function currently cannot work properly!
-#endif // !_WIN64
-	HRESULT hr{S_OK};
+	HRESULT hr {S_OK};
+
+	auto ptr
+	{
+#ifdef _WIN64
+		Utils::member_function_pointer_cast<void(__fastcall*)(CThemeMenu*, HWND, HDC, HBITMAP, bool, const RECT*, const RECT*)>((GetInstance().m_actualCThemeMenu_DrawItemBitmap))
+#else
+		Utils::member_function_pointer_cast<void(__fastcall*)(CThemeMenu*, void* edx, HWND, HDC, HBITMAP, bool, const RECT*, const RECT*)>((GetInstance().m_actualCThemeMenu_DrawItemBitmap))
+#endif
+	};
 
 	hr = [&]()
 	{
@@ -377,21 +383,37 @@ void WINAPI TranslucentFlyouts::UxThemePatcher::CThemeMenu::DrawItemBitmap(CThem
 
 		auto bitmap{MenuRendering::GetInstance().PromiseAlpha(hBitmap)};
 		RETURN_LAST_ERROR_IF(bitmap && !bitmap.value().get());
-		reinterpret_cast<decltype(DrawItemBitmap)*>(GetInstance().m_actualCThemeMenu_DrawItemBitmap)(This, hWnd, hdc, bitmap ? bitmap.value().get() : hBitmap, fromPopupMenu, iStateId, lprc);
 
+#ifdef _WIN64
+		ptr(this, hWnd, hdc, bitmap ? bitmap.value().get() : hBitmap, fromPopupMenu, lprc, lprc);
+#else
+		ptr(this, nullptr, hWnd, hdc, bitmap ? bitmap.value().get() : hBitmap, fromPopupMenu, lprc, lprc);	
+#endif
 		return S_OK;
 	}();
 	if (FAILED(hr))
 	{
-		reinterpret_cast<decltype(DrawItemBitmap)*>(GetInstance().m_actualCThemeMenu_DrawItemBitmap)(This, hWnd, hdc, hBitmap, fromPopupMenu, iStateId, lprc);
+#ifdef _WIN64
+		ptr(this, hWnd, hdc, hBitmap, fromPopupMenu, lprc, lprc);
+#else
+		ptr(this, nullptr, hWnd, hdc, hBitmap, fromPopupMenu, lprc, lprc);
+#endif
 	}
 
 	return;
 }
 
-void WINAPI TranslucentFlyouts::UxThemePatcher::CThemeMenu::DrawItemBitmap2(CThemeMenu* This, HWND hWnd, HDC hdc, HBITMAP hBitmap, bool fromPopupMenu, bool noStretch, int iStateId, const RECT* lprc)
+void __thiscall TranslucentFlyouts::UxThemePatcher::CThemeMenu::DrawItemBitmap2(HWND hWnd, HDC hdc, HBITMAP hBitmap, bool fromPopupMenu, bool noStretch, int iStateId, const RECT* lprc)
 {
 	HRESULT hr{S_OK};
+	auto ptr
+	{
+#ifdef _WIN64
+		Utils::member_function_pointer_cast<void(__fastcall*)(CThemeMenu*, HWND, HDC, HBITMAP, bool, bool, const RECT*, const RECT*)>((GetInstance().m_actualCThemeMenu_DrawItemBitmap))
+#else
+		Utils::member_function_pointer_cast<void(__fastcall*)(CThemeMenu*, void* edx, HWND, HDC, HBITMAP, bool, bool, const RECT*, const RECT*)>((GetInstance().m_actualCThemeMenu_DrawItemBitmap))
+#endif
+	};
 
 	hr = [&]()
 	{
@@ -410,13 +432,22 @@ void WINAPI TranslucentFlyouts::UxThemePatcher::CThemeMenu::DrawItemBitmap2(CThe
 
 		auto bitmap{MenuRendering::GetInstance().PromiseAlpha(hBitmap)};
 		RETURN_LAST_ERROR_IF(bitmap && !bitmap.value().get());
-		reinterpret_cast<decltype(DrawItemBitmap2)*>(GetInstance().m_actualCThemeMenu_DrawItemBitmap)(This, hWnd, hdc, bitmap ? bitmap.value().get() : hBitmap, fromPopupMenu, noStretch, iStateId, lprc);
+		
+#ifdef _WIN64
+		ptr(this, hWnd, hdc, bitmap ? bitmap.value().get() : hBitmap, fromPopupMenu, noStretch, lprc, lprc);
+#else
+		ptr(this, nullptr, hWnd, hdc, bitmap ? bitmap.value().get() : hBitmap, fromPopupMenu, noStretch, lprc, lprc);
+#endif
 
 		return S_OK;
 	}();
 	if (FAILED(hr))
 	{
-		reinterpret_cast<decltype(DrawItemBitmap2)*>(GetInstance().m_actualCThemeMenu_DrawItemBitmap)(This, hWnd, hdc, hBitmap, fromPopupMenu, noStretch, iStateId, lprc);
+#ifdef _WIN64
+		ptr(this, hWnd, hdc, hBitmap, fromPopupMenu, noStretch, lprc, lprc);
+#else
+		ptr(this, nullptr, hWnd, hdc, hBitmap, fromPopupMenu, noStretch, lprc, lprc);
+#endif
 	}
 
 	return;
@@ -624,11 +655,11 @@ void TranslucentFlyouts::UxThemePatcher::StartupHook()
 	PVOID detourDestination{nullptr};
 	if (g_uxthemeVersion == 0)
 	{
-		detourDestination = UxThemePatcher::CThemeMenu::DrawItemBitmap;
+		detourDestination = Utils::member_function_pointer_cast<PVOID>(&UxThemePatcher::CThemeMenu::DrawItemBitmap);
 	}
 	if (g_uxthemeVersion == 1)
 	{
-		detourDestination = UxThemePatcher::CThemeMenu::DrawItemBitmap2;
+		detourDestination = Utils::member_function_pointer_cast<PVOID>(&UxThemePatcher::CThemeMenu::DrawItemBitmap2);
 	}
 
 	Hooking::Detours::Write([&]()
@@ -649,11 +680,11 @@ void TranslucentFlyouts::UxThemePatcher::ShutdownHook()
 	PVOID detourDestination{nullptr};
 	if (g_uxthemeVersion == 0)
 	{
-		detourDestination = UxThemePatcher::CThemeMenu::DrawItemBitmap;
+		detourDestination = Utils::member_function_pointer_cast<PVOID>(&UxThemePatcher::CThemeMenu::DrawItemBitmap);
 	}
 	if (g_uxthemeVersion == 1)
 	{
-		detourDestination = UxThemePatcher::CThemeMenu::DrawItemBitmap2;
+		detourDestination = Utils::member_function_pointer_cast<PVOID>(&UxThemePatcher::CThemeMenu::DrawItemBitmap2);
 	}
 
 	Hooking::Detours::Write([&]()

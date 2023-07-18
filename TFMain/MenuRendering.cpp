@@ -27,7 +27,7 @@ HRESULT TranslucentFlyouts::MenuRendering::DoCustomThemeRendering(HDC hdc, bool 
 	Utils::unique_ext_hdc dc{hdc};
 	IntersectClipRect(dc.get(), paintRect.left, paintRect.top, paintRect.right, paintRect.bottom);
 	RETURN_IF_WIN32_BOOL_FALSE(
-		PatBlt(dc.get(), clipRect.left, clipRect.top, clipRect.right - clipRect.left, clipRect.bottom - clipRect.top, BLACKNESS)
+		PatBlt(dc.get(), paintRect.left, paintRect.top, paintRect.right - paintRect.left, paintRect.bottom - paintRect.top, BLACKNESS)
 	);
 
 	if (partId == MENU_POPUPSEPARATOR)

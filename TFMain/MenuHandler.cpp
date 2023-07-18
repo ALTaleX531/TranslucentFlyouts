@@ -533,16 +533,19 @@ LRESULT CALLBACK TranslucentFlyouts::MenuHandler::SubclassProc(HWND hWnd, UINT u
 
 		if (uMsg == WM_ERASEBKGND)
 		{
+			handled = true;
+
+			HDC hdc{reinterpret_cast<HDC>(wParam)};
 			if (IsImmersiveContextMenu(hWnd))
 			{
-				handled = true;
-
-				HDC hdc{reinterpret_cast<HDC>(wParam)};
-
 				RECT paintRect{};
 				GetClipBox(hdc, &paintRect);
 				FillRect(hdc, &paintRect, GetStockBrush(BLACK_BRUSH));
 			}
+
+			g_sharedDC.menuDC = hdc;
+			result = DefSubclassProc(hWnd, uMsg, wParam, lParam);
+			g_sharedDC.menuDC = nullptr;
 		}
 
 		if (uMsg == WM_WINDOWPOSCHANGED)
@@ -550,6 +553,7 @@ LRESULT CALLBACK TranslucentFlyouts::MenuHandler::SubclassProc(HWND hWnd, UINT u
 			WINDOWPOS& wp{*reinterpret_cast<LPWINDOWPOS>(lParam)};
 			if (!(wp.flags & SWP_NOMOVE))
 			{
+				InvalidateRect(hWnd, nullptr, TRUE);
 				DwmTransitionOwnedWindow(hWnd, DWMTRANSITION_OWNEDWINDOW_TARGET::DWMTRANSITION_OWNEDWINDOW_REPOSITION);
 			}
 		}

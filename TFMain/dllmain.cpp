@@ -259,10 +259,18 @@ int WINAPI Main(
 
 		auto parameters
 		{
+#ifdef _WIN64
 			std::format(
 				L"/create /sc ONLOGON /tn \"TranslucentFlyouts Autorun Task\" /rl HIGHEST /tr \"Rundll32 \\\"{}\\\",Main\"",
 				modulePath
 			)
+#else
+			std::format(
+				L"/create /sc ONLOGON /tn \"TranslucentFlyouts Autorun Task (x86)\" /rl HIGHEST /tr \"Rundll32 \\\"{}\\\",Main\"",
+				modulePath
+			)
+#endif
+			
 		};
 		SHELLEXECUTEINFOW sei
 		{
@@ -292,7 +300,11 @@ int WINAPI Main(
 			nullptr,
 			L"runas",
 			L"schtasks",
+#ifdef _WIN64
 			L"/delete /f /tn \"TranslucentFlyouts Autorun Task\"",
+#else
+			L"/delete /f /tn \"TranslucentFlyouts Autorun Task (x86)\"",
+#endif
 			nullptr,
 			SW_HIDE
 		};
