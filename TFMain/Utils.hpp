@@ -26,6 +26,18 @@ namespace TranslucentFlyouts
 			return rf.fake_ptr;
 		}
 
+		static inline std::optional<wil::unique_rouninitialize_call> RoInit()
+		{
+			HRESULT hr{RoInitialize(RO_INIT_MULTITHREADED)};
+
+			if (SUCCEEDED(hr) || hr == S_FALSE || hr == RPC_E_CHANGED_MODE)
+			{
+				return wil::unique_rouninitialize_call{};
+			}
+
+			return std::nullopt;
+		}
+
 		static inline bool IsBadReadPtr(const void* ptr)
 		{
 			bool result{false};
