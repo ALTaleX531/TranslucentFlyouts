@@ -1,8 +1,10 @@
-THIS FILE NEEDS TRANSLATION, ANY PR IS WELCOMED!!!
+###  Other Languages
+[English](../CONFIG.md)  
 ## 存储位置
 TranslucentFlyouts将绝大部分信息储存在Windows注册表中，你可以通过访问```HKEY_CURRENT_USER\SOFTWARE\TranslucentFlyouts\```找到它们。配置信息会根据功能进行分类，在这个路径下依次展开成相关的子分支
 
 由于当前UI还没有开发出来，所以需要你手动进行修改，每一次更改都会立即生效
+如果指定的键值不存在，你需要手动创建它们
 
 ## 外观设置
 <details><summary><b>通用</b></summary>

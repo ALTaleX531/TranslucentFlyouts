@@ -1,7 +1,10 @@
+###  Other Languages
+[简体中文](./Config/zh-cn.md)  
 ## Storage Location
 TranslucentFlyouts stores the majority of its information in the Windows registry, which can be accessed at ```HKEY_CURRENT_USER\SOFTWARE\TranslucentFlyouts\```. Configuration information is categorized based on functionality and is expanded into relevant subkeys under this path.
 
 Since the current UI has not been developed yet, you need to manually make modifications, and each change will take effect immediately.
+If the subkeys are not exist, then you have to manually create them by yourself.
 
 ## Appearance Settings
 <details><summary><b>General</b></summary>
