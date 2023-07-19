@@ -14,7 +14,7 @@ TranslucentFlyouts V1 has been moved to [TranslucentFlyoutsV1](https://github.co
 ## Catalog
 - [Gallery](#gallery)
 - [How to use](#how-to-use)
-- [Config](./Config/zh-cn.md)
+- [Config](./CONFIG.md)
 - [Limitations & Compatibility](#limitations-and-compatibility)
 - [Dependencies & References](#dependencies-and-references)
 ## Gallery
