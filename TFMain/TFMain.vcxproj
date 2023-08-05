@@ -120,6 +120,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
       <ModuleDefinitionFile>GlobalFunctions.def</ModuleDefinitionFile>
+      <DelayLoadDLLs>dcomp.dll;d2d1.dll;d3d11.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -150,6 +151,7 @@
       <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
       <ModuleDefinitionFile>GlobalFunctions.def</ModuleDefinitionFile>
+      <DelayLoadDLLs>dcomp.dll;d2d1.dll;d3d11.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -168,6 +170,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
       <ModuleDefinitionFile>GlobalFunctions.def</ModuleDefinitionFile>
+      <DelayLoadDLLs>dcomp.dll;d2d1.dll;d3d11.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -199,10 +202,12 @@
       <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
       <ModuleDefinitionFile>GlobalFunctions.def</ModuleDefinitionFile>
+      <DelayLoadDLLs>dcomp.dll;d2d1.dll;d3d11.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="crt.h" />
+    <ClInclude Include="DwmThumbnailAPI.hpp" />
     <ClInclude Include="dx.h" />
     <ClInclude Include="EffectHelper.hpp" />
     <ClInclude Include="framework.h" />
@@ -216,6 +221,7 @@
     <ClInclude Include="RegHelper.hpp" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="SymbolResolver.hpp" />
+    <ClInclude Include="TFMain.hpp" />
     <ClInclude Include="ThemeHelper.hpp" />
     <ClInclude Include="UxThemePatcher.hpp" />
     <ClInclude Include="Utils.hpp" />
@@ -237,6 +243,7 @@
     <ClCompile Include="RegHelper.cpp" />
     <ClCompile Include="SymbolResolver.cpp" />
     <ClCompile Include="dllmain.cpp" />
+    <ClCompile Include="TFMain.cpp" />
     <ClCompile Include="UxThemePatcher.cpp" />
   </ItemGroup>
   <ItemGroup>

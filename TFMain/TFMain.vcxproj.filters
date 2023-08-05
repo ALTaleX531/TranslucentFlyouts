@@ -69,6 +69,12 @@
     <ClInclude Include="MenuRendering.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="DwmThumbnailAPI.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="TFMain.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -102,6 +108,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="MenuRendering.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="TFMain.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

@@ -6,6 +6,13 @@ namespace TranslucentFlyouts
 {
 	namespace ThemeHelper
 	{
+		static inline bool IsHighContrast()
+		{
+			HIGHCONTRASTW hc{sizeof(hc)};
+			LOG_IF_WIN32_BOOL_FALSE(SystemParametersInfoW(SPI_GETHIGHCONTRAST, sizeof(HIGHCONTRAST), &hc, 0));
+			return hc.dwFlags & HCF_HIGHCONTRASTON;
+		}
+
 		static inline bool IsThemeAvailable(HWND hWnd = nullptr)
 		{
 			bool bThemeAvailable{false};
@@ -23,15 +30,15 @@ namespace TranslucentFlyouts
 
 		static HRESULT GetThemeClass(HTHEME hTheme, LPCWSTR pszClassIdList, int cchClass)
 		{
-			static const auto pfnGetThemeClass{reinterpret_cast<HRESULT(WINAPI*)(HTHEME, LPCWSTR, int)>(GetProcAddress(GetModuleHandleW(L"UxTheme"), MAKEINTRESOURCEA(74)))};
+			static const auto actualGetThemeClass{reinterpret_cast<HRESULT(WINAPI*)(HTHEME, LPCWSTR, int)>(GetProcAddress(GetModuleHandleW(L"UxTheme"), MAKEINTRESOURCEA(74)))};
 
-			if (pfnGetThemeClass)
+			if (actualGetThemeClass)
 			{
-				return pfnGetThemeClass(hTheme, pszClassIdList, cchClass);
+				return actualGetThemeClass(hTheme, pszClassIdList, cchClass);
 			}
 			else
 			{
-				LOG_HR_MSG(E_POINTER, "pfnGetThemeClass is invalid!");
+				LOG_HR_MSG(E_POINTER, "actualGetThemeClass is invalid!");
 			}
 
 			return E_FAIL;
@@ -78,19 +85,19 @@ namespace TranslucentFlyouts
 			UINT nGlowRadius,
 			UINT nGlowIntensity,
 			BOOL bPreMultiply,
-			DTT_CALLBACK_PROC pfnDrawTextCallback,
+			DTT_CALLBACK_PROC actualDrawTextCallback,
 			LPARAM lParam
 		)
 		{
-			static const auto pfnDrawTextWithGlow{reinterpret_cast<HRESULT(WINAPI*)(HDC, LPCWSTR, int, LPRECT, UINT, UINT, UINT, UINT, UINT, BOOL, DTT_CALLBACK_PROC, LPARAM)>(GetProcAddress(GetModuleHandle(TEXT("UxTheme")), MAKEINTRESOURCEA(126)))};
+			static const auto actualDrawTextWithGlow{reinterpret_cast<HRESULT(WINAPI*)(HDC, LPCWSTR, int, LPRECT, UINT, UINT, UINT, UINT, UINT, BOOL, DTT_CALLBACK_PROC, LPARAM)>(GetProcAddress(GetModuleHandle(TEXT("UxTheme")), MAKEINTRESOURCEA(126)))};
 
-			if (pfnDrawTextWithGlow)
+			if (actualDrawTextWithGlow)
 			{
-				return pfnDrawTextWithGlow(hdc, pszText, cchText, prc, dwFlags, crText, crGlow, nGlowRadius, nGlowIntensity, bPreMultiply, pfnDrawTextCallback, lParam);
+				return actualDrawTextWithGlow(hdc, pszText, cchText, prc, dwFlags, crText, crGlow, nGlowRadius, nGlowIntensity, bPreMultiply, actualDrawTextCallback, lParam);
 			}
 			else
 			{
-				LOG_HR_MSG(E_POINTER, "pfnDrawTextWithGlow is invalid!");
+				LOG_HR_MSG(E_POINTER, "actualDrawTextWithGlow is invalid!");
 			}
 
 			return E_FAIL;

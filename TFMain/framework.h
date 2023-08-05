@@ -5,12 +5,12 @@
 #include <windows.h>
 #include <windowsx.h>
 #include <winternl.h>
+#include <oleacc.h>
 #include <shellapi.h>
 #include <ShlObj.h>
 #include <Shlwapi.h>
 #include <commctrl.h>
 #include <dwmapi.h>
-#include <gdiplus.h>
 #include <uxtheme.h>
 #include <vsstyle.h>
 #include <vssym32.h>
@@ -19,8 +19,9 @@
 #include <PathCch.h>
 #include <delayimp.h>
 #include <Psapi.h>
+#pragma comment(lib, "Oleacc.lib")
+#pragma comment(lib, "windowsapp.lib")
 #pragma comment(lib, "Shlwapi.lib")
-#pragma comment(lib, "gdiplus.lib")
 #pragma comment(lib, "dwmapi.lib")
 #pragma comment(lib, "delayimp.lib")
 #pragma comment(lib, "DbgHelp.lib")

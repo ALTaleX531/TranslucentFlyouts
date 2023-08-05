@@ -4,8 +4,10 @@
 #include "SymbolResolver.hpp"
 
 using namespace std;
+using namespace wil;
+using namespace TranslucentFlyouts;
 
-BOOL CALLBACK TranslucentFlyouts::SymbolResolver::SymCallback(
+BOOL CALLBACK SymbolResolver::SymCallback(
 	HANDLE hProcess,
 	ULONG ActionCode,
 	ULONG64 CallbackData,
@@ -44,7 +46,7 @@ BOOL CALLBACK TranslucentFlyouts::SymbolResolver::SymCallback(
 	return FALSE;
 }
 
-TranslucentFlyouts::SymbolResolver::SymbolResolver()
+SymbolResolver::SymbolResolver()
 {
 	try
 	{
@@ -67,18 +69,18 @@ TranslucentFlyouts::SymbolResolver::SymbolResolver()
 	}
 }
 
-TranslucentFlyouts::SymbolResolver::~SymbolResolver() noexcept
+SymbolResolver::~SymbolResolver() noexcept
 {
 	SymCleanup(GetCurrentProcess());
 }
 
-HRESULT TranslucentFlyouts::SymbolResolver::Walk(std::wstring_view dllName, string_view mask, function<bool(PSYMBOL_INFO, ULONG)> callback) try
+HRESULT SymbolResolver::Walk(std::wstring_view dllName, string_view mask, function<bool(PSYMBOL_INFO, ULONG)> callback) try
 {
 	DWORD64 dllBase{0};
 	WCHAR filePath[MAX_PATH + 1]{}, symFile[MAX_PATH + 1]{};
 	MODULEINFO modInfo{};
 
-	auto cleanUp = wil::scope_exit([&]
+	auto cleanUp = scope_exit([&]
 	{
 		if (dllBase != 0)
 		{
@@ -89,7 +91,7 @@ HRESULT TranslucentFlyouts::SymbolResolver::Walk(std::wstring_view dllName, stri
 
 	THROW_HR_IF(E_INVALIDARG, dllName.empty());
 
-	wil::unique_hmodule moduleHandle{LoadLibraryExW(dllName.data(), nullptr, DONT_RESOLVE_DLL_REFERENCES | LOAD_LIBRARY_SEARCH_SYSTEM32)};
+	unique_hmodule moduleHandle{LoadLibraryExW(dllName.data(), nullptr, DONT_RESOLVE_DLL_REFERENCES | LOAD_LIBRARY_SEARCH_SYSTEM32)};
 	THROW_LAST_ERROR_IF_NULL(moduleHandle);
 	THROW_LAST_ERROR_IF(GetModuleFileNameW(moduleHandle.get(), filePath, MAX_PATH) == 0);
 	THROW_IF_WIN32_BOOL_FALSE(GetModuleInformation(GetCurrentProcess(), moduleHandle.get(), &modInfo, sizeof(modInfo)));
@@ -107,7 +109,7 @@ HRESULT TranslucentFlyouts::SymbolResolver::Walk(std::wstring_view dllName, stri
 		
 		DWORD options = SymSetOptions(SYMOPT_DEFERRED_LOADS | SYMOPT_DEBUG);
 		
-		auto cleanUp = wil::scope_exit([&]
+		auto cleanUp = scope_exit([&]
 		{
 			SymSetOptions(options);
 		});
@@ -123,14 +125,14 @@ HRESULT TranslucentFlyouts::SymbolResolver::Walk(std::wstring_view dllName, stri
 	
 	return S_OK;
 }
-CATCH_LOG_RETURN_HR(wil::ResultFromCaughtException())
+CATCH_LOG_RETURN_HR(ResultFromCaughtException())
 
-bool TranslucentFlyouts::SymbolResolver::GetLastSymbolSource()
+bool SymbolResolver::GetLastSymbolSource()
 {
 	return m_symbolsOK;
 }
 
-BOOL TranslucentFlyouts::SymbolResolver::EnumSymbolsCallback(PSYMBOL_INFO pSymInfo, ULONG SymbolSize, PVOID UserContext)
+BOOL SymbolResolver::EnumSymbolsCallback(PSYMBOL_INFO pSymInfo, ULONG SymbolSize, PVOID UserContext)
 {
 	auto& callback{*reinterpret_cast<function<bool(PSYMBOL_INFO symInfo, ULONG symbolSize)>*>(UserContext)};
 

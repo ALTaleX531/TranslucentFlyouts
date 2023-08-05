@@ -2,23 +2,23 @@
 #include "Utils.hpp"
 #include "Hooking.hpp"
 
-namespace TranslucentFlyouts::Hooking
-{
-	using namespace std;
+using namespace std;
+using namespace TranslucentFlyouts;
 
-	namespace Detours
-	{
-		// Begin to install hooks
-		LONG Begin();
-		// End attaching
-		LONG End(bool commit = true);
-	}
+namespace TranslucentFlyouts::Hooking::Detours
+{
+	// Begin to install hooks
+	HRESULT Begin();
+	// End attaching
+	HRESULT End(bool commit = true);
 }
 
-void TranslucentFlyouts::Hooking::WriteMemory(PVOID memoryAddress, function<void()> callback) try
+void Hooking::WriteMemory(PVOID memoryAddress, function<void()> callback) try
 {
-	THROW_HR_IF_NULL(E_INVALIDARG, memoryAddress);
-	THROW_HR_IF_NULL(E_INVALIDARG, callback);
+	if (!memoryAddress || !callback)
+	{
+		return;
+	}
 
 	MEMORY_BASIC_INFORMATION mbi{};
 	THROW_LAST_ERROR_IF(
@@ -48,7 +48,7 @@ void TranslucentFlyouts::Hooking::WriteMemory(PVOID memoryAddress, function<void
 }
 CATCH_LOG_RETURN()
 
-void TranslucentFlyouts::Hooking::WalkIAT(PVOID baseAddress, std::string_view dllName, std::function<bool(PVOID* functionAddress, LPCSTR functionNameOrOrdinal, BOOL importedByName)> callback) try
+void Hooking::WalkIAT(PVOID baseAddress, std::string_view dllName, std::function<bool(PVOID* functionAddress, LPCSTR functionNameOrOrdinal, BOOL importedByName)> callback) try
 {
 	THROW_HR_IF(E_INVALIDARG, dllName.empty());
 	THROW_HR_IF_NULL(E_INVALIDARG, baseAddress);
@@ -67,6 +67,7 @@ void TranslucentFlyouts::Hooking::WalkIAT(PVOID baseAddress, std::string_view dl
 		)
 	};
 
+	LOG_LAST_ERROR_IF_NULL(importDescriptor);
 	THROW_HR_IF_NULL(E_INVALIDARG, importDescriptor);
 
 	LPCSTR moduleName{nullptr};
@@ -82,8 +83,8 @@ void TranslucentFlyouts::Hooking::WalkIAT(PVOID baseAddress, std::string_view dl
 		importDescriptor++;
 	}
 
-	THROW_HR_IF_NULL_MSG(E_NOT_SET, moduleName, "Cannot find specific module for [%hs]!", dllName.data());
-	THROW_HR_IF_MSG(E_NOT_SET, importDescriptor->Name == 0, "Cannot find specific module for [%hs]!", dllName.data());
+	THROW_HR_IF_NULL_MSG(HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND), moduleName, "Cannot find specific module for [%hs]!", dllName.data());
+	THROW_HR_IF_MSG(HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND), importDescriptor->Name == 0, "Cannot find specific module for [%hs]!", dllName.data());
 
 	auto thunk{reinterpret_cast<PIMAGE_THUNK_DATA>(reinterpret_cast<UINT_PTR>(baseAddress) + importDescriptor->FirstThunk)};
 	auto nameThunk = reinterpret_cast<PIMAGE_THUNK_DATA>(reinterpret_cast<UINT_PTR>(baseAddress) + importDescriptor->OriginalFirstThunk);
@@ -114,9 +115,11 @@ void TranslucentFlyouts::Hooking::WalkIAT(PVOID baseAddress, std::string_view dl
 		nameThunk++;
 	}
 }
-CATCH_LOG_RETURN()
+catch (...)
+{
+}
 
-void TranslucentFlyouts::Hooking::WalkDeleyloadIAT(PVOID baseAddress, string_view dllName, function<bool(HMODULE* moduleHandle, PVOID* functionAddress, LPCSTR functionNameOrOrdinal, BOOL importedByName)> callback) try
+void Hooking::WalkDeleyloadIAT(PVOID baseAddress, string_view dllName, function<bool(HMODULE* moduleHandle, PVOID* functionAddress, LPCSTR functionNameOrOrdinal, BOOL importedByName)> callback) try
 {
 	THROW_HR_IF(E_INVALIDARG, dllName.empty());
 	THROW_HR_IF_NULL(E_INVALIDARG, baseAddress);
@@ -135,6 +138,7 @@ void TranslucentFlyouts::Hooking::WalkDeleyloadIAT(PVOID baseAddress, string_vie
 		)
 	};
 
+	LOG_LAST_ERROR_IF_NULL(importDescriptor);
 	THROW_HR_IF_NULL(E_INVALIDARG, importDescriptor);
 
 	LPCSTR moduleName{nullptr};
@@ -150,11 +154,11 @@ void TranslucentFlyouts::Hooking::WalkDeleyloadIAT(PVOID baseAddress, string_vie
 		importDescriptor++;
 	}
 
-	THROW_HR_IF_NULL_MSG(E_NOT_SET, moduleName, "Cannot find specific module for [%hs]!", dllName.data());
-	THROW_HR_IF_MSG(E_NOT_SET, importDescriptor->DllNameRVA == 0, "Cannot find specific module for [%hs]!", dllName.data());
+	THROW_HR_IF_NULL_MSG(HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND), moduleName, "Cannot find specific module for [%hs]!", dllName.data());
+	THROW_HR_IF_MSG(HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND), importDescriptor->DllNameRVA == 0, "Cannot find specific module for [%hs]!", dllName.data());
 
 	auto attributes{importDescriptor->Attributes.RvaBased};
-	THROW_HR_IF_MSG(E_NOT_SET, attributes != 1, "Unsupported delay loaded dll![%hs]", dllName.data());
+	THROW_HR_IF_MSG(HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND), attributes != 1, "Unsupported delay loaded dll![%hs]", dllName.data());
 
 	auto moduleHandle = reinterpret_cast<HMODULE*>(reinterpret_cast<UINT_PTR>(baseAddress) + importDescriptor->ModuleHandleRVA);
 	auto thunk = reinterpret_cast<PIMAGE_THUNK_DATA>(reinterpret_cast<UINT_PTR>(baseAddress) + importDescriptor->ImportAddressTableRVA);
@@ -186,9 +190,11 @@ void TranslucentFlyouts::Hooking::WalkDeleyloadIAT(PVOID baseAddress, string_vie
 		nameThunk++;
 	}
 }
-CATCH_LOG_RETURN()
+catch (...)
+{
+}
 
-size_t TranslucentFlyouts::Hooking::WriteIAT(PVOID baseAddress, std::string_view dllName, std::unordered_map<LPCSTR, PVOID> hookMap)
+size_t Hooking::WriteIAT(PVOID baseAddress, std::string_view dllName, std::unordered_map<LPCSTR, PVOID> hookMap)
 {
 	size_t result{hookMap.size()};
 
@@ -198,7 +204,7 @@ size_t TranslucentFlyouts::Hooking::WriteIAT(PVOID baseAddress, std::string_view
 		for (auto [targetFunctionNameOrOrdinal, hookFunctionAddress] : tempHookMap)
 		{
 			if (
-				(importedByName == TRUE && !strcmp(functionNameOrOrdinal, targetFunctionNameOrOrdinal)) ||
+				(importedByName == TRUE && !Utils::IsBadReadPtr(targetFunctionNameOrOrdinal) && !strcmp(functionNameOrOrdinal, targetFunctionNameOrOrdinal)) ||
 				(importedByName == FALSE && functionNameOrOrdinal == targetFunctionNameOrOrdinal)
 			)
 			{
@@ -225,7 +231,7 @@ size_t TranslucentFlyouts::Hooking::WriteIAT(PVOID baseAddress, std::string_view
 	return result;
 }
 
-size_t TranslucentFlyouts::Hooking::WriteDelayloadIAT(PVOID baseAddress, std::string_view dllName, std::unordered_map<LPCSTR, PVOID> hookMap)
+size_t Hooking::WriteDelayloadIAT(PVOID baseAddress, std::string_view dllName, std::unordered_map<LPCSTR, PVOID> hookMap)
 {
 	size_t result{hookMap.size()};
 
@@ -235,7 +241,7 @@ size_t TranslucentFlyouts::Hooking::WriteDelayloadIAT(PVOID baseAddress, std::st
 		for (auto [targetFunctionNameOrOrdinal, hookFunctionAddress] : tempHookMap)
 		{
 			if (
-				(importedByName == TRUE && !strcmp(functionNameOrOrdinal, targetFunctionNameOrOrdinal)) ||
+				(importedByName == TRUE && !Utils::IsBadReadPtr(targetFunctionNameOrOrdinal) && !strcmp(functionNameOrOrdinal, targetFunctionNameOrOrdinal)) ||
 				(importedByName == FALSE && functionNameOrOrdinal == targetFunctionNameOrOrdinal)
 			)
 			{
@@ -270,7 +276,7 @@ size_t TranslucentFlyouts::Hooking::WriteDelayloadIAT(PVOID baseAddress, std::st
 	return result;
 }
 
-LONG TranslucentFlyouts::Hooking::Detours::Begin()
+HRESULT Hooking::Detours::Begin()
 {
 	DetourSetIgnoreTooSmall(TRUE);
 	RETURN_IF_WIN32_ERROR(DetourTransactionBegin());
@@ -278,14 +284,14 @@ LONG TranslucentFlyouts::Hooking::Detours::Begin()
 	return ERROR_SUCCESS;
 }
 
-LONG TranslucentFlyouts::Hooking::Detours::End(bool commit)
+HRESULT Hooking::Detours::End(bool commit)
 {
-	return ((commit ? DetourTransactionCommit() : DetourTransactionAbort()));
+	return ((commit ? HRESULT_FROM_WIN32(DetourTransactionCommit()) : HRESULT_FROM_WIN32(DetourTransactionAbort())));
 }
 
-HRESULT TranslucentFlyouts::Hooking::Detours::Write(function<void()> callback) try
+HRESULT Hooking::Detours::Write(function<void()> callback) try
 {
-	HRESULT hr{HRESULT_FROM_WIN32(Hooking::Detours::Begin())};
+	HRESULT hr{Hooking::Detours::Begin()};
 	if (FAILED(hr))
 	{
 		return hr;
@@ -293,16 +299,16 @@ HRESULT TranslucentFlyouts::Hooking::Detours::Write(function<void()> callback) t
 
 	callback();
 
-	return HRESULT_FROM_WIN32(Hooking::Detours::End(true));
+	return Hooking::Detours::End(true);
 }
 catch (...)
 {
 	LOG_CAUGHT_EXCEPTION();
-	Hooking::Detours::End(false);
+	LOG_IF_FAILED(Hooking::Detours::End(false));
 	return wil::ResultFromCaughtException();
 }
 
-void TranslucentFlyouts::Hooking::Detours::Attach(string_view dllName, string_view funcName, PVOID* realFuncAddr, PVOID hookFuncAddr)
+void Hooking::Detours::Attach(string_view dllName, string_view funcName, PVOID* realFuncAddr, PVOID hookFuncAddr)
 {
 	THROW_HR_IF_NULL(E_INVALIDARG, realFuncAddr);
 	THROW_HR_IF_NULL(E_INVALIDARG, *realFuncAddr);
@@ -312,7 +318,7 @@ void TranslucentFlyouts::Hooking::Detours::Attach(string_view dllName, string_vi
 	Attach(realFuncAddr, hookFuncAddr);
 }
 
-void TranslucentFlyouts::Hooking::Detours::Attach(PVOID* realFuncAddr, PVOID hookFuncAddr)
+void Hooking::Detours::Attach(PVOID* realFuncAddr, PVOID hookFuncAddr)
 {
 	THROW_HR_IF_NULL(E_INVALIDARG, realFuncAddr);
 	THROW_HR_IF_NULL(E_INVALIDARG, *realFuncAddr);
@@ -321,18 +327,18 @@ void TranslucentFlyouts::Hooking::Detours::Attach(PVOID* realFuncAddr, PVOID hoo
 	THROW_IF_WIN32_ERROR(DetourAttach(realFuncAddr, hookFuncAddr));
 }
 
-void TranslucentFlyouts::Hooking::Detours::Detach(PVOID* realFuncAddr, PVOID hookFuncAddr)
+void Hooking::Detours::Detach(PVOID* realFuncAddr, PVOID hookFuncAddr)
 {
 	THROW_IF_WIN32_ERROR(DetourDetach(realFuncAddr, hookFuncAddr));
 }
 
-TranslucentFlyouts::Hooking::DllNotifyRoutine& TranslucentFlyouts::Hooking::DllNotifyRoutine::GetInstance()
+Hooking::DllNotifyRoutine& Hooking::DllNotifyRoutine::GetInstance()
 {
 	static DllNotifyRoutine instance{};
 	return instance;
 };
 
-TranslucentFlyouts::Hooking::DllNotifyRoutine::DllNotifyRoutine()
+Hooking::DllNotifyRoutine::DllNotifyRoutine()
 {
 	try
 	{
@@ -351,7 +357,7 @@ TranslucentFlyouts::Hooking::DllNotifyRoutine::DllNotifyRoutine()
 	}
 }
 
-TranslucentFlyouts::Hooking::DllNotifyRoutine::~DllNotifyRoutine() noexcept
+Hooking::DllNotifyRoutine::~DllNotifyRoutine() noexcept
 {
 	if (!m_actualLdrUnregisterDllNotification)
 	{
@@ -366,7 +372,7 @@ TranslucentFlyouts::Hooking::DllNotifyRoutine::~DllNotifyRoutine() noexcept
 	m_cookie = nullptr;
 }
 
-VOID CALLBACK TranslucentFlyouts::Hooking::DllNotifyRoutine::LdrDllNotification(
+VOID CALLBACK Hooking::DllNotifyRoutine::LdrDllNotification(
 	ULONG NotificationReason,
 	PCLDR_DLL_NOTIFICATION_DATA NotificationData,
 	PVOID Context
@@ -380,28 +386,26 @@ VOID CALLBACK TranslucentFlyouts::Hooking::DllNotifyRoutine::LdrDllNotification(
 			if (callback)
 			{
 				bool load{NotificationReason == LDR_DLL_NOTIFICATION_REASON_LOADED ? true : false};
-				DllInfo info
+				callback(
+					load,
 				{
 					load ? NotificationData->Loaded.FullDllName : NotificationData->Unloaded.FullDllName,
 					load ? NotificationData->Loaded.BaseDllName : NotificationData->Unloaded.BaseDllName,
 					load ? NotificationData->Loaded.DllBase : NotificationData->Unloaded.DllBase,
 					load ? NotificationData->Loaded.SizeOfImage : NotificationData->Unloaded.SizeOfImage,
-				};
-				callback(
-					load,
-					info
+				}
 				);
 			}
 		}
 	}
 }
 
-void TranslucentFlyouts::Hooking::DllNotifyRoutine::AddCallback(Callback callback)
+void Hooking::DllNotifyRoutine::AddCallback(Callback callback)
 {
 	m_callbackList.push_back(callback);
 }
 
-void TranslucentFlyouts::Hooking::DllNotifyRoutine::DeleteCallback(Callback callback)
+void Hooking::DllNotifyRoutine::DeleteCallback(Callback callback)
 {
 	for (auto it = m_callbackList.begin(); it != m_callbackList.end();)
 	{
@@ -418,18 +422,18 @@ void TranslucentFlyouts::Hooking::DllNotifyRoutine::DeleteCallback(Callback call
 	}
 }
 
-TranslucentFlyouts::Hooking::MsgHooks& TranslucentFlyouts::Hooking::MsgHooks::GetInstance()
+Hooking::MsgHooks& Hooking::MsgHooks::GetInstance()
 {
 	static MsgHooks instance{};
 	return instance;
 };
 
-TranslucentFlyouts::Hooking::MsgHooks::~MsgHooks()
+Hooking::MsgHooks::~MsgHooks()
 {
 	UninstallAll();
 }
 
-LRESULT CALLBACK TranslucentFlyouts::Hooking::MsgHooks::CallWndHookProc(int code, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK Hooking::MsgHooks::CallWndHookProc(int code, WPARAM wParam, LPARAM lParam)
 {
 	auto& hookInfo{GetInstance().m_hookMap[GetCurrentThreadId()]};
 	auto& callbackList{GetInstance().m_callbackList};
@@ -447,10 +451,11 @@ LRESULT CALLBACK TranslucentFlyouts::Hooking::MsgHooks::CallWndHookProc(int code
 			}
 		}
 	}
+
 	return CallNextHookEx(hookInfo.callWindowHook.get(), code, wParam, lParam);
 }
 
-LRESULT CALLBACK TranslucentFlyouts::Hooking::MsgHooks::CallWndRetHookProc(int code, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK Hooking::MsgHooks::CallWndRetHookProc(int code, WPARAM wParam, LPARAM lParam)
 {
 	auto& hookInfo{GetInstance().m_hookMap[GetCurrentThreadId()]};
 	auto& callbackList{GetInstance().m_callbackList};
@@ -471,12 +476,12 @@ LRESULT CALLBACK TranslucentFlyouts::Hooking::MsgHooks::CallWndRetHookProc(int c
 	return CallNextHookEx(hookInfo.callWindowRetHook.get(), code, wParam, lParam);
 }
 
-void TranslucentFlyouts::Hooking::MsgHooks::AddCallback(Callback callback)
+void Hooking::MsgHooks::AddCallback(Callback callback)
 {
 	m_callbackList.push_back(callback);
 }
 
-void TranslucentFlyouts::Hooking::MsgHooks::DeleteCallback(Callback callback)
+void Hooking::MsgHooks::DeleteCallback(Callback callback)
 {
 	for (auto it = m_callbackList.begin(); it != m_callbackList.end();)
 	{
@@ -493,20 +498,24 @@ void TranslucentFlyouts::Hooking::MsgHooks::DeleteCallback(Callback callback)
 	}
 }
 
-void TranslucentFlyouts::Hooking::MsgHooks::Install(HWND hWnd)
+void Hooking::MsgHooks::Install(HWND hWnd)
 {
 	DWORD threadId{GetWindowThreadProcessId(hWnd, nullptr)};
 
 	if (m_hookMap.find(threadId) == m_hookMap.end())
 	{
-		m_hookMap[threadId].callWindowHook.reset(SetWindowsHookExW(WH_CALLWNDPROC, CallWndHookProc, nullptr, threadId));
-		m_hookMap[threadId].callWindowRetHook.reset(SetWindowsHookExW(WH_CALLWNDPROCRET, CallWndRetHookProc, nullptr, threadId));
+		auto& callWindowHook{m_hookMap[threadId].callWindowHook};
+		auto& callWindowRetHook{m_hookMap[threadId].callWindowRetHook};
+		callWindowHook.reset(SetWindowsHookExW(WH_CALLWNDPROC, CallWndHookProc, nullptr, threadId));
+		LOG_LAST_ERROR_IF_NULL(callWindowHook);
+		callWindowRetHook.reset(SetWindowsHookExW(WH_CALLWNDPROCRET, CallWndRetHookProc, nullptr, threadId));
+		LOG_LAST_ERROR_IF_NULL(callWindowRetHook);
 	}
 
 	m_hookMap[threadId].windowList.push_back(hWnd);
 }
 
-void TranslucentFlyouts::Hooking::MsgHooks::Uninstall(HWND hWnd)
+void Hooking::MsgHooks::Uninstall(HWND hWnd)
 {
 	DWORD threadId{GetWindowThreadProcessId(hWnd, nullptr)};
 
@@ -536,27 +545,28 @@ void TranslucentFlyouts::Hooking::MsgHooks::Uninstall(HWND hWnd)
 	}
 }
 
-void TranslucentFlyouts::Hooking::MsgHooks::UninstallAll()
+void Hooking::MsgHooks::UninstallAll()
 {
 	m_hookMap.clear();
 }
 
-TranslucentFlyouts::Hooking::FunctionCallHook::~FunctionCallHook()
+Hooking::FunctionCallHook::~FunctionCallHook()
 {
 	Detach();
 }
 
-void TranslucentFlyouts::Hooking::FunctionCallHook::InitJumpRegion(PVOID startAddress)
+void Hooking::FunctionCallHook::InitJumpRegion(PVOID startAddress)
 {
 	m_jumpRegion.reset(
 		static_cast<std::byte*>(DetourAllocateRegionWithinJumpBounds(startAddress, &m_size))
 	);
+	LOG_LAST_ERROR_IF_NULL(m_jumpRegion);
 
 	m_current = m_jumpRegion.get();
 	m_end = m_current + m_size;
 }
 
-std::byte* TranslucentFlyouts::Hooking::FunctionCallHook::AllocJmpCode(PVOID detourDestination)
+std::byte* Hooking::FunctionCallHook::AllocJmpCode(PVOID detourDestination)
 {
 	LOG_HR_IF(E_INVALIDARG, !m_jumpRegion);
 	if (!m_jumpRegion)
@@ -584,87 +594,78 @@ std::byte* TranslucentFlyouts::Hooking::FunctionCallHook::AllocJmpCode(PVOID det
 	return startPos;
 }
 
-void TranslucentFlyouts::Hooking::FunctionCallHook::Attach(PVOID functionThunkAddress, PVOID detourAddress, PVOID detourDestination, int callersCount)
+int Hooking::FunctionCallHook::Attach(PVOID functionThunkAddress, PVOID detourAddress, PVOID detourDestination, int callersCount)
 {
-	LOG_HR_IF(E_INVALIDARG, !functionThunkAddress);
-	LOG_HR_IF(E_INVALIDARG, !detourAddress);
-	LOG_HR_IF(E_INVALIDARG, !detourDestination);
-	LOG_HR_IF(E_INVALIDARG, !callersCount);
-
-	if (!functionThunkAddress)
+	try
 	{
-		return;
-	}
-	if (!detourAddress)
-	{
-		return;
-	}
-	if (!detourDestination)
-	{
-		return;
-	}
-	if (!m_jumpRegion)
-	{
-		InitJumpRegion(functionThunkAddress);
-	}
-	
-	auto jmpBytes{AllocJmpCode(detourDestination)};
-	auto functionBytes{reinterpret_cast<std::byte*>(functionThunkAddress)};
-	auto functionIsEnd = [](std::byte * bytes, int offset)
-	{
-#ifdef _WIN64
-		if (
-			bytes[offset] == std::byte{0xC3} &&
-			bytes[offset + 1] == std::byte{0xCC} &&
-			bytes[offset + 2] == std::byte{0xCC} &&
-			bytes[offset + 3] == std::byte{0xCC} &&
-			bytes[offset + 4] == std::byte{0xCC} &&
-			bytes[offset + 5] == std::byte{0xCC} &&
-			bytes[offset + 6] == std::byte{0xCC} &&
-			bytes[offset + 7] == std::byte{0xCC} &&
-			bytes[offset + 8] == std::byte{0xCC}
-		)
-#else
-		if (
-			bytes[offset] == std::byte{0xC2} &&
-			bytes[offset + 2] == std::byte{0x00}
-		)
-#endif
+		THROW_HR_IF_NULL(E_INVALIDARG, functionThunkAddress);
+		THROW_HR_IF_NULL(E_INVALIDARG, detourAddress);
+		THROW_HR_IF_NULL(E_INVALIDARG, detourDestination);
+		if (!m_jumpRegion)
 		{
-			return true;
+			InitJumpRegion(functionThunkAddress);
 		}
-		return false;
-	};
+		THROW_HR_IF_NULL(E_INVALIDARG, m_jumpRegion);
 
-	LOG_HR_IF(E_INVALIDARG, !jmpBytes);
-	if (!jmpBytes)
-	{
-		return;
-	}
-
-	for (int i = 0; !functionIsEnd(functionBytes, i) && i < 65535 && callersCount; i++)
-	{
-		if (functionBytes[i] == std::byte{0xE8})
+		auto jmpBytes{AllocJmpCode(detourDestination)};
+		auto functionBytes{reinterpret_cast<std::byte*>(functionThunkAddress)};
+		auto functionIsEnd = [](std::byte * bytes, int offset)
 		{
-			auto offsetAddress{reinterpret_cast<LONG*>(&functionBytes[i + 1])};
-			auto offset{*offsetAddress};
-			auto callBaseAddress{&functionBytes[i + 5]};
-			auto targetAddress{reinterpret_cast<PVOID>(callBaseAddress + offset)};
-
-			if (targetAddress == detourAddress)
+#ifdef _WIN64
+			if (
+				bytes[offset] == std::byte{0xC3} &&
+				bytes[offset + 1] == std::byte{0xCC} &&
+				bytes[offset + 2] == std::byte{0xCC} &&
+				bytes[offset + 3] == std::byte{0xCC} &&
+				bytes[offset + 4] == std::byte{0xCC} &&
+				bytes[offset + 5] == std::byte{0xCC} &&
+				bytes[offset + 6] == std::byte{0xCC} &&
+				bytes[offset + 7] == std::byte{0xCC} &&
+				bytes[offset + 8] == std::byte{0xCC}
+			)
+#else
+			if (
+				bytes[offset] == std::byte{0xC2} &&
+				bytes[offset + 2] == std::byte{0x00}
+			)
+#endif
 			{
-				WriteMemory(offsetAddress, [&]()
+				return true;
+			}
+			return false;
+		};
+
+		THROW_HR_IF_NULL(E_INVALIDARG, jmpBytes);
+
+		for (int i = 0; !functionIsEnd(functionBytes, i) && i < 65535 && callersCount; i++)
+		{
+			if (functionBytes[i] == std::byte{0xE8})
+			{
+				auto offsetAddress{reinterpret_cast<LONG*>(&functionBytes[i + 1])};
+				auto offset{*offsetAddress};
+				auto callBaseAddress{&functionBytes[i + 5]};
+				auto targetAddress{reinterpret_cast<PVOID>(callBaseAddress + offset)};
+
+				if (targetAddress == detourAddress)
 				{
-					*offsetAddress = static_cast<LONG>(jmpBytes - callBaseAddress);
-					m_hookedMap[offsetAddress] = offset;
-					callersCount--;
-				});
+					WriteMemory(offsetAddress, [&]()
+					{
+						*offsetAddress = static_cast<LONG>(jmpBytes - callBaseAddress);
+						m_hookedMap[offsetAddress] = offset;
+						callersCount--;
+					});
+				}
 			}
 		}
 	}
+	catch (...)
+	{
+	}
+
+	return callersCount;
 }
 
-void TranslucentFlyouts::Hooking::FunctionCallHook::Detach()
+void Hooking::FunctionCallHook::Detach()
 {
 	for (const auto [offsetAddress, offset] : m_hookedMap)
 	{
@@ -673,4 +674,8 @@ void TranslucentFlyouts::Hooking::FunctionCallHook::Detach()
 			*offsetAddress = offset;
 		});
 	}
+
+	m_current = m_jumpRegion.get();
+	m_end = m_current + m_size;
+	SecureZeroMemory(m_current, m_size);
 }

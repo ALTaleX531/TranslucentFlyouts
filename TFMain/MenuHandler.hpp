@@ -64,6 +64,16 @@ namespace TranslucentFlyouts
 			UAHMENUITEM umi;
 		};
 
+		struct MenuRenderingInfo
+		{
+			bool useUxTheme{false};
+			bool useDarkMode{false};
+			bool immersive{false};
+			COLORREF borderColor{DWMWA_COLOR_NONE};
+
+			inline void Reset() { useUxTheme = false; useDarkMode = false; immersive = false; }
+		};
+		
 		static MenuHandler& GetInstance();
 		~MenuHandler() noexcept;
 		MenuHandler(const MenuHandler&) = delete;
@@ -76,38 +86,50 @@ namespace TranslucentFlyouts
 		static void NotifyUxThemeRendering();
 		// Indicate that the menu window is using dark mode or light mode
 		static void NotifyMenuDarkMode(bool darkMode);
-
-		void AttachPopupMenu(HWND hWnd);
-		void AttachListViewPopup(HWND hWnd);
+		// Indicate that it is a immersive style menu
+		static void NotifyMenuStyle(bool immersive);
+		// Indicate its border color (Windows 11)
+		static void NotifyMenuBorderColor(COLORREF color);
 
 		void StartupHook();
 		void ShutdownHook();
 
-		static constexpr COLORREF lightMode_HotColor{RGB(0, 0, 0)};
-		static constexpr COLORREF lightMode_HotOpacity{48};
-		static constexpr COLORREF darkMode_HotColor{RGB(128, 128, 128)};
-		static constexpr COLORREF darkMode_HotOpacity{65};
 
-		static constexpr COLORREF lightMode_DisabledHotColor{RGB(0, 0, 0)};
-		static constexpr COLORREF lightMode_DisabledHotOpacity{0};
-		static constexpr COLORREF darkMode_DisabledHotColor{RGB(0, 0, 0)};
-		static constexpr COLORREF darkMode_DisabledHotOpacity{0};
+		MenuRenderingInfo GetMenuRenderingInfo(HWND hWnd);
+		void ApplyEffect(std::wstring_view keyName, HWND hWnd, bool darkMode, bool noDropShadow = false);
+		void HandleSysBorderColors(std::wstring_view keyName, HWND hWnd, bool useDarkMode, COLORREF color);
+		void HandleRoundCorners(std::wstring_view keyName, HWND hWnd);
+		bool HandlePopupMenuNCBorderColors(HDC hdc, bool useDarkMode, const RECT& paintRect);
 
-		static constexpr COLORREF lightMode_SeparatorColor{RGB(38, 38, 38)};
-		static constexpr COLORREF lightMode_SeparatorOpacity{48};
-		static constexpr COLORREF darkMode_SeparatorColor{RGB(217, 217, 217)};
-		static constexpr COLORREF darkMode_SeparatorOpacity{48};
+		static constexpr DWORD lightMode_GradientColor{0x9EDDDDDD};
+		static constexpr DWORD darkMode_GradientColor{0x412B2B2B};
 
-		static constexpr COLORREF lightMode_FocusingColor{RGB(0, 0, 0)};
-		static constexpr COLORREF lightMode_FocusingOpacity{255};
-		static constexpr COLORREF darkMode_FocusingColor{RGB(255, 255, 255)};
-		static constexpr COLORREF darkMode_FocusingOpacity{255};
-		static constexpr DWORD focusingWidth{1};
-		
-		static constexpr DWORD cornerRadius{5};
-		static constexpr DWORD separatorWidth{1};
+		static constexpr DWORD lightMode_HotColor{0x30000000};
+		static constexpr DWORD darkMode_HotColor{0x41808080};
+
+		static constexpr DWORD lightMode_DisabledHotColor{0x00000000};
+		static constexpr DWORD darkMode_DisabledHotColor{0x00000000};
+
+		static constexpr DWORD lightMode_SeparatorColor{0x30262626};
+		static constexpr DWORD darkMode_SeparatorColor{0x30D9D9D9};
+
+		static constexpr DWORD lightMode_FocusingColor{0xFF000000};
+		static constexpr DWORD darkMode_FocusingColor{0xFFFFFFFF};
+
+		static constexpr DWORD focusingWidth{1000};
+		static constexpr DWORD cornerRadius{8};
+		static constexpr DWORD separatorWidth{1000};
+
+		static constexpr int systemOutlineSize{1};
 	private:
+		struct MenuRenderingContext
+		{
+			HDC menuDC{nullptr};
+			HDC listviewDC{nullptr};
+		};
+
 		MenuHandler();
+		static void WinEventCallback(HWND hWnd, DWORD event);
 		// In certain situations, using SetWindowSubclass can't receive WM_DRAWITEM (eg. Windows 11 Taskmgr),
 		// so here we use hooks instead
 		static void MenuOwnerMsgCallback(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam, LRESULT lResult, bool returnResultValid);
@@ -118,8 +140,17 @@ namespace TranslucentFlyouts
 
 		void AttachDropDown(HWND hWnd);
 		void DetachDropDown(HWND hWnd);
+
+		void AttachPopupMenuOwner(HWND hWnd);
+		void DetachPopupMenuOwner(HWND hWnd);
+
+		void AttachPopupMenu(HWND hWnd);
 		void DetachPopupMenu(HWND hWnd);
+
+		void AttachListViewPopup(HWND hWnd);
 		void DetachListViewPopup(HWND hWnd);
+
+		bool IsMenuPartlyOwnerDrawn(HMENU hMenu);
 
 		static constexpr UINT WM_UAHDESTROYWINDOW{0x0090};
 		static constexpr UINT WM_UAHDRAWMENU{0x0091};			// lParam is UAHMENU, return TRUE after handling it
@@ -151,21 +182,11 @@ namespace TranslucentFlyouts
 		static constexpr UINT MN_ENDMENU2{0x01F4};
 
 		static constexpr int nonClientMarginSize{3};
-		static constexpr int systemOutlineSize{1};
 		static constexpr int popupMenuSubclassId{0};
 		static constexpr int dropDownSubclassId{0};
 
-		static thread_local struct
-		{
-			HDC menuDC;
-			HDC listviewDC;
-		} g_sharedDC;
-
-		static thread_local struct
-		{
-			bool useUxTheme;
-			bool useDarkMode;
-		} g_sharedMenuInfo;
+		static thread_local MenuRenderingContext g_sharedContext;
+		static thread_local MenuRenderingInfo g_sharedMenuInfo;
 
 		static const UINT WM_MHDETACH;
 

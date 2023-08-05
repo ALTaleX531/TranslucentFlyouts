@@ -80,13 +80,10 @@ namespace TranslucentFlyouts
 			DWORD dwAnimationId;
 		};
 
-		static const auto pfnSetWindowCompositionAttribute
+		static const auto g_actualSetWindowCompositionAttribute
 		{
 			reinterpret_cast<BOOL(WINAPI*)(HWND, WINDOWCOMPOSITIONATTRIBUTEDATA*)>(
-				GetProcAddress(
-					GetModuleHandleW(L"User32"),
-					"SetWindowCompositionAttribute"
-				)
+				DetourFindFunction("user32", "SetWindowCompositionAttribute")
 			)
 		};
 
@@ -215,9 +212,9 @@ namespace TranslucentFlyouts
 			DwmSetWindowAttribute(hwnd, 1029, &mica, sizeof(mica));
 			DwmSetWindowAttribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, &backdropType, sizeof(DWM_SYSTEMBACKDROP_TYPE));
 			DwmMakeWindowTransparent(hwnd, windowTransparent);
-			if (pfnSetWindowCompositionAttribute)
+			if (g_actualSetWindowCompositionAttribute)
 			{
-				pfnSetWindowCompositionAttribute(hwnd, &data);
+				g_actualSetWindowCompositionAttribute(hwnd, &data);
 			}
 			EnableWindowNCRendering(hwnd, ncRendering);
 		}

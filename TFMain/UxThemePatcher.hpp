@@ -55,6 +55,7 @@ namespace TranslucentFlyouts
 #pragma data_seg()
 #pragma comment(linker,"/SECTION:uxthemeOffset,RWS")
 
+		bool m_hooked{false};
 		bool m_internalError{false};
 
 		[[maybe_unused]] PVOID m_actualCThemeMenuPopup_DrawItem{nullptr};

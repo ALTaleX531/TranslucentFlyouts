@@ -5,24 +5,24 @@
 #include "MenuHandler.hpp"
 #include "MenuRendering.hpp"
 
-TranslucentFlyouts::MenuRendering& TranslucentFlyouts::MenuRendering::GetInstance()
+using namespace std;
+using namespace wil;
+using namespace TranslucentFlyouts;
+
+MenuRendering& MenuRendering::GetInstance()
 {
 	static MenuRendering instance{};
 	return instance;
 }
 
-HRESULT TranslucentFlyouts::MenuRendering::DoCustomThemeRendering(HDC hdc, bool darkMode, int partId, int stateId, const RECT& clipRect, const RECT& paintRect)
+HRESULT MenuRendering::DoCustomThemeRendering(HDC hdc, bool darkMode, int partId, int stateId, const RECT& clipRect, const RECT& paintRect)
 {
-	if (!DXHelper::LazyD2D::EnsureInitialized())
-	{
-		return E_FAIL;
-	}
+	RETURN_HR_IF(E_FAIL, !DXHelper::LazyD2D::EnsureInitialized());
 
 	auto& lazyD2D{DXHelper::LazyD2D::GetInstance()};
 	auto renderTarget{lazyD2D.GetRenderTarget()};
 
 	COLORREF color{0};
-	DWORD opacity{0};
 
 	Utils::unique_ext_hdc dc{hdc};
 	IntersectClipRect(dc.get(), paintRect.left, paintRect.top, paintRect.right, paintRect.bottom);
@@ -51,7 +51,7 @@ HRESULT TranslucentFlyouts::MenuRendering::DoCustomThemeRendering(HDC hdc, bool 
 		{
 			RegHelper::GetDword(
 				L"Menu\\Separator",
-				L"SeparatorWidth",
+				L"Width",
 				MenuHandler::separatorWidth,
 				false
 			)
@@ -65,12 +65,6 @@ HRESULT TranslucentFlyouts::MenuRendering::DoCustomThemeRendering(HDC hdc, bool 
 						MenuHandler::darkMode_SeparatorColor,
 						false
 					);
-			opacity = RegHelper::GetDword(
-						  L"Menu\\Separator",
-						  L"DarkMode_Opacity",
-						  MenuHandler::darkMode_SeparatorOpacity,
-						  false
-					  );
 		}
 		else
 		{
@@ -80,12 +74,6 @@ HRESULT TranslucentFlyouts::MenuRendering::DoCustomThemeRendering(HDC hdc, bool 
 						MenuHandler::lightMode_SeparatorColor,
 						false
 					);
-			opacity = RegHelper::GetDword(
-						  L"Menu\\Separator",
-						  L"LightMode_Opacity",
-						  MenuHandler::lightMode_SeparatorOpacity,
-						  false
-					  );
 		}
 
 		DWORD enableThemeColorization
@@ -100,13 +88,13 @@ HRESULT TranslucentFlyouts::MenuRendering::DoCustomThemeRendering(HDC hdc, bool 
 
 		if (enableThemeColorization)
 		{
-			Utils::GetDwmThemeColor(color, opacity);
+			RETURN_IF_FAILED(Utils::GetDwmThemeColor(color));
 		}
 
-		wil::com_ptr<ID2D1SolidColorBrush> brush{nullptr};
+		com_ptr<ID2D1SolidColorBrush> brush{nullptr};
 		RETURN_IF_FAILED(
 			renderTarget->CreateSolidColorBrush(
-				DXHelper::COLORREF2ColorF(color, static_cast<std::byte>(opacity)),
+				DXHelper::MakeColorF(color),
 				&brush
 			)
 		);
@@ -117,7 +105,7 @@ HRESULT TranslucentFlyouts::MenuRendering::DoCustomThemeRendering(HDC hdc, bool 
 				D2D1::Point2F(0.f, static_cast<float>(paintRect.bottom - paintRect.top) / 2.f),
 				D2D1::Point2F(static_cast<float>(paintRect.right - paintRect.left), static_cast<float>(paintRect.bottom - paintRect.top) / 2.f),
 				brush.get(),
-				static_cast<float>(separatorWidth)
+				static_cast<float>(separatorWidth) / 1000.f
 			);
 			renderTarget->EndDraw();
 		}
@@ -155,7 +143,7 @@ HRESULT TranslucentFlyouts::MenuRendering::DoCustomThemeRendering(HDC hdc, bool 
 		{
 			RegHelper::GetDword(
 				L"Menu\\Focusing",
-				L"FocusingWidth",
+				L"Width",
 				MenuHandler::focusingWidth,
 				false
 			)
@@ -169,12 +157,6 @@ HRESULT TranslucentFlyouts::MenuRendering::DoCustomThemeRendering(HDC hdc, bool 
 						MenuHandler::darkMode_FocusingColor,
 						false
 					);
-			opacity = RegHelper::GetDword(
-						  L"Menu\\Focusing",
-						  L"DarkMode_Opacity",
-						  MenuHandler::darkMode_FocusingOpacity,
-						  false
-					  );
 		}
 		else
 		{
@@ -184,12 +166,6 @@ HRESULT TranslucentFlyouts::MenuRendering::DoCustomThemeRendering(HDC hdc, bool 
 						MenuHandler::lightMode_FocusingColor,
 						false
 					);
-			opacity = RegHelper::GetDword(
-						  L"Menu\\Focusing",
-						  L"LightMode_Opacity",
-						  MenuHandler::lightMode_FocusingOpacity,
-						  false
-					  );
 		}
 
 		DWORD enableThemeColorization
@@ -204,13 +180,13 @@ HRESULT TranslucentFlyouts::MenuRendering::DoCustomThemeRendering(HDC hdc, bool 
 
 		if (enableThemeColorization)
 		{
-			Utils::GetDwmThemeColor(color, opacity);
+			RETURN_IF_FAILED(Utils::GetDwmThemeColor(color));
 		}
 
-		wil::com_ptr<ID2D1SolidColorBrush> brush{nullptr};
+		com_ptr<ID2D1SolidColorBrush> brush{nullptr};
 		RETURN_IF_FAILED(
 			renderTarget->CreateSolidColorBrush(
-				DXHelper::COLORREF2ColorF(color, static_cast<std::byte>(opacity)),
+				DXHelper::MakeColorF(color),
 				&brush
 			)
 		);
@@ -228,7 +204,7 @@ HRESULT TranslucentFlyouts::MenuRendering::DoCustomThemeRendering(HDC hdc, bool 
 					static_cast<float>(cornerRadius)
 				),
 				brush.get(),
-				static_cast<float>(focusingWidth)
+				static_cast<float>(focusingWidth) / 1000.f
 			);
 			renderTarget->EndDraw();
 		}
@@ -273,12 +249,6 @@ HRESULT TranslucentFlyouts::MenuRendering::DoCustomThemeRendering(HDC hdc, bool 
 							MenuHandler::darkMode_DisabledHotColor,
 							false
 						);
-				opacity = RegHelper::GetDword(
-							  L"Menu\\DisabledHot",
-							  L"DarkMode_Opacity",
-							  MenuHandler::darkMode_DisabledHotOpacity,
-							  false
-						  );
 			}
 			else
 			{
@@ -288,12 +258,6 @@ HRESULT TranslucentFlyouts::MenuRendering::DoCustomThemeRendering(HDC hdc, bool 
 							MenuHandler::lightMode_DisabledHotColor,
 							false
 						);
-				opacity = RegHelper::GetDword(
-							  L"Menu\\DisabledHot",
-							  L"LightMode_Opacity",
-							  MenuHandler::lightMode_DisabledHotOpacity,
-							  false
-						  );
 			}
 
 			DWORD enableThemeColorization
@@ -308,13 +272,13 @@ HRESULT TranslucentFlyouts::MenuRendering::DoCustomThemeRendering(HDC hdc, bool 
 
 			if (enableThemeColorization)
 			{
-				Utils::GetDwmThemeColor(color, opacity);
+				RETURN_IF_FAILED(Utils::GetDwmThemeColor(color));
 			}
 
-			wil::com_ptr<ID2D1SolidColorBrush> brush{nullptr};
+			com_ptr<ID2D1SolidColorBrush> brush{nullptr};
 			RETURN_IF_FAILED(
 				renderTarget->CreateSolidColorBrush(
-					DXHelper::COLORREF2ColorF(color, static_cast<std::byte>(opacity)),
+					DXHelper::MakeColorF(color),
 					&brush
 				)
 			);
@@ -374,12 +338,6 @@ HRESULT TranslucentFlyouts::MenuRendering::DoCustomThemeRendering(HDC hdc, bool 
 							MenuHandler::darkMode_HotColor,
 							false
 				);
-				opacity = RegHelper::GetDword(
-							  L"Menu\\Hot",
-							  L"DarkMode_Opacity",
-							  MenuHandler::darkMode_HotOpacity,
-							  false
-				);
 			}
 			else
 			{
@@ -388,12 +346,6 @@ HRESULT TranslucentFlyouts::MenuRendering::DoCustomThemeRendering(HDC hdc, bool 
 							L"LightMode_Color",
 							MenuHandler::lightMode_HotColor,
 							false
-				);
-				opacity = RegHelper::GetDword(
-							  L"Menu\\Hot",
-							  L"LightMode_Opacity",
-							  MenuHandler::lightMode_HotOpacity,
-							  false
 				);
 			}
 
@@ -409,13 +361,13 @@ HRESULT TranslucentFlyouts::MenuRendering::DoCustomThemeRendering(HDC hdc, bool 
 
 			if (enableThemeColorization)
 			{
-				Utils::GetDwmThemeColor(color, opacity);
+				RETURN_IF_FAILED(Utils::GetDwmThemeColor(color));
 			}
 
-			wil::com_ptr<ID2D1SolidColorBrush> brush{nullptr};
+			com_ptr<ID2D1SolidColorBrush> brush{nullptr};
 			RETURN_IF_FAILED(
 				renderTarget->CreateSolidColorBrush(
-					DXHelper::COLORREF2ColorF(color, static_cast<std::byte>(opacity)),
+					DXHelper::MakeColorF(color),
 					&brush
 				)
 			);
@@ -441,41 +393,20 @@ HRESULT TranslucentFlyouts::MenuRendering::DoCustomThemeRendering(HDC hdc, bool 
 		}
 	}
 
-	if (partId == MENU_POPUPBORDERS)
-	{
-		DWORD enableThemeColorization
-		{
-			RegHelper::GetDword(
-				L"Menu\\Border",
-				L"EnableThemeColorization",
-				0,
-				false
-			)
-		};
-
-		RETURN_HR_IF(E_NOTIMPL, !enableThemeColorization);
-		RETURN_IF_FAILED(Utils::GetDwmThemeColor(color, opacity));
-		wil::unique_hbrush brush{Utils::CreateSolidColorBrushWithAlpha(color, static_cast<std::byte>(opacity))};
-		RETURN_LAST_ERROR_IF_NULL(brush);
-		RETURN_LAST_ERROR_IF(FrameRect(dc.get(), &clipRect, brush.get()) == 0);
-
-		return S_OK;
-	}
-
 	return E_NOTIMPL;
 }
 
-std::optional<wil::shared_hbitmap> TranslucentFlyouts::MenuRendering::PromiseAlpha(HBITMAP bitmap)
+optional<shared_hbitmap> MenuRendering::PromiseAlpha(HBITMAP bitmap)
 {
 	if (SUCCEEDED(Utils::PrepareAlpha(bitmap)))
 	{
-		return std::nullopt;
+		return nullopt;
 	}
 
-	return wil::shared_hbitmap{ThemeHelper::ConvertTo32BPP(bitmap)};
+	return shared_hbitmap{ThemeHelper::ConvertTo32BPP(bitmap)};
 }
 
-HRESULT TranslucentFlyouts::MenuRendering::BltWithAlpha(
+HRESULT MenuRendering::BltWithAlpha(
 	HDC   hdcDest,
 	int   xDest,
 	int   yDest,
@@ -491,7 +422,7 @@ HRESULT TranslucentFlyouts::MenuRendering::BltWithAlpha(
 	RETURN_HR_IF_NULL_EXPECTED(E_INVALIDARG, hdcDest);
 	RETURN_HR_IF_NULL_EXPECTED(E_INVALIDARG, hdcSrc);
 	HBITMAP hBitmap{reinterpret_cast<HBITMAP>(GetCurrentObject(hdcSrc, OBJ_BITMAP))};
-	RETURN_HR_IF_NULL(E_INVALIDARG, hBitmap);
+	RETURN_HR_IF_NULL_EXPECTED(E_INVALIDARG, hBitmap);
 	RETURN_HR_IF_EXPECTED(
 		E_NOTIMPL,
 		ThemeHelper::IsOemBitmap(hBitmap)
@@ -501,7 +432,7 @@ HRESULT TranslucentFlyouts::MenuRendering::BltWithAlpha(
 	RETURN_LAST_ERROR_IF(bitmap && !bitmap.value().get());
 	auto selectedObject
 	{
-		(bitmap ? wil::SelectObject(hdcSrc, bitmap.value().get()) : std::optional<wil::unique_select_object>{std::nullopt})
+		(bitmap ? wil::SelectObject(hdcSrc, bitmap.value().get()) : optional<unique_select_object>{nullopt})
 	};
 	RETURN_IF_WIN32_BOOL_FALSE(
 		GdiAlphaBlend(

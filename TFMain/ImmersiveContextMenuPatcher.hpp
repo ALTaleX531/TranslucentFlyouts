@@ -55,6 +55,7 @@ namespace TranslucentFlyouts
 			int   hSrc,
 			DWORD rop
 		);
+
 		static void DllNotificationCallback(bool load, Hooking::DllNotifyRoutine::DllInfo info);
 
 		void DoIATHook(PVOID moduleBaseAddress);

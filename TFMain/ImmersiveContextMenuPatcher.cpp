@@ -7,42 +7,40 @@
 #include "DXHelper.hpp"
 #include "ImmersiveContextMenuPatcher.hpp"
 
-namespace TranslucentFlyouts
+using namespace std;
+using namespace TranslucentFlyouts;
+
+// A list of modules that contain the symbol of C++ class ImmersiveContextMenuHelper,
+// which it means these modules provide methods to create a immersive context menu
+const array g_hookModuleList
 {
-	using namespace std;
+	L"explorer.exe"sv,
+	L"Narrator.exe"sv,
+	L"MusNotifyIcon.exe"sv,
+	L"ApplicationFrame.dll"sv,
+	L"ExplorerFrame.dll"sv,
+	L"InputSwitch.dll"sv,
+	L"pnidui.dll"sv,
+	L"SecurityHealthSSO.dll"sv,
+	L"shell32.dll"sv,
+	L"SndVolSSO.dll"sv,
+	L"twinui.dll"sv,
+	L"twinui.pcshell.dll"sv,
+	L"bthprops.cpl"sv,
+	// Windows 11
+	L"Taskmgr.exe"sv,
+	L"museuxdocked.dll"sv,
+	L"SecurityHealthSsoUdk.dll"sv,
+	L"Taskbar.dll"sv,
+	L"Windows.UI.FileExplorer.dll"sv,
+	L"Windows.UI.FileExplorer.WASDK.dll"sv,
+	L"stobject.dll"sv,
+	// Third-party apps
+	L"StartIsBack64.dll"sv,
+	L"StartIsBack32.dll"sv
+};
 
-	// A list of modules that contain the symbol of C++ class ImmersiveContextMenuHelper,
-	// which it means these modules provide methods to create a immersive context menu
-	const array g_hookModuleList
-	{
-		L"explorer.exe"sv,
-		L"Narrator.exe"sv,
-		L"MusNotifyIcon.exe"sv,
-		L"ApplicationFrame.dll"sv,
-		L"ExplorerFrame.dll"sv,
-		L"InputSwitch.dll"sv,
-		L"pnidui.dll"sv,
-		L"SecurityHealthSSO.dll"sv,
-		L"shell32.dll"sv,
-		L"SndVolSSO.dll"sv,
-		L"twinui.dll"sv,
-		L"twinui.pcshell.dll"sv,
-		L"bthprops.cpl"sv,
-		// Windows 11
-		L"Taskmgr.exe"sv,
-		L"museuxdocked.dll"sv,
-		L"SecurityHealthSsoUdk.dll"sv,
-		L"Taskbar.dll"sv,
-		L"Windows.UI.FileExplorer.dll"sv,
-		L"Windows.UI.FileExplorer.WASDK.dll"sv,
-		L"stobject.dll"sv,
-		// Third-party apps
-		L"StartIsBack64.dll"sv,
-		L"StartIsBack32.dll"sv
-	};
-}
-
-TranslucentFlyouts::ImmersiveContextMenuPatcher::ImmersiveContextMenuPatcher()
+ImmersiveContextMenuPatcher::ImmersiveContextMenuPatcher()
 {
 	try
 	{
@@ -65,19 +63,19 @@ TranslucentFlyouts::ImmersiveContextMenuPatcher::ImmersiveContextMenuPatcher()
 	}
 }
 
-TranslucentFlyouts::ImmersiveContextMenuPatcher::~ImmersiveContextMenuPatcher() noexcept
+ImmersiveContextMenuPatcher::~ImmersiveContextMenuPatcher() noexcept
 {
 	Hooking::DllNotifyRoutine::GetInstance().DeleteCallback(DllNotificationCallback);
 	ShutdownHook();
 }
 
-TranslucentFlyouts::ImmersiveContextMenuPatcher& TranslucentFlyouts::ImmersiveContextMenuPatcher::GetInstance()
+ImmersiveContextMenuPatcher& ImmersiveContextMenuPatcher::GetInstance()
 {
 	static ImmersiveContextMenuPatcher instance{};
 	return instance;
 }
 
-HRESULT WINAPI TranslucentFlyouts::ImmersiveContextMenuPatcher::DrawThemeBackground(
+HRESULT WINAPI ImmersiveContextMenuPatcher::DrawThemeBackground(
 	HTHEME  hTheme,
 	HDC     hdc,
 	int     iPartId,
@@ -106,14 +104,6 @@ HRESULT WINAPI TranslucentFlyouts::ImmersiveContextMenuPatcher::DrawThemeBackgro
 		RETURN_IF_FAILED(
 			ThemeHelper::GetThemeClass(hTheme, themeClassName, MAX_PATH)
 		);
-		RETURN_HR_IF_EXPECTED(
-			E_NOTIMPL, !(!_wcsicmp(themeClassName, L"Menu"))
-		);
-
-		bool darkMode{ThemeHelper::DetermineThemeMode(hTheme, L"ImmersiveStart", L"Menu", MENU_POPUPBACKGROUND, 0, TMT_FILLCOLOR)};
-
-		MenuHandler::NotifyUxThemeRendering();
-		MenuHandler::NotifyMenuDarkMode(darkMode);
 
 		RECT clipRect{*pRect};
 		if (pClipRect != nullptr)
@@ -121,82 +111,111 @@ HRESULT WINAPI TranslucentFlyouts::ImmersiveContextMenuPatcher::DrawThemeBackgro
 			IntersectRect(&clipRect, &clipRect, pClipRect);
 		}
 
-		auto& menuRendering{MenuRendering::GetInstance()};
-		DWORD customRendering
+		if (!_wcsicmp(themeClassName, L"ListViewPopup"))
 		{
-			RegHelper::GetDword(
-				L"Menu",
-				L"EnableCustomRendering",
-				0,
-				false
-			)
-		};
-
-		// Separator
-		if (iPartId == MENU_POPUPSEPARATOR)
-		{
-			if (customRendering)
-			{
-				if (SUCCEEDED(menuRendering.DoCustomThemeRendering(hdc, darkMode, iPartId, iStateId, clipRect, *pRect)))
-				{
-					return S_OK;
-				}
-			}
-		}
-		// Focusing
-		if (iPartId == MENU_POPUPITEMKBFOCUS)
-		{
-			if (customRendering)
-			{
-				if (SUCCEEDED(menuRendering.DoCustomThemeRendering(hdc, darkMode, iPartId, iStateId, clipRect, *pRect)))
-				{
-					return S_OK;
-				}
-			}
-		}
-		if ((iPartId == MENU_POPUPITEM || iPartId == MENU_POPUPITEM_FOCUSABLE))
-		{
-			if (iStateId == MPI_DISABLEDHOT)
-			{
-				if (customRendering)
-				{
-					if (SUCCEEDED(menuRendering.DoCustomThemeRendering(hdc, darkMode, iPartId, iStateId, clipRect, *pRect)))
-					{
-						return S_OK;
-					}
-				}
-			}
-			if (iStateId == MPI_HOT)
-			{
-				if (customRendering)
-				{
-					if (SUCCEEDED(menuRendering.DoCustomThemeRendering(hdc, darkMode, iPartId, iStateId, clipRect, *pRect)))
-					{
-						return S_OK;
-					}
-				}
-
-				// System default
-				return E_NOTIMPL;
-			}
-		}
-
-		{
-			RETURN_HR_IF_EXPECTED(
-				E_NOTIMPL,
-				iPartId != MENU_POPUPBACKGROUND &&
-				iPartId != MENU_POPUPBORDERS &&
-				iPartId != MENU_POPUPGUTTER &&
-				iPartId != MENU_POPUPITEM &&
-				iPartId != MENU_POPUPITEM_FOCUSABLE
-			);
+			MenuHandler::NotifyUxThemeRendering();
+			MenuHandler::NotifyMenuDarkMode(false);
 
 			RETURN_IF_WIN32_BOOL_FALSE(
 				PatBlt(hdc, clipRect.left, clipRect.top, clipRect.right - clipRect.left, clipRect.bottom - clipRect.top, BLACKNESS)
 			);
+
+			return S_OK;
 		}
 
-		return S_OK;
+		if (!_wcsicmp(themeClassName, L"Menu"))
+		{
+			bool darkMode{ThemeHelper::DetermineThemeMode(hTheme, L"ImmersiveStart", L"Menu", MENU_POPUPBACKGROUND, 0, TMT_FILLCOLOR)};
+
+			MenuHandler::NotifyUxThemeRendering();
+			MenuHandler::NotifyMenuDarkMode(darkMode);
+			MenuHandler::NotifyMenuStyle(true);
+
+			COLORREF color{DWMWA_COLOR_NONE};
+			if (SUCCEEDED(GetThemeColor(hTheme, MENU_POPUPBORDERS, 0, TMT_FILLCOLORHINT, &color)))
+			{
+				MenuHandler::NotifyMenuBorderColor(color);
+			}
+
+			auto& menuRendering{MenuRendering::GetInstance()};
+			DWORD customRendering
+			{
+				RegHelper::GetDword(
+					L"Menu",
+					L"EnableCustomRendering",
+					0,
+					false
+				)
+			};
+
+			// Separator
+			if (iPartId == MENU_POPUPSEPARATOR)
+			{
+				if (customRendering)
+				{
+					if (SUCCEEDED(menuRendering.DoCustomThemeRendering(hdc, darkMode, iPartId, iStateId, clipRect, *pRect)))
+					{
+						return S_OK;
+					}
+				}
+			}
+			// Focusing
+			if (iPartId == MENU_POPUPITEMKBFOCUS)
+			{
+				if (customRendering)
+				{
+					if (SUCCEEDED(menuRendering.DoCustomThemeRendering(hdc, darkMode, iPartId, iStateId, clipRect, *pRect)))
+					{
+						return S_OK;
+					}
+				}
+			}
+			if ((iPartId == MENU_POPUPITEM || iPartId == MENU_POPUPITEM_FOCUSABLE))
+			{
+				if (iStateId == MPI_DISABLEDHOT)
+				{
+					if (customRendering)
+					{
+						if (SUCCEEDED(menuRendering.DoCustomThemeRendering(hdc, darkMode, iPartId, iStateId, clipRect, *pRect)))
+						{
+							return S_OK;
+						}
+					}
+				}
+				if (iStateId == MPI_HOT)
+				{
+					if (customRendering)
+					{
+						if (SUCCEEDED(menuRendering.DoCustomThemeRendering(hdc, darkMode, iPartId, iStateId, clipRect, *pRect)))
+						{
+							return S_OK;
+						}
+					}
+
+					// System default
+					return E_NOTIMPL;
+				}
+			}
+
+			{
+				RETURN_HR_IF_EXPECTED(
+					E_NOTIMPL,
+					iPartId != MENU_POPUPBACKGROUND &&
+					iPartId != MENU_POPUPBORDERS &&
+					iPartId != MENU_POPUPGUTTER &&
+					iPartId != MENU_POPUPITEM &&
+					iPartId != MENU_POPUPITEM_FOCUSABLE
+				);
+
+				RETURN_IF_WIN32_BOOL_FALSE(
+					PatBlt(hdc, clipRect.left, clipRect.top, clipRect.right - clipRect.left, clipRect.bottom - clipRect.top, BLACKNESS)
+				);
+			}
+
+			return S_OK;
+		}
+
+		return E_NOTIMPL;
 	}();
 	if (FAILED(hr))
 	{
@@ -213,7 +232,7 @@ HRESULT WINAPI TranslucentFlyouts::ImmersiveContextMenuPatcher::DrawThemeBackgro
 	return hr;
 }
 
-int WINAPI TranslucentFlyouts::ImmersiveContextMenuPatcher::DrawTextW(
+int WINAPI ImmersiveContextMenuPatcher::DrawTextW(
 	HDC     hdc,
 	LPCWSTR lpchText,
 	int     cchText,
@@ -250,7 +269,7 @@ int WINAPI TranslucentFlyouts::ImmersiveContextMenuPatcher::DrawTextW(
 	return result;
 }
 
-BOOL WINAPI TranslucentFlyouts::ImmersiveContextMenuPatcher::BitBlt(
+BOOL WINAPI ImmersiveContextMenuPatcher::BitBlt(
 	HDC   hdc,
 	int   x,
 	int   y,
@@ -297,7 +316,7 @@ BOOL WINAPI TranslucentFlyouts::ImmersiveContextMenuPatcher::BitBlt(
 	return result;
 }
 
-BOOL WINAPI TranslucentFlyouts::ImmersiveContextMenuPatcher::StretchBlt(
+BOOL WINAPI ImmersiveContextMenuPatcher::StretchBlt(
 	HDC   hdcDest,
 	int   xDest,
 	int   yDest,
@@ -347,7 +366,7 @@ BOOL WINAPI TranslucentFlyouts::ImmersiveContextMenuPatcher::StretchBlt(
 	return result;
 }
 
-void TranslucentFlyouts::ImmersiveContextMenuPatcher::DoIATHook(PVOID moduleBaseAddress)
+void ImmersiveContextMenuPatcher::DoIATHook(PVOID moduleBaseAddress)
 {
 	if (m_actualDrawThemeBackground)
 	{
@@ -417,7 +436,7 @@ void TranslucentFlyouts::ImmersiveContextMenuPatcher::DoIATHook(PVOID moduleBase
 	}
 }
 
-void TranslucentFlyouts::ImmersiveContextMenuPatcher::UndoIATHook(PVOID moduleBaseAddress)
+void ImmersiveContextMenuPatcher::UndoIATHook(PVOID moduleBaseAddress)
 {
 	if (m_actualDrawThemeBackground)
 	{
@@ -487,7 +506,7 @@ void TranslucentFlyouts::ImmersiveContextMenuPatcher::UndoIATHook(PVOID moduleBa
 	}
 }
 
-void TranslucentFlyouts::ImmersiveContextMenuPatcher::DllNotificationCallback(bool load, Hooking::DllNotifyRoutine::DllInfo info)
+void ImmersiveContextMenuPatcher::DllNotificationCallback(bool load, Hooking::DllNotifyRoutine::DllInfo info)
 {
 	auto& immersiveContextMenuPatcher{GetInstance()};
 	if (load)
@@ -502,7 +521,7 @@ void TranslucentFlyouts::ImmersiveContextMenuPatcher::DllNotificationCallback(bo
 	}
 }
 
-void TranslucentFlyouts::ImmersiveContextMenuPatcher::StartupHook()
+void ImmersiveContextMenuPatcher::StartupHook()
 {
 	if (m_startup)
 	{
@@ -532,7 +551,7 @@ void TranslucentFlyouts::ImmersiveContextMenuPatcher::StartupHook()
 	m_startup = true;
 }
 
-void TranslucentFlyouts::ImmersiveContextMenuPatcher::ShutdownHook()
+void ImmersiveContextMenuPatcher::ShutdownHook()
 {
 	if (!m_startup)
 	{

@@ -1,195 +1,5 @@
 #include "pch.h"
-#include "resource.h"
-#include "Utils.hpp"
-#include "Hooking.hpp"
-#include "ThemeHelper.hpp"
-#include "EffectHelper.hpp"
-#include "MenuHandler.hpp"
-#include "UxThemePatcher.hpp"
-#include "ImmersiveContextMenuPatcher.hpp"
-
-namespace TranslucentFlyouts
-{
-	using namespace std;
-	// TranslucentFlyouts won't be loaded into one of these process
-	// These processes are quite annoying because TranslucentFlyouts will not be automatically unloaded by them
-	// Some of them even have no chance to show flyouts and other UI elements
-	const array g_blockList
-	{
-		L"sihost.exe"sv,
-		L"WSHost.exe"sv,
-		L"spoolsv.exe"sv,
-		L"dllhost.exe"sv,
-		L"svchost.exe"sv,
-		L"taskhostw.exe"sv,
-		L"searchhost.exe"sv,
-		L"RuntimeBroker.exe"sv,
-		L"smartscreen.exe"sv,
-		L"Widgets.exe"sv,
-		L"WidgetService.exe"sv,
-		L"GameBar.exe"sv,
-		L"GameBarFTServer.exe"sv,
-		L"ShellExperienceHost.exe"sv,
-		L"StartMenuExperienceHost.exe"sv,
-		L"msedgewebview2.exe"sv
-	};
-
-	// A class that in charge of global injection, initialization and uninitialization
-	// of different class which tweak the flyout appearance
-	class MainDLL
-	{
-	public:
-		static MainDLL& GetInstance()
-		{
-			static MainDLL instance{};
-			return instance;
-		}
-		~MainDLL() noexcept = default;
-		MainDLL(const MainDLL&) = delete;
-		MainDLL& operator=(const MainDLL&) = delete;
-
-		static inline bool IsHookGlobalInstalled()
-		{
-			return g_hHook != nullptr;
-		}
-		static HRESULT InstallHook()
-		{
-			RETURN_HR_IF(HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS), IsHookGlobalInstalled());
-
-			UxThemePatcher::PrepareUxTheme();
-			{
-				if (GetConsoleWindow())
-				{
-					Utils::OutputModuleString(IDS_STRING104);
-					system("pause>nul");
-
-					Utils::ShutdownConsole();
-				}
-			}
-			g_hHook = SetWinEventHook(
-						  EVENT_MIN, EVENT_MAX,
-						  HINST_THISCOMPONENT,
-						  HandleWinEvent,
-						  0, 0,
-						  WINEVENT_INCONTEXT
-					  );
-			RETURN_LAST_ERROR_IF_NULL(g_hHook);
-
-			return S_OK;
-		}
-		static HRESULT UninstallHook()
-		{
-			RETURN_HR_IF(HRESULT_FROM_WIN32(ERROR_HOOK_NOT_INSTALLED), !IsHookGlobalInstalled());
-			RETURN_IF_WIN32_BOOL_FALSE(UnhookWinEvent(g_hHook));
-			g_hHook = nullptr;
-
-			BroadcastSystemMessageW(
-				BSF_FORCEIFHUNG | BSF_FLUSHDISK | BSF_POSTMESSAGE,
-				nullptr,
-				WM_POWERBROADCAST,
-				PBT_APMRESUMESUSPEND,
-				0
-			);
-
-			return S_OK;
-		}
-
-		static bool IsCurrentProcessInBlockList()
-		{
-			for (auto processName : g_blockList)
-			{
-				if (GetModuleHandleW(processName.data()))
-				{
-					return true;
-				}
-			}
-
-			return false;
-		}
-
-		void Startup()
-		{
-			if (m_startup)
-			{
-				return;
-			}
-
-			m_menuHandler.StartupHook();
-			m_uxthemePatcher.StartupHook();
-			m_immersiveContextMenuPatcher.StartupHook();
-
-			m_startup = true;
-		}
-		void Shutdown()
-		{
-			if (!m_startup)
-			{
-				return;
-			}
-
-			m_immersiveContextMenuPatcher.ShutdownHook();
-			m_uxthemePatcher.ShutdownHook();
-			m_menuHandler.ShutdownHook();
-
-			m_startup = false;
-		}
-	private:
-		MainDLL() = default;
-		static void CALLBACK HandleWinEvent(
-			HWINEVENTHOOK hWinEventHook, DWORD dwEvent, HWND hWnd,
-			LONG idObject, LONG idChild,
-			DWORD dwEventThread, DWORD dwmsEventTime
-		)
-		{
-			auto& mainDLL{GetInstance()};
-
-			if (
-				!IsHookGlobalInstalled() ||
-				!mainDLL.m_startup ||
-				idObject != OBJID_WINDOW ||
-				idChild != CHILDID_SELF ||
-				!hWnd || !IsWindow(hWnd)
-			)
-			{
-				return;
-			}
-
-			if (dwEvent == EVENT_OBJECT_CREATE)
-			{
-				if (Utils::IsWin32PopupMenu(hWnd))
-				{
-					GetInstance().m_menuHandler.AttachPopupMenu(hWnd);
-				}
-
-				HWND parentWindow{GetParent(hWnd)};
-				if (Utils::IsWindowClass(hWnd, L"Listviewpopup") && Utils::IsWindowClass(parentWindow, L"DropDown"))
-				{
-					GetInstance().m_menuHandler.AttachListViewPopup(hWnd);
-				}
-			}
-
-			if (dwEvent == EVENT_OBJECT_SHOW)
-			{
-			}
-
-			if (dwEvent == EVENT_OBJECT_HIDE)
-			{
-			}
-		}
-
-		static HWINEVENTHOOK g_hHook;
-
-		bool m_startup{false};
-		MenuHandler& m_menuHandler{MenuHandler::GetInstance()};
-		UxThemePatcher& m_uxthemePatcher{UxThemePatcher::GetInstance()};
-		ImmersiveContextMenuPatcher& m_immersiveContextMenuPatcher{ImmersiveContextMenuPatcher::GetInstance()};
-	};
-
-#pragma data_seg("hook")
-	HWINEVENTHOOK MainDLL::g_hHook {nullptr};
-#pragma data_seg()
-#pragma comment(linker,"/SECTION:hook,RWS")
-}
+#include "TFMain.hpp"
 
 BOOL APIENTRY DllMain(
 	HMODULE hModule,
@@ -214,7 +24,8 @@ BOOL APIENTRY DllMain(
 			{
 				if (
 					MainDLL::IsHookGlobalInstalled() &&
-					ThemeHelper::IsThemeAvailable() &&
+					//ThemeHelper::IsThemeAvailable() &&
+					//!ThemeHelper::IsHighContrast() &&
 					!GetSystemMetrics(SM_CLEANBOOT)
 				)
 				{
@@ -270,7 +81,6 @@ int WINAPI Main(
 				modulePath
 			)
 #endif
-			
 		};
 		SHELLEXECUTEINFOW sei
 		{
@@ -339,6 +149,7 @@ int WINAPI Main(
 		Utils::ShutdownConsole();
 	}
 #else
+	SetProcessShutdownParameters(0, 0);
 	HWND window
 	{
 		CreateWindowExW(

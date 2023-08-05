@@ -2,15 +2,15 @@
 #include "Hooking.hpp"
 #include "DXHelper.hpp"
 
-namespace TranslucentFlyouts::DXHelper
-{
-	using namespace std;
-	using namespace D2D1;
+using namespace std;
+using namespace wil;
+using namespace D2D1;
+using namespace TranslucentFlyouts;
+using namespace TranslucentFlyouts::DXHelper;
 
-	LazyDX::InternalHook LazyDX::g_internalHook{};
-}
+LazyDX::InternalHook LazyDX::g_internalHook{};
 
-BOOL WINAPI TranslucentFlyouts::DXHelper::LazyDX::InternalHook::FreeLibrary(
+BOOL WINAPI LazyDX::InternalHook::FreeLibrary(
 	HMODULE hLibModule
 )
 {
@@ -50,7 +50,7 @@ BOOL WINAPI TranslucentFlyouts::DXHelper::LazyDX::InternalHook::FreeLibrary(
 	return actualFreeLibrary(hLibModule);
 }
 
-void TranslucentFlyouts::DXHelper::LazyDX::NotifyDeviceLost()
+void LazyDX::NotifyDeviceLost()
 {
 	auto& dxList{g_internalHook.dxList};
 	for (auto it = dxList.begin(); it != dxList.end(); it++)
@@ -61,7 +61,7 @@ void TranslucentFlyouts::DXHelper::LazyDX::NotifyDeviceLost()
 	}
 }
 
-TranslucentFlyouts::DXHelper::LazyDX::InternalHook::InternalHook()
+LazyDX::InternalHook::InternalHook()
 {
 	actualFreeLibrary = reinterpret_cast<decltype(actualFreeLibrary)>(DetourFindFunction("kernel32.dll", "FreeLibrary"));
 	if (!actualFreeLibrary)
@@ -73,13 +73,13 @@ TranslucentFlyouts::DXHelper::LazyDX::InternalHook::InternalHook()
 	StartupHook();
 }
 
-TranslucentFlyouts::DXHelper::LazyDX::InternalHook::~InternalHook()
+LazyDX::InternalHook::~InternalHook()
 {
 	ShutdownHook();
 	actualFreeLibrary = nullptr;
 }
 
-void TranslucentFlyouts::DXHelper::LazyDX::InternalHook::StartupHook()
+void LazyDX::InternalHook::StartupHook()
 {
 	if (!hooked)
 	{
@@ -88,7 +88,7 @@ void TranslucentFlyouts::DXHelper::LazyDX::InternalHook::StartupHook()
 	}
 }
 
-void TranslucentFlyouts::DXHelper::LazyDX::InternalHook::ShutdownHook()
+void LazyDX::InternalHook::ShutdownHook()
 {
 	if (hooked)
 	{
@@ -97,12 +97,12 @@ void TranslucentFlyouts::DXHelper::LazyDX::InternalHook::ShutdownHook()
 	}
 }
 
-TranslucentFlyouts::DXHelper::LazyDX::LazyDX()
+LazyDX::LazyDX()
 {
 	g_internalHook.dxList.push_back(this);
 }
 
-TranslucentFlyouts::DXHelper::LazyDX::~LazyDX()
+LazyDX::~LazyDX()
 {
 	auto& dxList{g_internalHook.dxList};
 	for (auto it = dxList.begin(); it != dxList.end();)
@@ -121,13 +121,13 @@ TranslucentFlyouts::DXHelper::LazyDX::~LazyDX()
 
 /* ======================================================================================== */
 
-TranslucentFlyouts::DXHelper::LazyD2D& TranslucentFlyouts::DXHelper::LazyD2D::GetInstance()
+LazyD2D& LazyD2D::GetInstance()
 {
 	static LazyD2D instance{};
 	return instance;
 }
 
-bool TranslucentFlyouts::DXHelper::LazyD2D::EnsureInitialized()
+bool LazyD2D::EnsureInitialized()
 {
 	auto& lazyD2D{GetInstance()};
 
@@ -142,22 +142,28 @@ bool TranslucentFlyouts::DXHelper::LazyD2D::EnsureInitialized()
 	return (lazyD2D.m_dcRT && lazyD2D.m_factory ? true : false);
 }
 
-TranslucentFlyouts::DXHelper::LazyD2D::LazyD2D()
+LazyD2D::LazyD2D()
 {
 	CreateDeviceIndependentResources();
 	CreateDeviceResources();
 }
 
-void TranslucentFlyouts::DXHelper::LazyD2D::CreateDeviceIndependentResources()
+LazyD2D::~LazyD2D()
+{
+	DestroyDeviceIndependentResources();
+	DestroyDeviceResources();
+}
+
+void LazyD2D::CreateDeviceIndependentResources()
 {
 	try
 	{
-		wil::com_ptr<ID2D1Factory> factory{nullptr};
+		com_ptr<ID2D1Factory> factory{nullptr};
 		THROW_IF_FAILED(
 			D2D1CreateFactory<ID2D1Factory>(
 				D2D1_FACTORY_TYPE::D2D1_FACTORY_TYPE_MULTI_THREADED,
 				&factory
-				)
+			)
 		);
 
 		factory.copy_to(&m_factory);
@@ -167,7 +173,7 @@ void TranslucentFlyouts::DXHelper::LazyD2D::CreateDeviceIndependentResources()
 		LOG_CAUGHT_EXCEPTION();
 	}
 }
-void TranslucentFlyouts::DXHelper::LazyD2D::CreateDeviceResources()
+void LazyD2D::CreateDeviceResources()
 {
 	try
 	{
@@ -184,7 +190,7 @@ void TranslucentFlyouts::DXHelper::LazyD2D::CreateDeviceResources()
 			)
 		};
 
-		wil::com_ptr<ID2D1DCRenderTarget> dcRT{nullptr};
+		com_ptr<ID2D1DCRenderTarget> dcRT{nullptr};
 		THROW_IF_FAILED(
 			m_factory->CreateDCRenderTarget(
 				&properties,
@@ -193,7 +199,6 @@ void TranslucentFlyouts::DXHelper::LazyD2D::CreateDeviceResources()
 		);
 
 		dcRT->SetAntialiasMode(D2D1_ANTIALIAS_MODE::D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
-
 		dcRT.copy_to(&m_dcRT);
 	}
 	catch (...)
@@ -201,21 +206,124 @@ void TranslucentFlyouts::DXHelper::LazyD2D::CreateDeviceResources()
 		LOG_CAUGHT_EXCEPTION();
 	}
 }
-void TranslucentFlyouts::DXHelper::LazyD2D::DestroyDeviceIndependentResources()
+void LazyD2D::DestroyDeviceIndependentResources()
 {
 	m_factory.reset();
 }
-void TranslucentFlyouts::DXHelper::LazyD2D::DestroyDeviceResources()
+void LazyD2D::DestroyDeviceResources()
 {
 	m_dcRT.reset();
 }
 
-D2D1::ColorF TranslucentFlyouts::DXHelper::COLORREF2ColorF(COLORREF color, std::byte alpha)
+/* ======================================================================================== */
+
+LazyDComposition& LazyDComposition::GetInstance()
 {
-	return ColorF(
-			   static_cast<float>(GetRValue(color)) / 255.f,
-			   static_cast<float>(GetGValue(color)) / 255.f,
-			   static_cast<float>(GetBValue(color)) / 255.f,
-			   static_cast<float>(std::to_integer<int>(alpha)) / 255.f
-		   );
+	static LazyDComposition instance{};
+	return instance;
+}
+
+bool LazyDComposition::EnsureInitialized()
+{
+	auto& lazyDComp{GetInstance()};
+
+	if (lazyDComp.m_dcompDevice)
+	{
+		try
+		{
+			BOOL valid{FALSE};
+			THROW_IF_FAILED(
+				lazyDComp.m_dcompDevice.query<IDCompositionDevice>()->CheckDeviceState(&valid)
+			);
+
+			if (!valid)
+			{
+				LazyDX::NotifyDeviceLost();
+			}
+		}
+		CATCH_LOG()
+	}
+
+	return (lazyDComp.m_dcompDevice ? true : false);
+}
+
+LazyDComposition::LazyDComposition()
+{
+	CreateDeviceIndependentResources();
+	CreateDeviceResources();
+}
+
+LazyDComposition::~LazyDComposition()
+{
+	DestroyDeviceIndependentResources();
+	DestroyDeviceResources();
+}
+
+void LazyDComposition::CreateDeviceIndependentResources()
+{
+}
+void LazyDComposition::CreateDeviceResources()
+{
+	try
+	{
+		com_ptr<IDXGIDevice3> dxgiDevice{nullptr};
+		com_ptr<ID3D11Device> d3dDevice{nullptr};
+		com_ptr<IDCompositionDesktopDevice> dcompDevice{nullptr};
+
+		THROW_IF_FAILED(
+			D3D11CreateDevice(
+				nullptr,
+				D3D_DRIVER_TYPE_HARDWARE,
+				nullptr,
+				D3D11_CREATE_DEVICE_BGRA_SUPPORT,
+				nullptr,
+				0,
+				D3D11_SDK_VERSION,
+				&d3dDevice,
+				nullptr,
+				nullptr
+			)
+		);
+		d3dDevice.query_to(&dxgiDevice);
+
+		THROW_IF_FAILED(
+			DCompositionCreateDevice3(
+				dxgiDevice.get(),
+				IID_PPV_ARGS(&dcompDevice)
+			)
+		);
+
+		dcompDevice.copy_to(&m_dcompDevice);
+		d3dDevice.copy_to(&m_d3dDevice);
+		dxgiDevice.copy_to(&m_dxgiDevice);
+	}
+	catch (...)
+	{
+		LOG_CAUGHT_EXCEPTION();
+	}
+}
+void LazyDComposition::DestroyDeviceIndependentResources()
+{
+}
+
+void LazyDComposition::DestroyDeviceResources()
+{
+	m_dcompDevice.reset();
+	m_d3dDevice.reset();
+	m_dxgiDevice.reset();
+}
+
+ColorF TranslucentFlyouts::DXHelper::MakeColorF(DWORD argb)
+{
+	auto a{static_cast<float>(argb >> 24) / 255.f};
+	auto r{static_cast<float>(argb >> 16 & 0xff) / 255.f};
+	auto g{static_cast<float>(argb >> 8 & 0xff) / 255.f};
+	auto b{static_cast<float>(argb & 0xff) / 255.f};
+
+	return ColorF{
+		r,
+		g,
+		b,
+		a
+	};
 }

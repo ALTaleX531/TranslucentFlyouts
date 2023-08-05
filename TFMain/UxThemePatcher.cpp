@@ -10,28 +10,27 @@
 #include "DXHelper.hpp"
 #include "UxThemePatcher.hpp"
 
-namespace TranslucentFlyouts
-{
-	using namespace std;
+using namespace std;
+using namespace wil;
+using namespace TranslucentFlyouts;
 
 #pragma data_seg("uxthemeOffset")
-	int UxThemePatcher::g_uxthemeVersion {-1};
-	DWORD64 UxThemePatcher::g_CThemeMenuPopup_DrawItem_Offset{0};
-	DWORD64 UxThemePatcher::g_CThemeMenuPopup_DrawItemCheck_Offset{0};
-	DWORD64 UxThemePatcher::g_CThemeMenuPopup_DrawClientArea_Offset{0};
-	DWORD64 UxThemePatcher::g_CThemeMenuPopup_DrawNonClientArea_Offset{0};
-	DWORD64 UxThemePatcher::g_CThemeMenu_DrawItemBitmap_Offset{0};
+int UxThemePatcher::g_uxthemeVersion {-1};
+DWORD64 UxThemePatcher::g_CThemeMenuPopup_DrawItem_Offset{0};
+DWORD64 UxThemePatcher::g_CThemeMenuPopup_DrawItemCheck_Offset{0};
+DWORD64 UxThemePatcher::g_CThemeMenuPopup_DrawClientArea_Offset{0};
+DWORD64 UxThemePatcher::g_CThemeMenuPopup_DrawNonClientArea_Offset{0};
+DWORD64 UxThemePatcher::g_CThemeMenu_DrawItemBitmap_Offset{0};
 #pragma data_seg()
 #pragma comment(linker,"/SECTION:uxthemeOffset,RWS")
-}
 
-TranslucentFlyouts::UxThemePatcher& TranslucentFlyouts::UxThemePatcher::GetInstance()
+UxThemePatcher& UxThemePatcher::GetInstance()
 {
 	static UxThemePatcher instance{};
 	return instance;
 }
 
-TranslucentFlyouts::UxThemePatcher::UxThemePatcher()
+UxThemePatcher::UxThemePatcher()
 {
 	try
 	{
@@ -63,12 +62,12 @@ TranslucentFlyouts::UxThemePatcher::UxThemePatcher()
 	}
 }
 
-TranslucentFlyouts::UxThemePatcher::~UxThemePatcher() noexcept
+UxThemePatcher::~UxThemePatcher() noexcept
 {
 	ShutdownHook();
 }
 
-HRESULT WINAPI TranslucentFlyouts::UxThemePatcher::DrawThemeBackground(
+HRESULT WINAPI UxThemePatcher::DrawThemeBackground(
 	HTHEME  hTheme,
 	HDC     hdc,
 	int     iPartId,
@@ -84,7 +83,7 @@ HRESULT WINAPI TranslucentFlyouts::UxThemePatcher::DrawThemeBackground(
 		RETURN_HR_IF_NULL_EXPECTED(E_INVALIDARG, hTheme);
 		RETURN_HR_IF_NULL_EXPECTED(E_INVALIDARG, hdc);
 		RETURN_HR_IF_NULL_EXPECTED(E_INVALIDARG, pRect);
-		RETURN_HR_IF(E_INVALIDARG, Utils::IsBadReadPtr(pRect));
+		RETURN_HR_IF_EXPECTED(E_INVALIDARG, Utils::IsBadReadPtr(pRect));
 		RETURN_HR_IF_EXPECTED(E_INVALIDARG, IsRectEmpty(pRect) == TRUE);
 
 		RETURN_HR_IF_EXPECTED(
@@ -97,6 +96,13 @@ HRESULT WINAPI TranslucentFlyouts::UxThemePatcher::DrawThemeBackground(
 
 		MenuHandler::NotifyUxThemeRendering();
 		MenuHandler::NotifyMenuDarkMode(darkMode);
+		MenuHandler::NotifyMenuStyle(false);
+
+		COLORREF color{DWMWA_COLOR_NONE};
+		if (SUCCEEDED(GetThemeColor(hTheme, MENU_POPUPBORDERS, 0, TMT_FILLCOLORHINT, &color)))
+		{
+			MenuHandler::NotifyMenuBorderColor(color);
+		}
 
 		RECT clipRect{*pRect};
 		if (pClipRect != nullptr)
@@ -151,21 +157,26 @@ HRESULT WINAPI TranslucentFlyouts::UxThemePatcher::DrawThemeBackground(
 
 		if (iPartId == MENU_POPUPBORDERS)
 		{
-			DWORD noOutline
+			RETURN_IF_WIN32_BOOL_FALSE(
+				PatBlt(hdc, clipRect.left, clipRect.top, clipRect.right - clipRect.left, clipRect.bottom - clipRect.top, BLACKNESS)
+			);
+			if (!MenuHandler::GetInstance().HandlePopupMenuNCBorderColors(hdc, darkMode, clipRect))
 			{
-				RegHelper::GetDword(
-					L"Menu",
-					L"NoSystemOutline",
-					0,
-					false
-				)
-			};
-			if (noOutline)
+				Utils::unique_ext_hdc dc{hdc};
+
+				ExcludeClipRect(dc.get(), clipRect.left + MenuHandler::systemOutlineSize, clipRect.top + MenuHandler::systemOutlineSize, clipRect.right - MenuHandler::systemOutlineSize, clipRect.bottom - MenuHandler::systemOutlineSize);
+				return GetInstance().m_actualDrawThemeBackground(
+						   hTheme,
+						   hdc,
+						   iPartId,
+						   iStateId,
+						   pRect,
+						   pClipRect
+					   );
+			}
+			else
 			{
-				if (SUCCEEDED(menuRendering.DoCustomThemeRendering(hdc, darkMode, iPartId, iStateId, clipRect, *pRect)))
-				{
-					return S_OK;
-				}
+				return S_OK;
 			}
 		}
 		// Separator
@@ -221,7 +232,7 @@ HRESULT WINAPI TranslucentFlyouts::UxThemePatcher::DrawThemeBackground(
 						L"DarkMode_ImmersiveStart::Menu" :
 						L"LightMode_ImmersiveStart::Menu"
 					};
-					wil::unique_htheme themeHandle{OpenThemeData(nullptr, themeClass.data())};
+					unique_htheme themeHandle{OpenThemeData(nullptr, themeClass.data())};
 					RETURN_HR_IF_NULL(E_FAIL, themeHandle);
 
 					return ::DrawThemeBackground(
@@ -269,7 +280,7 @@ HRESULT WINAPI TranslucentFlyouts::UxThemePatcher::DrawThemeBackground(
 
 	return hr;
 }
-HRESULT WINAPI TranslucentFlyouts::UxThemePatcher::DrawThemeText(
+HRESULT WINAPI UxThemePatcher::DrawThemeText(
 	HTHEME hTheme,
 	HDC hdc,
 	int iPartId,
@@ -287,7 +298,7 @@ HRESULT WINAPI TranslucentFlyouts::UxThemePatcher::DrawThemeText(
 		RETURN_HR_IF_NULL_EXPECTED(E_INVALIDARG, hTheme);
 		RETURN_HR_IF_NULL_EXPECTED(E_INVALIDARG, hdc);
 		RETURN_HR_IF_NULL_EXPECTED(E_INVALIDARG, pRect);
-		RETURN_HR_IF(E_INVALIDARG, Utils::IsBadReadPtr(pRect));
+		RETURN_HR_IF_EXPECTED(E_INVALIDARG, Utils::IsBadReadPtr(pRect));
 		RETURN_HR_IF_EXPECTED(E_INVALIDARG, IsRectEmpty(pRect) == TRUE);
 
 		RETURN_HR_IF_EXPECTED(
@@ -336,7 +347,7 @@ HRESULT WINAPI TranslucentFlyouts::UxThemePatcher::DrawThemeText(
 	return hr;
 }
 
-void __thiscall TranslucentFlyouts::UxThemePatcher::CThemeMenu::DrawItemBitmap(HWND hWnd, HDC hdc, HBITMAP hBitmap, bool fromPopupMenu, int iStateId, const RECT* lprc)
+void __thiscall UxThemePatcher::CThemeMenu::DrawItemBitmap(HWND hWnd, HDC hdc, HBITMAP hBitmap, bool fromPopupMenu, int iStateId, const RECT* lprc)
 {
 	HRESULT hr {S_OK};
 
@@ -351,10 +362,10 @@ void __thiscall TranslucentFlyouts::UxThemePatcher::CThemeMenu::DrawItemBitmap(H
 
 	hr = [&]()
 	{
-		RETURN_HR_IF_NULL(E_INVALIDARG, lprc);
-		RETURN_HR_IF(E_INVALIDARG, Utils::IsBadReadPtr(lprc));
-		RETURN_HR_IF_NULL(E_INVALIDARG, hdc);
-		RETURN_HR_IF_NULL(E_INVALIDARG, hBitmap);
+		RETURN_HR_IF_NULL_EXPECTED(E_INVALIDARG, lprc);
+		RETURN_HR_IF_EXPECTED(E_INVALIDARG, Utils::IsBadReadPtr(lprc));
+		RETURN_HR_IF_NULL_EXPECTED(E_INVALIDARG, hdc);
+		RETURN_HR_IF_NULL_EXPECTED(E_INVALIDARG, hBitmap);
 		RETURN_HR_IF_EXPECTED(
 			E_NOTIMPL,
 			!fromPopupMenu
@@ -387,7 +398,7 @@ void __thiscall TranslucentFlyouts::UxThemePatcher::CThemeMenu::DrawItemBitmap(H
 #ifdef _WIN64
 		ptr(this, hWnd, hdc, bitmap ? bitmap.value().get() : hBitmap, fromPopupMenu, lprc, lprc);
 #else
-		ptr(this, nullptr, hWnd, hdc, bitmap ? bitmap.value().get() : hBitmap, fromPopupMenu, lprc, lprc);	
+		ptr(this, nullptr, hWnd, hdc, bitmap ? bitmap.value().get() : hBitmap, fromPopupMenu, lprc, lprc);
 #endif
 		return S_OK;
 	}();
@@ -403,7 +414,7 @@ void __thiscall TranslucentFlyouts::UxThemePatcher::CThemeMenu::DrawItemBitmap(H
 	return;
 }
 
-void __thiscall TranslucentFlyouts::UxThemePatcher::CThemeMenu::DrawItemBitmap2(HWND hWnd, HDC hdc, HBITMAP hBitmap, bool fromPopupMenu, bool noStretch, int iStateId, const RECT* lprc)
+void __thiscall UxThemePatcher::CThemeMenu::DrawItemBitmap2(HWND hWnd, HDC hdc, HBITMAP hBitmap, bool fromPopupMenu, bool noStretch, int iStateId, const RECT* lprc)
 {
 	HRESULT hr{S_OK};
 	auto ptr
@@ -417,10 +428,10 @@ void __thiscall TranslucentFlyouts::UxThemePatcher::CThemeMenu::DrawItemBitmap2(
 
 	hr = [&]()
 	{
-		RETURN_HR_IF_NULL(E_INVALIDARG, lprc);
-		RETURN_HR_IF(E_INVALIDARG, Utils::IsBadReadPtr(lprc));
-		RETURN_HR_IF_NULL(E_INVALIDARG, hdc);
-		RETURN_HR_IF_NULL(E_INVALIDARG, hBitmap);
+		RETURN_HR_IF_NULL_EXPECTED(E_INVALIDARG, lprc);
+		RETURN_HR_IF_EXPECTED(E_INVALIDARG, Utils::IsBadReadPtr(lprc));
+		RETURN_HR_IF_NULL_EXPECTED(E_INVALIDARG, hdc);
+		RETURN_HR_IF_NULL_EXPECTED(E_INVALIDARG, hBitmap);
 		RETURN_HR_IF_EXPECTED(
 			E_NOTIMPL,
 			!fromPopupMenu
@@ -432,7 +443,7 @@ void __thiscall TranslucentFlyouts::UxThemePatcher::CThemeMenu::DrawItemBitmap2(
 
 		auto bitmap{MenuRendering::GetInstance().PromiseAlpha(hBitmap)};
 		RETURN_LAST_ERROR_IF(bitmap && !bitmap.value().get());
-		
+
 #ifdef _WIN64
 		ptr(this, hWnd, hdc, bitmap ? bitmap.value().get() : hBitmap, fromPopupMenu, noStretch, lprc, lprc);
 #else
@@ -453,7 +464,7 @@ void __thiscall TranslucentFlyouts::UxThemePatcher::CThemeMenu::DrawItemBitmap2(
 	return;
 }
 
-bool TranslucentFlyouts::UxThemePatcher::IsUxThemeAPIOffsetReady()
+bool UxThemePatcher::IsUxThemeAPIOffsetReady()
 {
 	if (
 		g_CThemeMenuPopup_DrawItem_Offset != 0 &&
@@ -469,7 +480,7 @@ bool TranslucentFlyouts::UxThemePatcher::IsUxThemeAPIOffsetReady()
 	return false;
 }
 
-void TranslucentFlyouts::UxThemePatcher::InitUxThemeOffset()
+void UxThemePatcher::InitUxThemeOffset()
 {
 	// TO-DO
 	// Cache the offset information into the registry so that we don't need to calculate them every time
@@ -605,52 +616,81 @@ void TranslucentFlyouts::UxThemePatcher::InitUxThemeOffset()
 	}
 }
 
-void TranslucentFlyouts::UxThemePatcher::PrepareUxTheme() try
+void UxThemePatcher::PrepareUxTheme() try
 {
 	InitUxThemeOffset();
 }
 catch (...)
 {
 	Utils::StartupConsole();
-	wprintf_s(L"exception caught: 0x%x!\n", wil::ResultFromCaughtException());
+	wprintf_s(L"exception caught: 0x%x!\n", ResultFromCaughtException());
 	Utils::OutputModuleString(IDS_STRING103);
 
 	LOG_CAUGHT_EXCEPTION();
 	return;
 }
 
-void TranslucentFlyouts::UxThemePatcher::StartupHook()
+void UxThemePatcher::StartupHook()
 {
 	if (m_internalError)
 	{
 		return;
 	}
 
-	m_callHook.Attach(
-		m_actualCThemeMenuPopup_DrawItem,
-		m_actualDrawThemeText,
-		UxThemePatcher::DrawThemeText,
-		2
+	LOG_HR_IF(
+		E_FAIL,
+		m_callHook.Attach(
+			m_actualCThemeMenuPopup_DrawItem,
+			m_actualDrawThemeText,
+			UxThemePatcher::DrawThemeText,
+			2
+		) != 0
 	);
 
-	m_callHook.Attach(
-		m_actualCThemeMenuPopup_DrawItem,
-		m_actualDrawThemeBackground,
-		UxThemePatcher::DrawThemeBackground,
-		4
+	LOG_HR_IF(
+		E_FAIL,
+		m_callHook.Attach(
+			m_actualCThemeMenuPopup_DrawItem,
+			m_actualDrawThemeBackground,
+			UxThemePatcher::DrawThemeBackground,
+			4
+		) != 0
 	);
-	m_callHook.Attach(
-		m_actualCThemeMenuPopup_DrawClientArea,
-		m_actualDrawThemeBackground,
-		UxThemePatcher::DrawThemeBackground,
-		1
+
+	LOG_HR_IF(
+		E_FAIL,
+		m_callHook.Attach(
+			m_actualCThemeMenuPopup_DrawItemCheck,
+			m_actualDrawThemeBackground,
+			UxThemePatcher::DrawThemeBackground,
+			2
+		) != 0
 	);
-	m_callHook.Attach(
-		m_actualCThemeMenuPopup_DrawNonClientArea,
-		m_actualDrawThemeBackground,
-		UxThemePatcher::DrawThemeBackground,
-		1
+	
+	LOG_HR_IF(
+		E_FAIL,
+		m_callHook.Attach(
+			m_actualCThemeMenuPopup_DrawClientArea,
+			m_actualDrawThemeBackground,
+			UxThemePatcher::DrawThemeBackground,
+			1
+		) != 0
 	);
+
+	LOG_HR_IF(
+		E_FAIL,
+		m_callHook.Attach(
+			m_actualCThemeMenuPopup_DrawNonClientArea,
+			m_actualDrawThemeBackground,
+			UxThemePatcher::DrawThemeBackground,
+			1
+		) != 0
+	);
+
+	if (m_hooked)
+	{
+		return;
+	}
 
 	PVOID detourDestination{nullptr};
 	if (g_uxthemeVersion == 0)
@@ -662,20 +702,28 @@ void TranslucentFlyouts::UxThemePatcher::StartupHook()
 		detourDestination = Utils::member_function_pointer_cast<PVOID>(&UxThemePatcher::CThemeMenu::DrawItemBitmap2);
 	}
 
-	Hooking::Detours::Write([&]()
+	if (detourDestination)
 	{
-		Hooking::Detours::Attach(&m_actualCThemeMenu_DrawItemBitmap, detourDestination);
-	});
+		Hooking::Detours::Write([&]()
+		{
+			Hooking::Detours::Attach(&m_actualCThemeMenu_DrawItemBitmap, detourDestination);
+			m_hooked = true;
+		});
+	}
 }
 
-void TranslucentFlyouts::UxThemePatcher::ShutdownHook()
+void UxThemePatcher::ShutdownHook()
 {
 	if (m_internalError)
 	{
 		return;
 	}
-
 	m_callHook.Detach();
+
+	if (!m_hooked)
+	{
+		return;
+	}
 
 	PVOID detourDestination{nullptr};
 	if (g_uxthemeVersion == 0)
@@ -687,8 +735,11 @@ void TranslucentFlyouts::UxThemePatcher::ShutdownHook()
 		detourDestination = Utils::member_function_pointer_cast<PVOID>(&UxThemePatcher::CThemeMenu::DrawItemBitmap2);
 	}
 
-	Hooking::Detours::Write([&]()
+	if (detourDestination)
 	{
-		Hooking::Detours::Detach(&m_actualCThemeMenu_DrawItemBitmap, detourDestination);
-	});
+		Hooking::Detours::Write([&]()
+		{
+			Hooking::Detours::Detach(&m_actualCThemeMenu_DrawItemBitmap, detourDestination);
+		});
+	}
 }

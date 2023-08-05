@@ -1,60 +1,60 @@
 #include "pch.h"
 #include "RegHelper.hpp"
 
-namespace TranslucentFlyouts::RegHelper
+using namespace std;
+using namespace wil;
+using namespace::TranslucentFlyouts;
+
+wstring_view g_regPath{L"Software\\TranslucentFlyouts"};
+
+DWORD RegHelper::GetDword(std::wstring_view subItemName, std::wstring_view valueName, DWORD defaultValue, bool useFallback)
 {
-	using namespace std;
-
-	wstring_view g_regPath{L"Software\\TranslucentFlyouts"};
-}
-
-DWORD TranslucentFlyouts::RegHelper::GetDword(std::wstring_view subItemName, std::wstring_view valueName, DWORD defaultValue, bool useFallback) try
-{
-	THROW_HR_IF(E_INVALIDARG, subItemName.empty() && !useFallback);
-
-	HRESULT hr{S_OK};
 	DWORD regValue{defaultValue};
-	
-	if (!subItemName.empty())
-	{
-		hr = wil::reg::get_value_dword_nothrow(
-			HKEY_CURRENT_USER, format(L"{}\\{}", g_regPath, subItemName).c_str(), valueName.data(), &regValue
-		);
 
-		if (FAILED(hr))
+	[&]()
+	{
+		HRESULT hr{S_OK};
+		if (subItemName.empty() && !useFallback)
 		{
-			hr = wil::reg::get_value_dword_nothrow(
-				HKEY_LOCAL_MACHINE, format(L"{}\\{}", g_regPath, subItemName).c_str(), valueName.data(), &regValue
-			);
+			return;
+		}
+
+		if (!subItemName.empty())
+		{
+			auto subKeyName
+			{
+				format(L"{}\\{}", g_regPath, subItemName)
+			};
+			hr = reg::get_value_dword_nothrow(
+					 HKEY_CURRENT_USER, subKeyName.c_str(), valueName.data(), &regValue
+				 );
 
 			if (FAILED(hr))
 			{
-				THROW_HR_IF(hr, !useFallback);
+				hr = reg::get_value_dword_nothrow(
+						 HKEY_LOCAL_MACHINE, subKeyName.c_str(), valueName.data(), &regValue
+					 );
 			}
-			else
-			{
-				return regValue;
-			}
-		}
-		else
-		{
-			return regValue;
-		}
-	}
+			LOG_HR_IF(hr, FAILED(hr) && hr != HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND));
 
-	hr = wil::reg::get_value_dword_nothrow(
-			HKEY_CURRENT_USER, g_regPath.data(), valueName.data(), &regValue
-	);
-	if (FAILED(hr))
-	{
-		return wil::reg::get_value_dword(
-			HKEY_LOCAL_MACHINE, g_regPath.data(), valueName.data()
-		);
-	}
+			if (!useFallback || SUCCEEDED(hr))
+			{
+				return;
+			}
+		}
+
+		hr = reg::get_value_dword_nothrow(
+				 HKEY_CURRENT_USER, g_regPath.data(), valueName.data(), &regValue
+			 );
+		if (FAILED(hr))
+		{
+			reg::get_value_dword_nothrow(
+				HKEY_LOCAL_MACHINE, g_regPath.data(), valueName.data(), &regValue
+			);
+		}
+
+		LOG_HR_IF(hr, FAILED(hr) && hr != HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND));
+	}();
+
 	return regValue;
-}
-catch (...)
-{
-	LOG_CAUGHT_EXCEPTION();
-	return defaultValue;
 }

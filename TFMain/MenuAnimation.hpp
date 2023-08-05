@@ -7,15 +7,28 @@ namespace TranslucentFlyouts
 	{
 		namespace 
 		{
+			using namespace std::chrono;
 			using namespace std::chrono_literals;
 			// Defined in win32kfull.sys!zzzMNFadeSelection
-			constexpr std::chrono::milliseconds standardFadeoutDuration{350ms};
+			constexpr milliseconds standardFadeoutDuration{350ms};
+			// Defined in https://learn.microsoft.com/en-us/windows/apps/design/signature-experiences/motion
+			constexpr milliseconds standardPopupInDuration{333ms};
+			constexpr milliseconds standardFadeInDuration{87ms};
+			// Defined in WinUI
+			constexpr float standardStartPosRatio{0.666f};
 		}
 
 		HRESULT CreateFadeOut(
 			HWND hWnd,
 			MENUBARINFO mbi,
 			std::chrono::milliseconds duration
+		);
+
+		HRESULT CreatePopupIn(
+			HWND hWnd,
+			float startPosRatio,
+			std::chrono::milliseconds popInDuration,
+			std::chrono::milliseconds fadeInDuration
 		);
 	};
 }

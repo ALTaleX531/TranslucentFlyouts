@@ -62,7 +62,7 @@ namespace TranslucentFlyouts
 		public:
 			static bool EnsureInitialized();
 			static LazyD2D& GetInstance();
-			~LazyD2D() noexcept = default;
+			~LazyD2D() noexcept;
 			LazyD2D(const LazyD2D&) = delete;
 			LazyD2D& operator=(const LazyD2D&) = delete;
 
@@ -80,6 +80,31 @@ namespace TranslucentFlyouts
 			wil::com_ptr<ID2D1Factory> m_factory{nullptr};
 		};
 
-		D2D1::ColorF COLORREF2ColorF(COLORREF color, std::byte alpha);
+		class LazyDComposition : public LazyDX
+		{
+		public:
+			static bool EnsureInitialized();
+			static LazyDComposition& GetInstance();
+			~LazyDComposition() noexcept;
+			LazyDComposition(const LazyDComposition&) = delete;
+			LazyDComposition& operator=(const LazyDComposition&) = delete;
+
+			wil::com_ptr<IDXGIDevice3> GetDxgiDevice() const { return m_dxgiDevice; };
+			wil::com_ptr<ID3D11Device> GetD3DDevice() const { return m_d3dDevice; };
+			wil::com_ptr<IDCompositionDesktopDevice> GetDCompositionDevice() const { return m_dcompDevice; };
+		protected:
+			void CreateDeviceIndependentResources() override;
+			void CreateDeviceResources() override;
+			void DestroyDeviceIndependentResources() override;
+			void DestroyDeviceResources() override;
+		private:
+			LazyDComposition();
+
+			wil::com_ptr<IDXGIDevice3> m_dxgiDevice{nullptr};
+			wil::com_ptr<ID3D11Device> m_d3dDevice{nullptr};
+			wil::com_ptr<IDCompositionDesktopDevice> m_dcompDevice{nullptr};
+		};
+
+		D2D1::ColorF MakeColorF(DWORD argb);
 	}
 }

@@ -8,9 +8,10 @@ namespace TranslucentFlyouts
 		struct external_dc
 		{
 			HDC dc{nullptr};
-			external_dc(HDC hdc = nullptr) : dc{hdc} { if (hdc) { SaveDC(hdc); } }
+			int saved{-1};
+			external_dc(HDC hdc = nullptr) : dc{hdc} { if (hdc) { saved = SaveDC(hdc); } }
 			WI_NODISCARD inline operator HDC() const WI_NOEXCEPT { return dc; }
-			static inline void close(external_dc pdc) WI_NOEXCEPT { if (pdc.dc) { ::RestoreDC(pdc.dc, -1); } }
+			static inline void close(external_dc pdc) WI_NOEXCEPT { if (pdc.dc) { ::RestoreDC(pdc.dc, pdc.saved); } }
 		};
 		typedef wil::unique_any<HDC, decltype(&external_dc::close), external_dc::close, wil::details::pointer_access_noaddress, external_dc> unique_ext_hdc;
 
@@ -26,11 +27,26 @@ namespace TranslucentFlyouts
 			return rf.fake_ptr;
 		}
 
+		static inline std::wstring make_current_folder_file_str(std::wstring_view baseFileName)
+		{
+			WCHAR filePath[MAX_PATH + 1]{L""};
+			[&]()
+			{
+				RETURN_HR_IF_NULL_EXPECTED(E_INVALIDARG, HINST_THISCOMPONENT);
+				RETURN_LAST_ERROR_IF(GetModuleFileNameW(HINST_THISCOMPONENT, filePath, _countof(filePath)) == 0);
+				RETURN_IF_FAILED(PathCchRemoveFileSpec(filePath, _countof(filePath)));
+				RETURN_IF_FAILED(PathCchAppend(filePath, _countof(filePath), baseFileName.data()));
+				return S_OK;
+			} ();
+
+			return std::wstring{filePath};
+		}
+
 		static inline std::optional<wil::unique_rouninitialize_call> RoInit()
 		{
-			HRESULT hr{RoInitialize(RO_INIT_MULTITHREADED)};
+			HRESULT hr{::RoInitialize(RO_INIT_MULTITHREADED)};
 
-			if (SUCCEEDED(hr) || hr == S_FALSE || hr == RPC_E_CHANGED_MODE)
+			if (SUCCEEDED(hr) || hr == S_FALSE)
 			{
 				return wil::unique_rouninitialize_call{};
 			}
@@ -42,7 +58,7 @@ namespace TranslucentFlyouts
 		{
 			bool result{false};
 			MEMORY_BASIC_INFORMATION mbi{};
-			if (::VirtualQuery(ptr, &mbi, sizeof(mbi)))
+			if (VirtualQuery(ptr, &mbi, sizeof(mbi)))
 			{
 				DWORD mask{PAGE_READONLY | PAGE_READWRITE | PAGE_WRITECOPY | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY};
 				result = !(mbi.Protect & mask);
@@ -61,28 +77,25 @@ namespace TranslucentFlyouts
 			return result;
 		}
 
-		static inline BOOL IsTopLevelWindow(HWND hWnd)
+		static inline bool IsWindowClass(HWND hWnd, std::wstring_view className = L"", std::wstring_view windowText = L"")
 		{
-			static const auto pfnIsTopLevelWindow = (BOOL(WINAPI*)(HWND))GetProcAddress(GetModuleHandle(TEXT("User32")), "IsTopLevelWindow");
-
-			if (pfnIsTopLevelWindow)
+			bool classNameOK{true};
+			if (!className.empty())
 			{
-				return pfnIsTopLevelWindow(hWnd);
-			}
-			else
-			{
-				LOG_HR_MSG(E_POINTER, "pfnIsTopLevelWindow is invalid!");
+				WCHAR pszClass[MAX_PATH + 1]{};
+				GetClassNameW(hWnd, pszClass, MAX_PATH);
+				classNameOK = (!_wcsicmp(pszClass, className.data()));
 			}
 
-			return FALSE;
-		}
+			bool windowTextOK{true};
+			if (!windowText.empty())
+			{
+				WCHAR pszText[MAX_PATH + 1]{};
+				InternalGetWindowText(hWnd, pszText, MAX_PATH);
+				windowTextOK = (!_wcsicmp(pszText, windowText.data()));
+			}
 
-		static inline bool IsWindowClass(HWND hWnd, std::wstring_view className)
-		{
-			WCHAR pszClass[MAX_PATH + 1] {};
-			GetClassNameW(hWnd, pszClass, MAX_PATH);
-
-			return !_wcsicmp(pszClass, className.data());
+			return classNameOK && windowTextOK;
 		}
 
 		static bool IsWin32PopupMenu(HWND hWnd)
@@ -98,75 +111,13 @@ namespace TranslucentFlyouts
 			return false;
 		}
 
-		static inline PVOID GetModuleBase(HMODULE moduleHandle) try
-		{
-			MODULEINFO modInfo{};
-
-			THROW_HR_IF_NULL(E_INVALIDARG, moduleHandle);
-			THROW_IF_WIN32_BOOL_FALSE(GetModuleInformation(GetCurrentProcess(), moduleHandle, &modInfo, sizeof(modInfo)));
-
-			return modInfo.lpBaseOfDll;
-		}
-		catch (...)
-		{
-			LOG_CAUGHT_EXCEPTION();
-			return nullptr;
-		}
-
-		static inline HRESULT GetModuleFolder(HMODULE moduleHandle, LPWSTR filePath, DWORD size) try
-		{
-			THROW_HR_IF_NULL(E_INVALIDARG, moduleHandle);
-			THROW_LAST_ERROR_IF(GetModuleFileNameW(moduleHandle, filePath, size) == 0);
-			THROW_IF_FAILED(PathCchRemoveFileSpec(filePath, size));
-
-			return S_OK;
-		}
-		CATCH_LOG_RETURN_HR(wil::ResultFromCaughtException())
-
-		static inline HWND GetCurrentMenuOwner() try
+		static inline HWND GetCurrentMenuOwner()
 		{
 			GUITHREADINFO guiThreadInfo{sizeof(GUITHREADINFO)};
-
-			THROW_IF_WIN32_BOOL_FALSE(GetGUIThreadInfo(GetCurrentThreadId(), &guiThreadInfo));
+			LOG_IF_WIN32_BOOL_FALSE(GetGUIThreadInfo(GetCurrentThreadId(), &guiThreadInfo));
 
 			return guiThreadInfo.hwndMenuOwner;
 		}
-		catch (...)
-		{
-			LOG_CAUGHT_EXCEPTION();
-			return nullptr;
-		}
-
-		[[maybe_unused]] static void EnumProcessThreads(std::function<void(DWORD threadId)> callback) try
-		{
-			wil::unique_handle snapShot{nullptr};
-			THROW_HR_IF_NULL(E_INVALIDARG, callback);
-
-			snapShot.reset(CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0));
-			THROW_LAST_ERROR_IF(snapShot.get() == INVALID_HANDLE_VALUE);
-
-			THREADENTRY32 entry{sizeof(THREADENTRY32)};
-			THROW_LAST_ERROR_IF(Thread32First(snapShot.get(), &entry) == FALSE);
-
-			if (entry.th32OwnerProcessID == GetCurrentProcessId())
-			{
-				callback(entry.th32ThreadID);
-			}
-			while (Thread32Next(snapShot.get(), &entry))
-			{
-				if (entry.th32OwnerProcessID == GetCurrentProcessId())
-				{
-					callback(entry.th32ThreadID);
-				}
-			}
-
-			DWORD lastError{GetLastError()};
-			if (lastError != ERROR_NO_MORE_FILES)
-			{
-				THROW_IF_WIN32_ERROR(lastError);
-			}
-		}
-		CATCH_LOG_RETURN()
 
 		static inline std::byte PremultiplyColor(std::byte color, std::byte alpha = std::byte{255})
 		{
@@ -184,18 +135,17 @@ namespace TranslucentFlyouts
 			return CreateDIBSection(nullptr, &bitmapInfo, DIB_RGB_COLORS, reinterpret_cast<PVOID*>(bits), nullptr, 0);
 		}
 
-		static inline HRESULT GetBrushColor(HBRUSH brush, COLORREF& color) try
+		static inline HRESULT GetBrushColor(HBRUSH brush, COLORREF& color)
 		{
 			LOGBRUSH logBrush{};
 
-			THROW_HR_IF_NULL(E_INVALIDARG, brush);
-			THROW_LAST_ERROR_IF(!GetObject(brush, sizeof(LOGBRUSH), &logBrush));
-			THROW_HR_IF(E_INVALIDARG, logBrush.lbStyle != BS_SOLID);
+			RETURN_HR_IF_NULL_EXPECTED(E_INVALIDARG, brush);
+			RETURN_LAST_ERROR_IF_EXPECTED(!GetObject(brush, sizeof(LOGBRUSH), &logBrush));
+			RETURN_HR_IF_EXPECTED(E_INVALIDARG, logBrush.lbStyle != BS_SOLID);
 			color = logBrush.lbColor;
 
 			return S_OK;
 		}
-		CATCH_LOG_RETURN_HR(wil::ResultFromCaughtException())
 
 		static HBRUSH CreateSolidColorBrushWithAlpha(COLORREF color, std::byte alpha)
 		{
@@ -205,6 +155,7 @@ namespace TranslucentFlyouts
 			bitmap.reset(CreateDIB(1, -1, &bits));
 			if (!bitmap)
 			{
+				LOG_LAST_ERROR();
 				return nullptr;
 			}
 
@@ -216,40 +167,55 @@ namespace TranslucentFlyouts
 			return CreatePatternBrush(bitmap.get());
 		}
 
-		static HBRUSH CreateSolidColorBrushWithAlpha(HBRUSH brush, std::byte alpha) try
+		static HBRUSH CreateSolidColorBrushWithAlpha(HBRUSH brush, std::byte alpha)
 		{
 			COLORREF color{0};
 
-			THROW_HR_IF_NULL(E_INVALIDARG, brush);
-			THROW_IF_FAILED(GetBrushColor(brush, color));
+			if (!brush)
+			{
+				return nullptr;
+			}
+			if (FAILED(GetBrushColor(brush, color)))
+			{
+				return nullptr;
+			}
 
 			return CreateSolidColorBrushWithAlpha(color, alpha);
 		}
-		catch (...)
+
+		static COLORREF MakeCOLORREF(DWORD argb)
 		{
-			LOG_CAUGHT_EXCEPTION();
-			return nullptr;
+			auto r{argb >> 16 & 0xff};
+			auto g{argb >> 8 & 0xff};
+			auto b{argb & 0xff};
+
+			return RGB(r, g, b);
+		}
+
+		static std::byte GetAlpha(DWORD argb)
+		{
+			return std::byte{argb >> 24};
 		}
 
 		// Adjust alpha channel of the bitmap, return E_NOTIMPL if the bitmap is unsupported
-		static HRESULT PrepareAlpha(HBITMAP bitmap) try
+		static HRESULT PrepareAlpha(HBITMAP bitmap)
 		{
-			THROW_HR_IF_NULL(E_INVALIDARG, bitmap);
+			RETURN_HR_IF_NULL_EXPECTED(E_INVALIDARG, bitmap);
 
 			BITMAPINFO bitmapInfo{sizeof(bitmapInfo.bmiHeader)};
 			auto hdc{wil::GetDC(nullptr)};
-			THROW_LAST_ERROR_IF_NULL(hdc);
+			RETURN_LAST_ERROR_IF_NULL(hdc);
 
-			THROW_HR_IF(E_INVALIDARG, GetObjectType(bitmap) != OBJ_BITMAP);
-			THROW_LAST_ERROR_IF(GetDIBits(hdc.get(), bitmap, 0, 0, nullptr, &bitmapInfo, DIB_RGB_COLORS) == 0);
+			RETURN_HR_IF_EXPECTED(E_INVALIDARG, GetObjectType(bitmap) != OBJ_BITMAP);
+			RETURN_LAST_ERROR_IF(GetDIBits(hdc.get(), bitmap, 0, 0, nullptr, &bitmapInfo, DIB_RGB_COLORS) == 0);
 
 			bitmapInfo.bmiHeader.biCompression = BI_RGB;
 			auto pixelBits{std::make_unique<std::byte[]>(bitmapInfo.bmiHeader.biSizeImage)};
 
-			THROW_LAST_ERROR_IF(GetDIBits(hdc.get(), bitmap, 0, bitmapInfo.bmiHeader.biHeight, pixelBits.get(), &bitmapInfo, DIB_RGB_COLORS) == 0);
+			RETURN_LAST_ERROR_IF(GetDIBits(hdc.get(), bitmap, 0, bitmapInfo.bmiHeader.biHeight, pixelBits.get(), &bitmapInfo, DIB_RGB_COLORS) == 0);
 
 			// Nothing we can do to a bitmap whose bit count isn't 32 :(
-			THROW_HR_IF_MSG(E_NOTIMPL, bitmapInfo.bmiHeader.biBitCount != 32, "Unsuported bit count: %d!", bitmapInfo.bmiHeader.biBitCount);
+			RETURN_HR_IF_EXPECTED(E_NOTIMPL, bitmapInfo.bmiHeader.biBitCount != 32);
 
 			bool bHasAlpha{false};
 			for (size_t i = 0; i < bitmapInfo.bmiHeader.biSizeImage; i += 4)
@@ -271,28 +237,16 @@ namespace TranslucentFlyouts
 					pixelBits[i + 3] = std::byte{255};								//Alpha
 				}
 
-				THROW_LAST_ERROR_IF(SetDIBits(hdc.get(), bitmap, 0, bitmapInfo.bmiHeader.biHeight, pixelBits.get(), &bitmapInfo, DIB_RGB_COLORS) == 0);
+				RETURN_LAST_ERROR_IF(SetDIBits(hdc.get(), bitmap, 0, bitmapInfo.bmiHeader.biHeight, pixelBits.get(), &bitmapInfo, DIB_RGB_COLORS) == 0);
 			}
 
 			return S_OK;
 		}
-		catch (...)
-		{
-			LOG_CAUGHT_EXCEPTION();
-			return wil::ResultFromCaughtException();
-		}
 
-		static inline HRESULT GetDwmThemeColor(COLORREF& color, DWORD& opacity)
+		static inline HRESULT GetDwmThemeColor(DWORD& argb)
 		{
-			DWORD dwmColor{};
 			BOOL opaque{};
-			HRESULT hr{DwmGetColorizationColor(&dwmColor, &opaque)};
-
-			if (SUCCEEDED(hr))
-			{
-				color = RGB(dwmColor >> 16, dwmColor >> 8, dwmColor);
-				opacity = opaque ? 255 : dwmColor >> 24;
-			}
+			HRESULT hr{DwmGetColorizationColor(&argb, &opaque)};
 
 			return hr;
 		}

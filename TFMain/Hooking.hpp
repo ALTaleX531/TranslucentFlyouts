@@ -130,7 +130,7 @@ namespace TranslucentFlyouts
 			FunctionCallHook() = default;
 			~FunctionCallHook();
 
-			void Attach(PVOID targetAddress, PVOID detourAddress, PVOID detourDestination, int callersCount);
+			int Attach(PVOID targetAddress, PVOID detourAddress, PVOID detourDestination, int callersCount);
 			void Detach();
 		private:
 			void InitJumpRegion(PVOID startAddress);
