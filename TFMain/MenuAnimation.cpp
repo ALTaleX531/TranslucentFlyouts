@@ -6,6 +6,7 @@
 #include "DwmThumbnailAPI.hpp"
 #include "EffectHelper.hpp"
 #include "RegHelper.hpp"
+#include "DXHelper.hpp"
 
 using namespace std;
 using namespace wil;
@@ -93,8 +94,8 @@ namespace TranslucentFlyouts::MenuAnimation
 						 L"Static",
 						 L"FadeOut Animation",
 						 WS_POPUP,
-						 0,
-						 0,
+						 -GetSystemMetrics(SM_CXVIRTUALSCREEN),
+						 -GetSystemMetrics(SM_CYVIRTUALSCREEN),
 						 0,
 						 0,
 						 Utils::GetCurrentMenuOwner(),
@@ -182,9 +183,10 @@ namespace TranslucentFlyouts::MenuAnimation
 		void Animator(ULONGLONG currentTimeStamp) override;
 	};
 
-	class PopupIn : public AnimationInfo
+	class PopupIn : public AnimationInfo, DXHelper::LazyDX
 	{
 	private:
+		bool							m_reverse{false};
 		bool							m_started{false};
 		float							m_ratio{0.f};
 		POINT							m_cursorPos{};
@@ -205,282 +207,26 @@ namespace TranslucentFlyouts::MenuAnimation
 		HTHUMBNAIL						m_backdropThumbnail{nullptr};
 		com_ptr<IDCompositionVisual2>	m_backdropThumbnailVisual{nullptr};
 
-		void Start(bool reverse) try
+		void CreateDeviceIndependentResources() override
 		{
-			THROW_HR_IF(
-				E_FAIL,
-				!DXHelper::LazyDComposition::EnsureInitialized()
-			);
-
-			THROW_HR_IF(
-				E_FAIL,
-				m_started
-			);
-
-			RECT windowRect{};
-			THROW_IF_WIN32_BOOL_FALSE(
-				GetWindowRect(m_menuWindow, &windowRect)
-			);
-
-			SIZE size{};
-			if (m_thumbnail)
-			{
-				THROW_IF_FAILED(
-					DwmThumbnailAPI::g_actualDwmpQueryWindowThumbnailSourceSize(
-						m_menuWindow,
-						FALSE,
-						&size
-					)
-				);
-				DWM_THUMBNAIL_PROPERTIES thumbnailProperties
-				{
-					DWM_TNP_VISIBLE | DWM_TNP_RECTDESTINATION | DWM_TNP_SOURCECLIENTAREAONLY | DwmThumbnailAPI::DWM_TNP_ENABLE3D,
-					{0, 0, size.cx, size.cy},
-					{},
-					255,
-					TRUE,
-					TRUE
-				};
-				THROW_IF_FAILED(DwmUpdateThumbnailProperties(m_thumbnail, &thumbnailProperties));
-			}
-			if (m_backdropThumbnail)
-			{
-				THROW_IF_WIN32_BOOL_FALSE(
-					SetWindowPos(
-						m_backdropWindow, window,
-						windowRect.left, windowRect.top, size.cx, size.cy,
-						SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER
-					)
-				);
-				DWM_THUMBNAIL_PROPERTIES thumbnailProperties
-				{
-					DWM_TNP_VISIBLE | DWM_TNP_RECTDESTINATION | DwmThumbnailAPI::DWM_TNP_ENABLE3D,
-					{0, 0, size.cx, size.cy},
-					{},
-					255,
-					TRUE,
-					FALSE
-				};
-				THROW_IF_FAILED(DwmUpdateThumbnailProperties(m_backdropThumbnail, &thumbnailProperties));
-			}
-
-			auto dcompDevice{DXHelper::LazyDComposition::GetInstance().GetDCompositionDevice()};
-			com_ptr<IDCompositionAnimation> dcompAnimation{nullptr};
-			THROW_IF_FAILED(
-				dcompDevice->CreateAnimation(&dcompAnimation)
-			);
-
-			auto cleanUp{Utils::RoInit()};
-			{
-				com_ptr<IUIAnimationManager2> manager
-				{
-					wil::CoCreateInstance<IUIAnimationManager2>(CLSID_UIAnimationManager2)
-				};
-				com_ptr<IUIAnimationTransitionLibrary2> library
-				{
-					wil::CoCreateInstance<IUIAnimationTransitionLibrary2>(CLSID_UIAnimationTransitionLibrary2)
-				};
-				
-				constexpr float endValue{0.f};
-				float beginValue{0.f};
-
-				if (reverse)
-				{
-					beginValue = float(size.cy) - float(size.cy) * m_ratio;
-				}
-				else
-				{
-					beginValue = -float(size.cy) + float(size.cy) * m_ratio;
-				}
-
-				// Synchronizing WAM and DirectComposition time such that when WAM Update is called, 
-				// the value reflects the DirectComposition value at the given time.
-				DCOMPOSITION_FRAME_STATISTICS frameStatistics{};
-				THROW_IF_FAILED(
-					dcompDevice->GetFrameStatistics(&frameStatistics)
-				);
-				UI_ANIMATION_SECONDS timeNow{static_cast<double>(frameStatistics.nextEstimatedFrameTime.QuadPart) / static_cast<double>(frameStatistics.timeFrequency.QuadPart)};
-
-				{
-					com_ptr<IUIAnimationVariable2> variable{nullptr};
-					com_ptr<IUIAnimationStoryboard2> storyboard{nullptr};
-					com_ptr<IUIAnimationTransition2> transition{nullptr};
-					THROW_IF_FAILED(
-						manager->CreateAnimationVariable(beginValue, &variable)
-					);
-					THROW_IF_FAILED(
-						manager->CreateStoryboard(&storyboard)
-					);
-					THROW_IF_FAILED(
-						library->CreateCubicBezierLinearTransition(static_cast<float>(m_popupInDuration.count()) / 1000.f, endValue, 0, 0, 0, 1, &transition)
-					);
-					THROW_IF_FAILED(
-						storyboard->AddTransition(variable.get(), transition.get())
-					);
-					THROW_IF_FAILED(
-						manager->Update(timeNow)
-					);
-					THROW_IF_FAILED(
-						storyboard->Schedule(timeNow)
-					);
-					THROW_IF_FAILED(
-						variable->GetCurve(dcompAnimation.get())
-					);
-
-					THROW_IF_FAILED(m_thumbnailVisual->SetOffsetX(0.f));
-					THROW_IF_FAILED(m_thumbnailVisual->SetOffsetY(dcompAnimation.get()));
-
-					THROW_IF_FAILED(m_backdropThumbnailVisual->SetOffsetX(0.f));
-					THROW_IF_FAILED(m_backdropThumbnailVisual->SetOffsetY(dcompAnimation.get()));
-				}
-
-				{
-					com_ptr<IUIAnimationVariable2> variable{nullptr};
-					com_ptr<IUIAnimationStoryboard2> storyboard{nullptr};
-					com_ptr<IUIAnimationTransition2> transition{nullptr};
-					THROW_IF_FAILED(
-						manager->CreateAnimationVariable(0.f, &variable)
-					);
-					THROW_IF_FAILED(
-						manager->CreateStoryboard(&storyboard)
-					);
-					THROW_IF_FAILED(
-						library->CreateLinearTransition(static_cast<float>(m_fadeInDuration.count()) / 1000.f, 1.f, &transition)
-					);
-					THROW_IF_FAILED(
-						storyboard->AddTransition(variable.get(), transition.get())
-					);
-					THROW_IF_FAILED(
-						manager->Update(timeNow)
-					);
-					THROW_IF_FAILED(
-						storyboard->Schedule(timeNow)
-					);
-					THROW_IF_FAILED(
-						variable->GetCurve(dcompAnimation.get())
-					);
-
-					THROW_IF_FAILED(m_thumbnailVisual.query<IDCompositionVisual3>()->SetOpacity(dcompAnimation.get()));
-					THROW_IF_FAILED(m_backdropThumbnailVisual.query<IDCompositionVisual3>()->SetOpacity(dcompAnimation.get()));
-				}
-			}
-
-			THROW_IF_FAILED(
-				dcompDevice->Commit()
-			);
-
-			THROW_IF_WIN32_BOOL_FALSE(
-				SetWindowPos(
-					window, nullptr,
-					windowRect.left, windowRect.top, size.cx, size.cy,
-					SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED
-				)
-			);
-			Utils::CloakWindow(window, FALSE);
-			
-			Restart(m_totDuration);
-
-			m_started = true;
-		}
-		CATCH_LOG_RETURN()
-
-		// The animation is still running, but we need to stop it right now!
-		void Abort()
-		{
-			Utils::CloakWindow(m_menuWindow, FALSE);
-			Utils::CloakWindow(window, TRUE);
-			// Wait for DWM
-			DwmFlush();
-#pragma push_macro("max")
-#undef max
-			// Interupt the animation
-			SetDuration(0ms);
-#pragma pop_macro("max")
-		}
-
-		void Attach()
-		{
-			THROW_HR_IF(
-				E_FAIL,
-				!SetWindowSubclass(m_menuWindow, SubclassProc, 0, reinterpret_cast<DWORD_PTR>(this))
-			);
-		}
-		void Detach()
-		{
-			if (m_menuWindow)
-			{
-				if (RemoveWindowSubclass(m_menuWindow, SubclassProc, 0))
-				{
-					m_menuWindow = nullptr;
-				}
-			}
-		}
-
-		static LRESULT CALLBACK SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
-		{
-			PopupIn& popupInAnimation{*reinterpret_cast<PopupIn*>(dwRefData)};
-			
-			if (uMsg == WM_WINDOWPOSCHANGED)
-			{
-				const auto& windowPos{*reinterpret_cast<WINDOWPOS*>(lParam)};
-				if (windowPos.flags & SWP_SHOWWINDOW)
-				{
-					popupInAnimation.Start(
-						abs(popupInAnimation.m_cursorPos.y - windowPos.y) >
-						abs(popupInAnimation.m_cursorPos.y - (windowPos.y + windowPos.cy))
-						? true : false
-					);
-				}
-
-				if (windowPos.flags & SWP_HIDEWINDOW)
-				{
-					popupInAnimation.Abort();
-				}
-			}
-
-			if (uMsg == WM_NCDESTROY)
-			{
-				popupInAnimation.Abort();
-			}
-
-			// ~PopupIn() sends WM_MAFINISHED to the SubclassProc
-			if (uMsg == WM_MAFINISHED)
-			{
-				popupInAnimation.Abort();
-				popupInAnimation.Detach();
-			}
-
-			return DefSubclassProc(hWnd, uMsg, wParam, lParam);
-		}
-	public:
-#pragma push_macro("max")
-#undef max
-		PopupIn(HWND hWnd, float startPosRatio, std::chrono::milliseconds popupInDuration, std::chrono::milliseconds fadeInDuration) try : AnimationInfo{chrono::milliseconds::max()}, m_totDuration{max(popupInDuration, fadeInDuration)}, m_menuWindow{hWnd}, m_fadeInDuration{fadeInDuration}, m_popupInDuration{popupInDuration}, m_ratio{startPosRatio}
-#pragma pop_macro("max")
-		{
-			THROW_HR_IF(
-				E_FAIL,
-				!DXHelper::LazyDComposition::EnsureInitialized()
-			);
-
 			Attach();
 
-			Utils::CloakWindow(hWnd, TRUE);
+			Utils::CloakWindow(m_menuWindow, TRUE);
 
 			window = CreateWindowExW(
 						 WS_EX_NOREDIRECTIONBITMAP | WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_PALETTEWINDOW,
 						 L"Static",
 						 L"PopupIn Animation",
 						 WS_POPUP,
-						 0,
-						 0,
+						 -GetSystemMetrics(SM_CXVIRTUALSCREEN),
+						 -GetSystemMetrics(SM_CYVIRTUALSCREEN),
 						 1,
 						 1,
 						 Utils::GetCurrentMenuOwner(),
 						 nullptr,
 						 nullptr,
 						 nullptr
-					 );
+			);
 			THROW_LAST_ERROR_IF_NULL(window);
 
 			m_backdropWindow = CreateWindowExW(
@@ -488,10 +234,10 @@ namespace TranslucentFlyouts::MenuAnimation
 						 L"Static",
 						 L"PopupIn Animation Backdrop",
 						 WS_POPUP,
+						 -GetSystemMetrics(SM_CXVIRTUALSCREEN),
+						 -GetSystemMetrics(SM_CYVIRTUALSCREEN),
 						 0,
 						 0,
-						 1,
-						 1,
 						 Utils::GetCurrentMenuOwner(),
 						 nullptr,
 						 nullptr,
@@ -505,7 +251,7 @@ namespace TranslucentFlyouts::MenuAnimation
 			{
 				// We are on Windows 10 or the corner is not round
 				if (
-					FAILED(menuHandler.HandleRoundCorners(L"Menu"sv, window)) || 
+					FAILED(menuHandler.HandleRoundCorners(L"Menu"sv, window)) ||
 					RegHelper::GetDword(
 						L"Menu",
 						L"CornerType",
@@ -514,7 +260,7 @@ namespace TranslucentFlyouts::MenuAnimation
 				)
 				{
 					SetClassLongPtr(window, GCL_STYLE, GetClassLongPtr(window, GCL_STYLE) | (CS_DROPSHADOW | CS_SAVEBITS));
-					
+
 					DWORD effectType
 					{
 						RegHelper::GetDword(
@@ -538,7 +284,7 @@ namespace TranslucentFlyouts::MenuAnimation
 
 				menuHandler.HandleSysBorderColors(L"Menu"sv, window, info.useDarkMode, info.borderColor);
 				EffectHelper::EnableWindowDarkMode(window, info.useDarkMode);
-				
+
 				menuHandler.ApplyEffect(L"Menu"sv, m_backdropWindow, info.useDarkMode);
 				EffectHelper::EnableWindowDarkMode(m_backdropWindow, info.useDarkMode);
 			}
@@ -558,6 +304,12 @@ namespace TranslucentFlyouts::MenuAnimation
 				SetWindowPos(m_backdropWindow, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW)
 			);
 
+			THROW_IF_WIN32_BOOL_FALSE(
+				GetCursorPos(&m_cursorPos)
+			);
+		};
+		void CreateDeviceResources() override
+		{
 			auto dcompDevice{DXHelper::LazyDComposition::GetInstance().GetDCompositionDevice()};
 
 			THROW_IF_FAILED(
@@ -608,42 +360,16 @@ namespace TranslucentFlyouts::MenuAnimation
 				m_dcompBottomTarget->SetRoot(m_backdropThumbnailVisual.get())
 			);
 
+			if (m_started)
+			{
+				Start(m_reverse);
+			}
+
 			THROW_IF_FAILED(
 				dcompDevice->Commit()
 			);
-
-			THROW_IF_WIN32_BOOL_FALSE(
-				GetCursorPos(&m_cursorPos)
-			);
-		}
-		catch (...)
-		{
-			if (m_menuWindow)
-			{
-				SendMessageW(m_menuWindow, WM_MAFINISHED, 0, 0);
-			}
-			if (window)
-			{
-				if (GetClassLongPtr(window, GCL_STYLE) & (CS_DROPSHADOW | CS_SAVEBITS))
-				{
-					SetClassLongPtr(window, GCL_STYLE, GetClassLongPtr(window, GCL_STYLE) & ~(CS_DROPSHADOW | CS_SAVEBITS));
-				}
-				DestroyWindow(window);
-				window = nullptr;
-			}
-			if (m_backdropWindow)
-			{
-				DestroyWindow(m_backdropWindow);
-				m_backdropWindow = nullptr;
-			}
-			if (m_thumbnail)
-			{
-				DwmUnregisterThumbnail(m_thumbnail);
-				m_thumbnail = nullptr;
-			}
-		}
-
-		~PopupIn() noexcept
+		};
+		void DestroyDeviceIndependentResources() noexcept override
 		{
 			if (m_menuWindow)
 			{
@@ -668,6 +394,320 @@ namespace TranslucentFlyouts::MenuAnimation
 				DwmUnregisterThumbnail(m_thumbnail);
 				m_thumbnail = nullptr;
 			}
+		};
+		void DestroyDeviceResources() noexcept override
+		{
+			Finish();
+
+			m_backdropThumbnailVisual.reset();
+			m_thumbnailVisual.reset();
+
+			m_dcompTopTarget.reset();
+			m_dcompBottomTarget.reset();
+		};
+
+		void Start(bool reverse) try
+		{
+			THROW_HR_IF(
+				E_FAIL,
+				!DXHelper::LazyDComposition::EnsureInitialized()
+			);
+
+			THROW_HR_IF_NULL(
+				E_INVALIDARG,
+				m_dcompTopTarget
+			);
+			THROW_HR_IF_NULL(
+				E_INVALIDARG,
+				m_dcompBottomTarget
+			);
+			THROW_HR_IF_NULL(
+				E_INVALIDARG,
+				m_thumbnailVisual
+			);
+			THROW_HR_IF_NULL(
+				E_INVALIDARG,
+				m_backdropThumbnailVisual
+			);
+
+			THROW_HR_IF(
+				E_FAIL,
+				m_started
+			);
+
+			m_reverse = reverse;
+
+			RECT windowRect{};
+			THROW_IF_WIN32_BOOL_FALSE(
+				GetWindowRect(m_menuWindow, &windowRect)
+			);
+
+			SIZE size{};
+			if (m_thumbnail)
+			{
+				THROW_IF_FAILED(
+					DwmThumbnailAPI::g_actualDwmpQueryWindowThumbnailSourceSize(
+						m_menuWindow,
+						FALSE,
+						&size
+					)
+				);
+				DWM_THUMBNAIL_PROPERTIES thumbnailProperties
+				{
+					DWM_TNP_VISIBLE | DWM_TNP_RECTDESTINATION | DWM_TNP_SOURCECLIENTAREAONLY | DwmThumbnailAPI::DWM_TNP_ENABLE3D,
+					{0, 0, size.cx, size.cy},
+					{},
+					255,
+					TRUE,
+					TRUE
+				};
+				THROW_IF_FAILED(DwmUpdateThumbnailProperties(m_thumbnail, &thumbnailProperties));
+			}
+			if (m_backdropThumbnail)
+			{
+				THROW_IF_WIN32_BOOL_FALSE(
+					SetWindowPos(
+						m_backdropWindow, window,
+						windowRect.left, windowRect.top, size.cx, size.cy,
+						SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER
+					)
+				);
+				DWM_THUMBNAIL_PROPERTIES thumbnailProperties
+				{
+					DWM_TNP_VISIBLE | DWM_TNP_RECTDESTINATION | DwmThumbnailAPI::DWM_TNP_ENABLE3D,
+					{0, 0, size.cx, size.cy},
+					{},
+					255,
+					TRUE,
+					FALSE
+				};
+				THROW_IF_FAILED(DwmUpdateThumbnailProperties(m_backdropThumbnail, &thumbnailProperties));
+			}
+
+			auto dcompDevice{DXHelper::LazyDComposition::GetInstance().GetDCompositionDevice()};
+			
+			auto cleanUp{Utils::RoInit()};
+			{
+				com_ptr<IUIAnimationManager2> manager
+				{
+					wil::CoCreateInstance<IUIAnimationManager2>(CLSID_UIAnimationManager2)
+				};
+				com_ptr<IUIAnimationTransitionLibrary2> library
+				{
+					wil::CoCreateInstance<IUIAnimationTransitionLibrary2>(CLSID_UIAnimationTransitionLibrary2)
+				};
+				
+				constexpr float endValue{0.f};
+				float beginValue{0.f};
+
+				if (reverse)
+				{
+					beginValue = float(size.cy) - float(size.cy) * m_ratio;
+				}
+				else
+				{
+					beginValue = -float(size.cy) + float(size.cy) * m_ratio;
+				}
+
+				// Synchronizing WAM and DirectComposition time such that when WAM Update is called, 
+				// the value reflects the DirectComposition value at the given time.
+				DCOMPOSITION_FRAME_STATISTICS frameStatistics{};
+				THROW_IF_FAILED(
+					dcompDevice->GetFrameStatistics(&frameStatistics)
+				);
+				UI_ANIMATION_SECONDS timeNow{static_cast<double>(frameStatistics.nextEstimatedFrameTime.QuadPart) / static_cast<double>(frameStatistics.timeFrequency.QuadPart)};
+
+				{
+					com_ptr<IDCompositionAnimation> dcompAnimation{nullptr};
+					THROW_IF_FAILED(
+						dcompDevice->CreateAnimation(&dcompAnimation)
+					);
+
+					com_ptr<IUIAnimationVariable2> variable{nullptr};
+					com_ptr<IUIAnimationStoryboard2> storyboard{nullptr};
+					com_ptr<IUIAnimationTransition2> transition{nullptr};
+					THROW_IF_FAILED(
+						manager->CreateAnimationVariable(beginValue, &variable)
+					);
+					THROW_IF_FAILED(
+						manager->CreateStoryboard(&storyboard)
+					);
+					THROW_IF_FAILED(
+						library->CreateCubicBezierLinearTransition(static_cast<float>(m_popupInDuration.count()) / 1000.f, endValue, 0, 0, 0, 1, &transition)
+					);
+					THROW_IF_FAILED(
+						storyboard->AddTransition(variable.get(), transition.get())
+					);
+					THROW_IF_FAILED(
+						manager->Update(timeNow)
+					);
+					THROW_IF_FAILED(
+						storyboard->Schedule(timeNow)
+					);
+					THROW_IF_FAILED(
+						variable->GetCurve(dcompAnimation.get())
+					);
+
+					THROW_IF_FAILED(m_thumbnailVisual->SetOffsetX(0.f));
+					THROW_IF_FAILED(m_thumbnailVisual->SetOffsetY(dcompAnimation.get()));
+
+					THROW_IF_FAILED(m_backdropThumbnailVisual->SetOffsetX(0.f));
+					THROW_IF_FAILED(m_backdropThumbnailVisual->SetOffsetY(dcompAnimation.get()));
+				}
+
+				{
+					com_ptr<IDCompositionAnimation> dcompAnimation{nullptr};
+					THROW_IF_FAILED(
+						dcompDevice->CreateAnimation(&dcompAnimation)
+					);
+
+					com_ptr<IUIAnimationVariable2> variable{nullptr};
+					com_ptr<IUIAnimationStoryboard2> storyboard{nullptr};
+					com_ptr<IUIAnimationTransition2> transition{nullptr};
+					THROW_IF_FAILED(
+						manager->CreateAnimationVariable(0.f, &variable)
+					);
+					THROW_IF_FAILED(
+						manager->CreateStoryboard(&storyboard)
+					);
+					THROW_IF_FAILED(
+						library->CreateLinearTransition(static_cast<float>(m_fadeInDuration.count()) / 1000.f, 1.f, &transition)
+					);
+					THROW_IF_FAILED(
+						storyboard->AddTransition(variable.get(), transition.get())
+					);
+					THROW_IF_FAILED(
+						manager->Update(timeNow)
+					);
+					THROW_IF_FAILED(
+						storyboard->Schedule(timeNow)
+					);
+					THROW_IF_FAILED(
+						variable->GetCurve(dcompAnimation.get())
+					);
+
+					THROW_IF_FAILED(m_thumbnailVisual.query<IDCompositionVisual3>()->SetOpacity(dcompAnimation.get()));
+					THROW_IF_FAILED(m_backdropThumbnailVisual.query<IDCompositionVisual3>()->SetOpacity(dcompAnimation.get()));
+				}
+			}
+
+			THROW_IF_FAILED(
+				dcompDevice->Commit()
+			);
+
+			THROW_IF_WIN32_BOOL_FALSE(
+				SetWindowPos(
+					window, nullptr,
+					windowRect.left, windowRect.top, size.cx, size.cy,
+					SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED
+				)
+			);
+			Utils::CloakWindow(window, FALSE);
+			
+			Restart(m_totDuration);
+
+			m_started = true;
+		}
+		catch (...)
+		{
+			Abort();
+			LOG_CAUGHT_EXCEPTION();
+			return;
+		}
+
+		// The animation is still running, but we need to stop it right now!
+		void Finish()
+		{
+			m_started = false;
+
+			Utils::CloakWindow(m_menuWindow, FALSE);
+			Utils::CloakWindow(window, TRUE);
+			// Wait for DWM
+			DwmFlush();
+		}
+		void Abort()
+		{
+			// Interupt the animation
+			SetDuration(0ms);
+		}
+
+		void Attach()
+		{
+			THROW_HR_IF(
+				E_FAIL,
+				!SetWindowSubclass(m_menuWindow, SubclassProc, 0, reinterpret_cast<DWORD_PTR>(this))
+			);
+		}
+		void Detach()
+		{
+			if (m_menuWindow)
+			{
+				if (RemoveWindowSubclass(m_menuWindow, SubclassProc, 0))
+				{
+					m_menuWindow = nullptr;
+				}
+			}
+		}
+
+		static LRESULT CALLBACK SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
+		{
+			PopupIn& popupInAnimation{*reinterpret_cast<PopupIn*>(dwRefData)};
+			
+			if (uMsg == WM_WINDOWPOSCHANGED)
+			{
+				const auto& windowPos{*reinterpret_cast<WINDOWPOS*>(lParam)};
+				if (windowPos.flags & SWP_SHOWWINDOW)
+				{
+					popupInAnimation.Start(
+						abs(popupInAnimation.m_cursorPos.y - windowPos.y) >
+						abs(popupInAnimation.m_cursorPos.y - (windowPos.y + windowPos.cy))
+						? true : false
+					);
+				}
+
+				if (windowPos.flags & SWP_HIDEWINDOW)
+				{
+					popupInAnimation.Abort();
+				}
+			}
+
+			if (uMsg == WM_NCDESTROY)
+			{
+				popupInAnimation.Abort();
+			}
+
+			// ~PopupIn() sends WM_MAFINISHED to the SubclassProc
+			if (uMsg == WM_MAFINISHED)
+			{
+				popupInAnimation.Detach();
+			}
+
+			return DefSubclassProc(hWnd, uMsg, wParam, lParam);
+		}
+	public:
+#pragma push_macro("max")
+#undef max
+		PopupIn(HWND hWnd, float startPosRatio, std::chrono::milliseconds popupInDuration, std::chrono::milliseconds fadeInDuration) try : AnimationInfo{chrono::milliseconds::max()}, m_totDuration{max(popupInDuration, fadeInDuration)}, m_menuWindow{hWnd}, m_fadeInDuration{fadeInDuration}, m_popupInDuration{popupInDuration}, m_ratio{startPosRatio}
+#pragma pop_macro("max")
+		{
+			THROW_HR_IF(
+				E_FAIL,
+				!DXHelper::LazyDComposition::EnsureInitialized()
+			);
+
+			CreateDeviceIndependentResources();
+			CreateDeviceResources();
+		}
+		catch (...)
+		{
+			DestroyDeviceResources();
+			DestroyDeviceIndependentResources();
+		}
+
+		~PopupIn() noexcept
+		{
+			DestroyDeviceResources();
+			DestroyDeviceIndependentResources();
 		}
 
 		void Animator(ULONGLONG currentTimeStamp) override;

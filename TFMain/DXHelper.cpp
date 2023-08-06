@@ -30,11 +30,11 @@ BOOL WINAPI LazyDX::InternalHook::FreeLibrary(
 
 		auto f = [](PTP_CALLBACK_INSTANCE pci, PVOID)
 		{
-			// Wait for 10ms so that Kernel32!FreeLibrary can return safely to LazyD2D::FreeLibrary,
+			// Wait for 100ms so that Kernel32!FreeLibrary can return safely to LazyD2D::FreeLibrary,
 			// then go back to its caller, ending the function call
 			DisassociateCurrentThreadFromCallback(pci);
 			FreeLibraryWhenCallbackReturns(pci, HINST_THISCOMPONENT);
-			Sleep(10);
+			Sleep(100);
 		};
 		if (TrySubmitThreadpoolCallback(f, nullptr, nullptr))
 		{
@@ -56,8 +56,13 @@ void LazyDX::NotifyDeviceLost()
 	for (auto it = dxList.begin(); it != dxList.end(); it++)
 	{
 		auto& lazyDX{*it};
-		lazyDX->DestroyDeviceResources();
-		lazyDX->CreateDeviceResources();
+		
+		try
+		{
+			lazyDX->DestroyDeviceResources();
+			lazyDX->CreateDeviceResources();
+		}
+		CATCH_LOG()
 	}
 }
 
@@ -131,15 +136,7 @@ bool LazyD2D::EnsureInitialized()
 {
 	auto& lazyD2D{GetInstance()};
 
-	if (lazyD2D.m_dcRT)
-	{
-		if (FAILED(lazyD2D.m_dcRT->Flush()))
-		{
-			LazyDX::NotifyDeviceLost();
-		}
-	}
-
-	return (lazyD2D.m_dcRT && lazyD2D.m_factory ? true : false);
+	return (LazyDComposition::EnsureInitialized() && lazyD2D.m_dcRT && lazyD2D.m_factory ? true : false);
 }
 
 LazyD2D::LazyD2D()
@@ -206,13 +203,84 @@ void LazyD2D::CreateDeviceResources()
 		LOG_CAUGHT_EXCEPTION();
 	}
 }
-void LazyD2D::DestroyDeviceIndependentResources()
+void LazyD2D::DestroyDeviceIndependentResources() noexcept
 {
 	m_factory.reset();
 }
-void LazyD2D::DestroyDeviceResources()
+void LazyD2D::DestroyDeviceResources() noexcept
 {
 	m_dcRT.reset();
+}
+
+/* ======================================================================================== */
+
+LazyD3D& LazyD3D::GetInstance()
+{
+	static LazyD3D instance{};
+	return instance;
+}
+
+bool LazyD3D::EnsureInitialized()
+{
+	auto& lazyD3D{GetInstance()};
+
+	return (lazyD3D.m_d3dDevice && lazyD3D.m_dxgiDevice ? true : false);
+}
+
+LazyD3D::LazyD3D()
+{
+	CreateDeviceIndependentResources();
+	CreateDeviceResources();
+}
+
+LazyD3D::~LazyD3D()
+{
+	DestroyDeviceIndependentResources();
+	DestroyDeviceResources();
+}
+
+void LazyD3D::CreateDeviceIndependentResources()
+{
+}
+void LazyD3D::CreateDeviceResources()
+{
+	try
+	{
+		com_ptr<IDXGIDevice3> dxgiDevice{nullptr};
+		com_ptr<ID3D11Device> d3dDevice{nullptr};
+
+		THROW_IF_FAILED(
+			D3D11CreateDevice(
+				nullptr,
+				D3D_DRIVER_TYPE_HARDWARE,
+				nullptr,
+				D3D11_CREATE_DEVICE_BGRA_SUPPORT,
+				nullptr,
+				0,
+				D3D11_SDK_VERSION,
+				&d3dDevice,
+				nullptr,
+				nullptr
+			)
+		);
+		d3dDevice.query_to(&dxgiDevice);
+
+		d3dDevice.copy_to(&m_d3dDevice);
+		dxgiDevice.copy_to(&m_dxgiDevice);
+	}
+	catch (...)
+	{
+		LOG_CAUGHT_EXCEPTION();
+	}
+}
+void LazyD3D::DestroyDeviceIndependentResources() noexcept
+{
+}
+
+void LazyD3D::DestroyDeviceResources() noexcept
+{
+	m_d3dDevice.reset();
+	m_dxgiDevice.reset();
 }
 
 /* ======================================================================================== */
@@ -266,51 +334,28 @@ void LazyDComposition::CreateDeviceResources()
 {
 	try
 	{
-		com_ptr<IDXGIDevice3> dxgiDevice{nullptr};
-		com_ptr<ID3D11Device> d3dDevice{nullptr};
 		com_ptr<IDCompositionDesktopDevice> dcompDevice{nullptr};
-
-		THROW_IF_FAILED(
-			D3D11CreateDevice(
-				nullptr,
-				D3D_DRIVER_TYPE_HARDWARE,
-				nullptr,
-				D3D11_CREATE_DEVICE_BGRA_SUPPORT,
-				nullptr,
-				0,
-				D3D11_SDK_VERSION,
-				&d3dDevice,
-				nullptr,
-				nullptr
-			)
-		);
-		d3dDevice.query_to(&dxgiDevice);
-
 		THROW_IF_FAILED(
 			DCompositionCreateDevice3(
-				dxgiDevice.get(),
+				m_lazyD3D.GetDxgiDevice().get(),
 				IID_PPV_ARGS(&dcompDevice)
 			)
 		);
 
 		dcompDevice.copy_to(&m_dcompDevice);
-		d3dDevice.copy_to(&m_d3dDevice);
-		dxgiDevice.copy_to(&m_dxgiDevice);
 	}
 	catch (...)
 	{
 		LOG_CAUGHT_EXCEPTION();
 	}
 }
-void LazyDComposition::DestroyDeviceIndependentResources()
+void LazyDComposition::DestroyDeviceIndependentResources() noexcept
 {
 }
 
-void LazyDComposition::DestroyDeviceResources()
+void LazyDComposition::DestroyDeviceResources() noexcept
 {
 	m_dcompDevice.reset();
-	m_d3dDevice.reset();
-	m_dxgiDevice.reset();
 }
 
 ColorF TranslucentFlyouts::DXHelper::MakeColorF(DWORD argb)

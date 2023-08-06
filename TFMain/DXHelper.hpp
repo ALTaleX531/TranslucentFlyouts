@@ -31,8 +31,8 @@ namespace TranslucentFlyouts
 
 			virtual void CreateDeviceIndependentResources() = 0;
 			virtual void CreateDeviceResources() = 0;
-			virtual void DestroyDeviceIndependentResources() = 0;
-			virtual void DestroyDeviceResources() = 0;
+			virtual void DestroyDeviceIndependentResources() noexcept = 0;
+			virtual void DestroyDeviceResources() noexcept = 0;
 		private:
 			struct InternalHook
 			{
@@ -57,6 +57,29 @@ namespace TranslucentFlyouts
 			static InternalHook g_internalHook;
 		};
 
+		class LazyD3D : public LazyDX
+		{
+		public:
+			static bool EnsureInitialized();
+			static LazyD3D& GetInstance();
+			~LazyD3D() noexcept;
+			LazyD3D(const LazyD3D&) = delete;
+			LazyD3D& operator=(const LazyD3D&) = delete;
+
+			wil::com_ptr<IDXGIDevice3> GetDxgiDevice() const { return m_dxgiDevice; };
+			wil::com_ptr<ID3D11Device> GetD3DDevice() const { return m_d3dDevice; };
+		protected:
+			void CreateDeviceIndependentResources() override;
+			void CreateDeviceResources() override;
+			void DestroyDeviceIndependentResources() noexcept override;
+			void DestroyDeviceResources() noexcept override;
+		private:
+			LazyD3D();
+
+			wil::com_ptr<IDXGIDevice3> m_dxgiDevice{nullptr};
+			wil::com_ptr<ID3D11Device> m_d3dDevice{nullptr};
+		};
+
 		class LazyD2D : public LazyDX
 		{
 		public:
@@ -71,8 +94,8 @@ namespace TranslucentFlyouts
 		protected:
 			void CreateDeviceIndependentResources() override;
 			void CreateDeviceResources() override;
-			void DestroyDeviceIndependentResources() override;
-			void DestroyDeviceResources() override;
+			void DestroyDeviceIndependentResources() noexcept override;
+			void DestroyDeviceResources() noexcept override;
 		private:
 			LazyD2D();
 
@@ -89,19 +112,16 @@ namespace TranslucentFlyouts
 			LazyDComposition(const LazyDComposition&) = delete;
 			LazyDComposition& operator=(const LazyDComposition&) = delete;
 
-			wil::com_ptr<IDXGIDevice3> GetDxgiDevice() const { return m_dxgiDevice; };
-			wil::com_ptr<ID3D11Device> GetD3DDevice() const { return m_d3dDevice; };
 			wil::com_ptr<IDCompositionDesktopDevice> GetDCompositionDevice() const { return m_dcompDevice; };
 		protected:
 			void CreateDeviceIndependentResources() override;
 			void CreateDeviceResources() override;
-			void DestroyDeviceIndependentResources() override;
-			void DestroyDeviceResources() override;
+			void DestroyDeviceIndependentResources() noexcept override;
+			void DestroyDeviceResources() noexcept override;
 		private:
 			LazyDComposition();
 
-			wil::com_ptr<IDXGIDevice3> m_dxgiDevice{nullptr};
-			wil::com_ptr<ID3D11Device> m_d3dDevice{nullptr};
+			LazyD3D& m_lazyD3D{LazyD3D::GetInstance()};
 			wil::com_ptr<IDCompositionDesktopDevice> m_dcompDevice{nullptr};
 		};
 
