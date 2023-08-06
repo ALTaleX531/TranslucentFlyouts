@@ -44,7 +44,7 @@ namespace TranslucentFlyouts
 
 		static inline std::optional<wil::unique_rouninitialize_call> RoInit()
 		{
-			HRESULT hr{::RoInitialize(RO_INIT_MULTITHREADED)};
+			HRESULT hr{::RoInitialize(RO_INIT_SINGLETHREADED)};
 
 			if (SUCCEEDED(hr) || hr == S_FALSE)
 			{

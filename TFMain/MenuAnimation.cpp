@@ -514,7 +514,28 @@ namespace TranslucentFlyouts::MenuAnimation
 				)
 				{
 					SetClassLongPtr(window, GCL_STYLE, GetClassLongPtr(window, GCL_STYLE) | (CS_DROPSHADOW | CS_SAVEBITS));
+					
+					DWORD effectType
+					{
+						RegHelper::GetDword(
+							L"Menu",
+							L"EffectType",
+							static_cast<DWORD>(EffectHelper::EffectType::ModernAcrylicBlur)
+						)
+					};
+					if (
+						RegHelper::GetDword(
+							L"Menu",
+							L"EnableDropShadow",
+							0
+						) &&
+						(effectType == 4 || effectType == 5)
+					)
+					{
+						EffectHelper::SetWindowBackdrop(window, TRUE, 0, 4);
+					}
 				}
+
 				menuHandler.HandleSysBorderColors(L"Menu"sv, window, info.useDarkMode, info.borderColor);
 				EffectHelper::EnableWindowDarkMode(window, info.useDarkMode);
 				
