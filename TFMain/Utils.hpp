@@ -77,6 +77,12 @@ namespace TranslucentFlyouts
 			return result;
 		}
 
+		static inline void CloakWindow(HWND hWnd, BOOL cloak)
+		{
+			DwmSetWindowAttribute(hWnd, DWMWA_CLOAK, &cloak, sizeof(cloak));
+			DwmTransitionOwnedWindow(hWnd, DWMTRANSITION_OWNEDWINDOW_REPOSITION);
+		}
+
 		static inline bool IsWindowClass(HWND hWnd, std::wstring_view className = L"", std::wstring_view windowText = L"")
 		{
 			bool classNameOK{true};

@@ -93,16 +93,20 @@ namespace TranslucentFlyouts::MenuAnimation
 						 L"Static",
 						 L"FadeOut Animation",
 						 WS_POPUP,
-						 destination.x,
-						 destination.x,
-						 size.cx,
-						 size.cy,
+						 0,
+						 0,
+						 0,
+						 0,
 						 Utils::GetCurrentMenuOwner(),
 						 nullptr,
 						 nullptr,
 						 nullptr
 					 );
 			THROW_LAST_ERROR_IF_NULL(window);
+			if (GetClassLongPtr(window, GCL_STYLE) & (CS_DROPSHADOW | CS_SAVEBITS))
+			{
+				SetClassLongPtr(window, GCL_STYLE, GetClassLongPtr(window, GCL_STYLE) &~(CS_DROPSHADOW | CS_SAVEBITS));
+			}
 
 			auto menuDC{wil::GetWindowDC(hWnd)};
 			THROW_LAST_ERROR_IF_NULL(menuDC);
@@ -230,21 +234,23 @@ namespace TranslucentFlyouts::MenuAnimation
 				);
 				DWM_THUMBNAIL_PROPERTIES thumbnailProperties
 				{
-					DWM_TNP_VISIBLE | DWM_TNP_RECTDESTINATION | DwmThumbnailAPI::DWM_TNP_ENABLE3D,
+					DWM_TNP_VISIBLE | DWM_TNP_RECTDESTINATION | DWM_TNP_SOURCECLIENTAREAONLY | DwmThumbnailAPI::DWM_TNP_ENABLE3D,
 					{0, 0, size.cx, size.cy},
 					{},
 					255,
 					TRUE,
-					FALSE
+					TRUE
 				};
-				DwmUpdateThumbnailProperties(m_thumbnail, &thumbnailProperties);
+				THROW_IF_FAILED(DwmUpdateThumbnailProperties(m_thumbnail, &thumbnailProperties));
 			}
 			if (m_backdropThumbnail)
 			{
-				SetWindowPos(
-					m_backdropWindow, window,
-					windowRect.left, windowRect.top, size.cx, size.cy,
-					SWP_NOACTIVATE | SWP_SHOWWINDOW
+				THROW_IF_WIN32_BOOL_FALSE(
+					SetWindowPos(
+						m_backdropWindow, window,
+						windowRect.left, windowRect.top, size.cx, size.cy,
+						SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER
+					)
 				);
 				DWM_THUMBNAIL_PROPERTIES thumbnailProperties
 				{
@@ -255,34 +261,10 @@ namespace TranslucentFlyouts::MenuAnimation
 					TRUE,
 					FALSE
 				};
-				DwmUpdateThumbnailProperties(m_backdropThumbnail, &thumbnailProperties);
-			}
-
-			auto& menuHandler{MenuHandler::GetInstance()};
-			auto info{menuHandler.GetMenuRenderingInfo(m_menuWindow)};
-			if (info.useUxTheme)
-			{
-				DWORD borderColor{DWMWA_COLOR_NONE};
-				menuHandler.HandleRoundCorners(L"Menu"sv, window);
-				DwmSetWindowAttribute(window, DWMWA_BORDER_COLOR, &borderColor, sizeof(borderColor));
-
-				menuHandler.HandleRoundCorners(L"Menu"sv, m_backdropWindow);
-				menuHandler.ApplyEffect(L"Menu"sv, m_backdropWindow, info.useDarkMode, true);
-				DwmSetWindowAttribute(m_backdropWindow, DWMWA_BORDER_COLOR, &borderColor, sizeof(borderColor));
-
-				DwmTransitionOwnedWindow(window, DWMTRANSITION_OWNEDWINDOW_REPOSITION);
-				DwmTransitionOwnedWindow(m_backdropWindow, DWMTRANSITION_OWNEDWINDOW_REPOSITION);
+				THROW_IF_FAILED(DwmUpdateThumbnailProperties(m_backdropThumbnail, &thumbnailProperties));
 			}
 
 			auto dcompDevice{DXHelper::LazyDComposition::GetInstance().GetDCompositionDevice()};
-			
-			THROW_IF_FAILED(
-				m_dcompTopTarget->SetRoot(m_thumbnailVisual.get())
-			);
-			THROW_IF_FAILED(
-				m_dcompBottomTarget->SetRoot(m_backdropThumbnailVisual.get())
-			);
-
 			com_ptr<IDCompositionAnimation> dcompAnimation{nullptr};
 			THROW_IF_FAILED(
 				dcompDevice->CreateAnimation(&dcompAnimation)
@@ -387,17 +369,15 @@ namespace TranslucentFlyouts::MenuAnimation
 				dcompDevice->Commit()
 			);
 
-			if (GetClassLongPtr(m_menuWindow, GCL_STYLE) & CS_DROPSHADOW)
-			{
-				SetClassLongPtr(window, GCL_STYLE, GetClassLongPtr(window, GCL_STYLE) | CS_DROPSHADOW);
-			}
-
-			DwmTransitionOwnedWindow(m_menuWindow, DWMTRANSITION_OWNEDWINDOW_REPOSITION);
-			SetWindowPos(
-				window, nullptr,
-				windowRect.left, windowRect.top, size.cx, size.cy,
-				SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_SHOWWINDOW
+			THROW_IF_WIN32_BOOL_FALSE(
+				SetWindowPos(
+					window, nullptr,
+					windowRect.left, windowRect.top, size.cx, size.cy,
+					SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED
+				)
 			);
+			Utils::CloakWindow(window, FALSE);
+			
 			Restart(m_totDuration);
 
 			m_started = true;
@@ -407,20 +387,10 @@ namespace TranslucentFlyouts::MenuAnimation
 		// The animation is still running, but we need to stop it right now!
 		void Abort()
 		{
-			m_dcompTopTarget->SetRoot(nullptr);
-			m_dcompBottomTarget->SetRoot(nullptr);
-			SetWindowPos(
-				window, nullptr,
-				0, 0, 0, 0,
-				SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_HIDEWINDOW
-			);
-			SetWindowPos(
-				m_backdropWindow, nullptr,
-				0, 0, 0, 0,
-				SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_HIDEWINDOW
-			);
-			BOOL cloak{FALSE};
-			DwmSetWindowAttribute(m_menuWindow, DWMWA_CLOAK, &cloak, sizeof(cloak));
+			Utils::CloakWindow(m_menuWindow, FALSE);
+			Utils::CloakWindow(window, TRUE);
+			// Wait for DWM
+			DwmFlush();
 #pragma push_macro("max")
 #undef max
 			// Interupt the animation
@@ -439,9 +409,6 @@ namespace TranslucentFlyouts::MenuAnimation
 		{
 			if (m_menuWindow)
 			{
-				BOOL cloak{FALSE};
-				DwmSetWindowAttribute(m_menuWindow, DWMWA_CLOAK, &cloak, sizeof(cloak));
-
 				if (RemoveWindowSubclass(m_menuWindow, SubclassProc, 0))
 				{
 					m_menuWindow = nullptr;
@@ -479,6 +446,7 @@ namespace TranslucentFlyouts::MenuAnimation
 			// ~PopupIn() sends WM_MAFINISHED to the SubclassProc
 			if (uMsg == WM_MAFINISHED)
 			{
+				popupInAnimation.Abort();
 				popupInAnimation.Detach();
 			}
 
@@ -497,28 +465,23 @@ namespace TranslucentFlyouts::MenuAnimation
 
 			Attach();
 
-			BOOL cloak{TRUE};
-			THROW_IF_FAILED(
-				DwmSetWindowAttribute(hWnd, DWMWA_CLOAK, &cloak, sizeof(cloak))
-			);
+			Utils::CloakWindow(hWnd, TRUE);
 
 			window = CreateWindowExW(
-						 WS_EX_NOREDIRECTIONBITMAP | WS_EX_NOACTIVATE | WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
+						 WS_EX_NOREDIRECTIONBITMAP | WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_PALETTEWINDOW,
 						 L"Static",
 						 L"PopupIn Animation",
 						 WS_POPUP,
 						 0,
 						 0,
-						 0,
-						 0,
+						 1,
+						 1,
 						 Utils::GetCurrentMenuOwner(),
 						 nullptr,
 						 nullptr,
 						 nullptr
 					 );
 			THROW_LAST_ERROR_IF_NULL(window);
-			THROW_IF_WIN32_BOOL_FALSE(SetLayeredWindowAttributes(window, 0, 255, LWA_ALPHA)); 
-
 
 			m_backdropWindow = CreateWindowExW(
 						 WS_EX_NOREDIRECTIONBITMAP | WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
@@ -527,15 +490,52 @@ namespace TranslucentFlyouts::MenuAnimation
 						 WS_POPUP,
 						 0,
 						 0,
-						 0,
-						 0,
+						 1,
+						 1,
 						 nullptr,
 						 nullptr,
 						 nullptr,
 						 nullptr
 			);
 			THROW_LAST_ERROR_IF_NULL(m_backdropWindow);
+
+			auto& menuHandler{MenuHandler::GetInstance()};
+			auto info{menuHandler.GetMenuRenderingInfo(m_menuWindow)};
+			if (info.useUxTheme)
+			{
+				// We are on Windows 10 or the corner is not round
+				if (
+					FAILED(menuHandler.HandleRoundCorners(L"Menu"sv, window)) || 
+					RegHelper::GetDword(
+						L"Menu",
+						L"CornerType",
+						3
+					) == 1
+				)
+				{
+					SetClassLongPtr(window, GCL_STYLE, GetClassLongPtr(window, GCL_STYLE) | (CS_DROPSHADOW | CS_SAVEBITS));
+				}
+				menuHandler.HandleSysBorderColors(L"Menu"sv, window, info.useDarkMode, info.borderColor);
+				EffectHelper::EnableWindowDarkMode(window, info.useDarkMode);
+				
+				menuHandler.ApplyEffect(L"Menu"sv, m_backdropWindow, info.useDarkMode);
+				EffectHelper::EnableWindowDarkMode(m_backdropWindow, info.useDarkMode);
+			}
+			else
+			{
+				// Windows 2000 style
+				SetClassLongPtr(window, GCL_STYLE, GetClassLongPtr(window, GCL_STYLE) | (CS_DROPSHADOW | CS_SAVEBITS));
+			}
+
+			THROW_IF_WIN32_BOOL_FALSE(SetLayeredWindowAttributes(window, 0, 255, LWA_ALPHA));
 			THROW_IF_WIN32_BOOL_FALSE(SetLayeredWindowAttributes(m_backdropWindow, 0, 0, LWA_ALPHA));
+			THROW_IF_WIN32_BOOL_FALSE(
+				SetWindowPos(window, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW)
+			);
+			Utils::CloakWindow(window, TRUE);
+			THROW_IF_WIN32_BOOL_FALSE(
+				SetWindowPos(m_backdropWindow, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW)
+			);
 
 			auto dcompDevice{DXHelper::LazyDComposition::GetInstance().GetDCompositionDevice()};
 
@@ -548,12 +548,12 @@ namespace TranslucentFlyouts::MenuAnimation
 
 			DWM_THUMBNAIL_PROPERTIES thumbnailProperties
 			{
-				DWM_TNP_VISIBLE | DWM_TNP_RECTDESTINATION | DwmThumbnailAPI::DWM_TNP_ENABLE3D,
+				DWM_TNP_VISIBLE | DWM_TNP_RECTDESTINATION | DWM_TNP_SOURCECLIENTAREAONLY | DwmThumbnailAPI::DWM_TNP_ENABLE3D,
 				{},
 				{},
 				255,
 				TRUE,
-				FALSE
+				TRUE
 			};
 			THROW_IF_FAILED(
 				DwmThumbnailAPI::g_actualDwmpCreateSharedThumbnailVisual(
@@ -566,6 +566,7 @@ namespace TranslucentFlyouts::MenuAnimation
 					&m_thumbnail
 				)
 			);
+			thumbnailProperties.fSourceClientAreaOnly = FALSE;
 			// Create backdrop thumbnail
 			THROW_IF_FAILED(
 				DwmThumbnailAPI::g_actualDwmpCreateSharedThumbnailVisual(
@@ -577,6 +578,17 @@ namespace TranslucentFlyouts::MenuAnimation
 					m_backdropThumbnailVisual.put_void(),
 					&m_backdropThumbnail
 				)
+			);
+
+			THROW_IF_FAILED(
+				m_dcompTopTarget->SetRoot(m_thumbnailVisual.get())
+			);
+			THROW_IF_FAILED(
+				m_dcompBottomTarget->SetRoot(m_backdropThumbnailVisual.get())
+			);
+
+			THROW_IF_FAILED(
+				dcompDevice->Commit()
 			);
 
 			THROW_IF_WIN32_BOOL_FALSE(
@@ -591,9 +603,9 @@ namespace TranslucentFlyouts::MenuAnimation
 			}
 			if (window)
 			{
-				if (GetClassLongPtr(m_menuWindow, GCL_STYLE) & CS_DROPSHADOW)
+				if (GetClassLongPtr(window, GCL_STYLE) & (CS_DROPSHADOW | CS_SAVEBITS))
 				{
-					SetClassLongPtr(window, GCL_STYLE, GetClassLongPtr(window, GCL_STYLE) & ~CS_DROPSHADOW);
+					SetClassLongPtr(window, GCL_STYLE, GetClassLongPtr(window, GCL_STYLE) & ~(CS_DROPSHADOW | CS_SAVEBITS));
 				}
 				DestroyWindow(window);
 				window = nullptr;
@@ -618,7 +630,10 @@ namespace TranslucentFlyouts::MenuAnimation
 			}
 			if (window)
 			{
-				SetClassLongPtr(window, GCL_STYLE, GetClassLongPtr(window, GCL_STYLE) & ~CS_DROPSHADOW);
+				if (GetClassLongPtr(window, GCL_STYLE) & (CS_DROPSHADOW | CS_SAVEBITS))
+				{
+					SetClassLongPtr(window, GCL_STYLE, GetClassLongPtr(window, GCL_STYLE) & ~(CS_DROPSHADOW | CS_SAVEBITS));
+				}
 				SendNotifyMessageW(window, WM_CLOSE, 0, 0);
 				window = nullptr;
 			}

@@ -96,9 +96,9 @@ namespace TranslucentFlyouts
 
 
 		MenuRenderingInfo GetMenuRenderingInfo(HWND hWnd);
-		void ApplyEffect(std::wstring_view keyName, HWND hWnd, bool darkMode, bool noDropShadow = false);
-		void HandleSysBorderColors(std::wstring_view keyName, HWND hWnd, bool useDarkMode, COLORREF color);
-		void HandleRoundCorners(std::wstring_view keyName, HWND hWnd);
+		void ApplyEffect(std::wstring_view keyName, HWND hWnd, bool darkMode);
+		HRESULT HandleSysBorderColors(std::wstring_view keyName, HWND hWnd, bool useDarkMode, COLORREF color);
+		HRESULT HandleRoundCorners(std::wstring_view keyName, HWND hWnd);
 		bool HandlePopupMenuNCBorderColors(HDC hdc, bool useDarkMode, const RECT& paintRect);
 
 		static constexpr DWORD lightMode_GradientColor{0x9EDDDDDD};

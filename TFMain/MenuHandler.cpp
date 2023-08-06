@@ -114,7 +114,7 @@ void MenuHandler::ListviewpopupMsgCallback(HWND hwnd, UINT message, WPARAM wPara
 	}
 }
 
-void MenuHandler::HandleSysBorderColors(std::wstring_view keyName, HWND hWnd, bool useDarkMode, COLORREF color)
+HRESULT MenuHandler::HandleSysBorderColors(std::wstring_view keyName, HWND hWnd, bool useDarkMode, COLORREF color)
 {
 	DWORD noBorderColor
 	{
@@ -174,7 +174,7 @@ void MenuHandler::HandleSysBorderColors(std::wstring_view keyName, HWND hWnd, bo
 		borderColor = DWMWA_COLOR_NONE;
 	}
 
-	DwmSetWindowAttribute(hWnd, DWMWA_BORDER_COLOR, &borderColor, sizeof(borderColor));
+	return DwmSetWindowAttribute(hWnd, DWMWA_BORDER_COLOR, &borderColor, sizeof(borderColor));
 }
 
 bool MenuHandler::HandlePopupMenuNCBorderColors(HDC hdc, bool useDarkMode, const RECT& paintRect)
@@ -248,7 +248,7 @@ bool MenuHandler::HandlePopupMenuNCBorderColors(HDC hdc, bool useDarkMode, const
 	return true;
 }
 
-void MenuHandler::HandleRoundCorners(std::wstring_view keyName, HWND hWnd)
+HRESULT MenuHandler::HandleRoundCorners(std::wstring_view keyName, HWND hWnd)
 {
 	DWORD cornerType
 	{
@@ -260,11 +260,12 @@ void MenuHandler::HandleRoundCorners(std::wstring_view keyName, HWND hWnd)
 	};
 	if (cornerType != 0)
 	{
-		DwmSetWindowAttribute(hWnd, DWMWA_WINDOW_CORNER_PREFERENCE, &cornerType, sizeof(DWM_WINDOW_CORNER_PREFERENCE));
+		return DwmSetWindowAttribute(hWnd, DWMWA_WINDOW_CORNER_PREFERENCE, &cornerType, sizeof(DWM_WINDOW_CORNER_PREFERENCE));
 	}
+	return S_OK;
 }
 
-void MenuHandler::ApplyEffect(std::wstring_view keyName, HWND hWnd, bool darkMode, bool noDropShadow)
+void MenuHandler::ApplyEffect(std::wstring_view keyName, HWND hWnd, bool darkMode)
 {
 	DWORD effectType
 	{
@@ -303,7 +304,7 @@ void MenuHandler::ApplyEffect(std::wstring_view keyName, HWND hWnd, bool darkMod
 						);
 
 	}
-	EffectHelper::SetWindowBackdrop(hWnd, noDropShadow ? FALSE : enableDropShadow, gradientColor, effectType);
+	EffectHelper::SetWindowBackdrop(hWnd, enableDropShadow, gradientColor, effectType);
 	DwmTransitionOwnedWindow(hWnd, DWMTRANSITION_OWNEDWINDOW_REPOSITION);
 }
 
