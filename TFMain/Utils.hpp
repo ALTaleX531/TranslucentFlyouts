@@ -27,6 +27,22 @@ namespace TranslucentFlyouts
 			return rf.fake_ptr;
 		}
 
+		static inline auto MakeHRErrStr(HRESULT hr)
+		{
+			WCHAR szError[MAX_PATH + 1]{};
+			FormatMessageW(
+				FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+				nullptr,
+				hr,
+				0,
+				szError,
+				_countof(szError),
+				nullptr
+			);
+
+			return std::wstring{szError};
+		}
+
 		static inline std::wstring make_current_folder_file_str(std::wstring_view baseFileName)
 		{
 			WCHAR filePath[MAX_PATH + 1]{L""};
@@ -42,14 +58,17 @@ namespace TranslucentFlyouts
 			return std::wstring{filePath};
 		}
 
-		static inline std::optional<wil::unique_rouninitialize_call> RoInit()
+		static inline std::optional<wil::unique_rouninitialize_call> RoInit(HRESULT* hresult = nullptr)
 		{
 			HRESULT hr{::RoInitialize(RO_INIT_SINGLETHREADED)};
 
 			if (SUCCEEDED(hr) || hr == S_FALSE)
 			{
+				if (hresult) { *hresult = S_OK; }
 				return wil::unique_rouninitialize_call{};
 			}
+
+			if (hresult) { *hresult = hr; }
 
 			return std::nullopt;
 		}
@@ -115,6 +134,14 @@ namespace TranslucentFlyouts
 			}
 
 			return false;
+		}
+
+		static bool IsValidFlyout(HWND hWnd)
+		{
+			return
+				IsWin32PopupMenu(hWnd) ||
+				IsWindowClass(hWnd, L"DropDown") ||
+				IsWindowClass(hWnd, L"Listviewpopup");
 		}
 
 		static inline HWND GetCurrentMenuOwner()

@@ -183,6 +183,17 @@ void CALLBACK MainDLL::HandleWinEvent(
 		return;
 	}
 
+	if (
+		Utils::IsValidFlyout(hWnd) &&
+		MainDLL::IsHookGlobalInstalled() &&
+		//ThemeHelper::IsThemeAvailable() &&
+		//!ThemeHelper::IsHighContrast() &&
+		!GetSystemMetrics(SM_CLEANBOOT)
+	)
+	{
+		mainDLL.Startup();
+	}
+
 	auto& callbackList{GetInstance().m_callbackList};
 
 	if (!callbackList.empty())

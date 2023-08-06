@@ -492,7 +492,7 @@ namespace TranslucentFlyouts::MenuAnimation
 						 0,
 						 1,
 						 1,
-						 nullptr,
+						 Utils::GetCurrentMenuOwner(),
 						 nullptr,
 						 nullptr,
 						 nullptr

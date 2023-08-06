@@ -6,6 +6,8 @@
 #include <windowsx.h>
 #include <winternl.h>
 #include <oleacc.h>
+#include <taskschd.h>
+#include <comutil.h>
 #include <shellapi.h>
 #include <ShlObj.h>
 #include <Shlwapi.h>
@@ -20,6 +22,8 @@
 #include <delayimp.h>
 #include <Psapi.h>
 #pragma comment(lib, "Oleacc.lib")
+#pragma comment(lib, "taskschd.lib")
+#pragma comment(lib, "comsuppw.lib")
 #pragma comment(lib, "windowsapp.lib")
 #pragma comment(lib, "Shlwapi.lib")
 #pragma comment(lib, "dwmapi.lib")

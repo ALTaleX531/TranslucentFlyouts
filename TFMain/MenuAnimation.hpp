@@ -12,10 +12,10 @@ namespace TranslucentFlyouts
 			// Defined in win32kfull.sys!zzzMNFadeSelection
 			constexpr milliseconds standardFadeoutDuration{350ms};
 			// Defined in https://learn.microsoft.com/en-us/windows/apps/design/signature-experiences/motion
-			constexpr milliseconds standardPopupInDuration{333ms};
+			constexpr milliseconds standardPopupInDuration{250ms};
 			constexpr milliseconds standardFadeInDuration{87ms};
 			// Defined in WinUI
-			constexpr float standardStartPosRatio{0.666f};
+			constexpr float standardStartPosRatio{0.5f};
 		}
 
 		HRESULT CreateFadeOut(
