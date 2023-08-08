@@ -67,645 +67,6 @@
 	},
 	"buffers":
 	[
-		{
-			"contents": "# TranslucentFlyouts\n> Aufgrund der großen Anzahl konfigurierbarer Funktionen kann es sein, dass diese Seite nicht rechtzeitig aktualisiert wird.\nDeshalb rufen wir alle dazu auf, dieses Dokument gemeinsam zu verbessern, und jede PR ist willkommen!\n## andere Sprachen\n[Chinese](../zh-cn/CONFIG.md)  \n## Guide\nZielversion:\n- V2.0.0-alpha.4\n> Notiz:   \n> Frühere Versionen werden nicht unterstützt und der auf dieser Seite und den Unterseiten angezeigte Inhalt ist für neuere Versionen möglicherweise veraltet.  \n\nDie aktuelle Version von TranslucentFlyouts verwendet die Registrierung zum Speichern von Konfigurationsinformationen.\nSpeicherort: `HKEY_CURRENT_USER\\\\SOFTWARE\\\\TranslucentFlyouts\\\\`\n\nDer Wert hier wird verwendet, um das gemeinsame Erscheinungsbild des Popup-Menüs und des Dropdown-Steuerelements zu definieren, und derselbe Wert im Unterelement wird zuerst gelesen.\nZugehörige Unterpunkte finden Sie unter:\n\n- [Menu](./Menu/CONFIG.md)  \n- [DropDown](./DropDown/CONFIG.md)  \n\n## Wert\nTyp: <b>DWORD</b>\n<table>\n\n<tr>\n<th></th>\n<th></th>\n<th></th>\n</tr>\n\n<tr>\n<td width=\"10%\">\n<dl>\n<dt><b>EffectType</b></dt>\n<dt>默认值: 5</dt>\n</dl>\n</td>\n<td width=\"20%\">\n<dl>\n<dt>无: 0</dt>\n<dt>完全透明: 1</dt>\n<dt>纯色: 2</dt>\n<dt>模糊: 3</dt>\n<dt>亚克力: 4</dt>\n<dt>现代化亚克力: 5</dt>\n<dt>亚克力背景层: 6</dt>\n<dt>云母背景层: 7</dt>\n<dt>云母变体背景层: 8</dt>\n</dl>\n</td>\n<td width=\"30%\">\n<dt>弹出控件使用的效果和背景类型。</dt>\n<br>\n<dt><b>Windows 10:  </b>不支持6、7、8，使用5等同于使用4</dt>\n<dt><b>Windows 11 22H2+:  </b>不支持2、3</dt>\n<b>Windows 11 (Build 22000 之前):  </b>不支持6、8\n<dt><b>注意: </b>使用6、7、8时，流利菜单动画将无法正确渲染</dt>\n</td>\n</tr>\n\n<tr>\n<td width=\"10%\">\n<dl>\n<dt><b>CornerType</b></dt>\n<dt>默认值: 3</dt>\n</dl>\n</td>\n<td width=\"20%\">\n<dl>\n<dt>不更改: 0</dt>\n<dt>直角: 1</dt>\n<dt>大圆角: 2</dt>\n<dt>小圆角: 3</dt>\n</dl>\n</td>\n<td width=\"30%\">\n<dt>弹出控件使用的边角类型。</dt>\n<br>\n<dt><b>Windows 10:  </b>不支持</dt>\n</td>\n</tr>\n\n<tr>\n<td width=\"10%\">\n<dl>\n<dt><b>EnableDropShadow</b></dt>\n<dt>默认值: 0</dt>\n</dl>\n</td>\n<td width=\"20%\">\n<dl>\n<dt>禁用: 0</dt>\n<dt>启用: 1</dt>\n</dl>\n</td>\n<td width=\"30%\">\n<dt>开启额外带有阴影的边框。</dt>\n<b>注意：</b>当且仅当EffectType为4或5，且CornerType为1时才可见\n</td>\n</tr>\n\n<tr>\n<td width=\"10%\">\n<dl>\n<dt><b>NoBorderColor</b></dt>\n<dt>默认值: 0</dt>\n</dl>\n</td>\n<td width=\"20%\">\n<dl>\n<dt>使用边框颜色: 0</dt>\n<dt>不使用边框颜色: 1</dt>\n</dl>\n</td>\n<td width=\"30%\">\n<dt>不渲染系统边框。</dt>\n<br>\n<b>Windows 10:  </b>仅支持移除弹出菜单的系统边框\n</td>\n</tr>\n\n<tr>\n<td width=\"10%\">\n<dl>\n<dt><b>EnableThemeColorization</b></dt>\n<dt>默认值: 0</dt>\n</dl>\n</td>\n<td width=\"20%\">\n<dl>\n<dt>禁用: 0</dt>\n<dt>启用: 1</dt>\n</dl>\n</td>\n<td width=\"30%\">\n<dt>使用你当前的主题色作为系统边框颜色</dt>\n<dt>DarkMode_BorderColor/LightMode_BorderColor值存在时，该选项将被忽略</dt>\n</td>\n</tr>\n\n<tr>\n<td width=\"10%\">\n<dl>\n<dt><b>DarkMode_BorderColor</b></dt>\n<dt>默认值: 主题定义的值</dt>\n</dl>\n</td>\n<td width=\"20%\">\n<dl>\n</dl>\n</td>\n<td width=\"30%\">\n<dt>深色模式下边框颜色 (AARRGGBB)。</dt>\n<br>\n<dt><b>Windows 10:  </b>仅支持覆盖弹出菜单的系统边框颜色</dt>\n<dt><b>Windows 11:  </b>CornerType不为1时，Alpha通道将总是被忽略</dt>\n</td>\n</tr>\n\n<tr>\n<td width=\"10%\">\n<dl>\n<dt><b>LightMode_BorderColor</b></dt>\n<dt>默认值: 主题定义的值</dt>\n</dl>\n</td>\n<td width=\"20%\">\n<dl>\n</dl>\n</td>\n<td width=\"30%\">\n<dt>浅色模式下边框颜色 (AARRGGBB)。</dt>\n<br>\n<dt><b>Windows 10:  </b>仅支持覆盖弹出菜单的系统边框颜色</dt>\n<dt><b>Windows 11:  </b>使用圆角时，Alpha通道将总是被忽略</dt>\n</td>\n</tr>\n\n<tr>\n<td width=\"10%\">\n<dl>\n<dt><b>DarkMode_GradientColor</b></dt>\n<dt>默认值: 0x412B2B2B</dt>\n</dl>\n</td>\n<td width=\"20%\">\n<dl>\n</dl>\n</td>\n<td width=\"30%\">\n<dt>深色模式下叠加色的颜色 (AARRGGBB)，被EffectType使用。</dt>\n<br>\n<b>注意：</b>当EffectType为6、7、8时，该值将会被忽略\n</td>\n</tr>\n\n<tr>\n<td width=\"10%\">\n<dl>\n<dt><b>LightMode_GradientColor</b></dt>\n<dt>默认值: 0x9EDDDDDD</dt>\n</dl>\n</td>\n<td width=\"20%\">\n<dl>\n</dl>\n</td>\n<td width=\"30%\">\n<dt>浅色模式下叠加色的颜色 (AARRGGBB)，被EffectType使用。</dt>\n<br>\n<b>注意：</b>当EffectType为6、7、8时，该值将会被忽略\n</td>\n</tr>\n\n<tr>\n<td width=\"10%\">\n<dl>\n<dt><b>Disabled</b></dt>\n<dt>默认值: 0</dt>\n</dl>\n</td>\n<td width=\"20%\">\n<dl>\n<dt>禁用: 0</dt>\n<dt>启用: 1</dt>\n</dl>\n</td>\n<td width=\"30%\">\n<dt>禁用TranslucentFlyouts。</dt>\n<b>弹出菜单和下拉控件的半透明和动画效果将消失。</b>\n</td>\n</tr>\n\n</table>\n\n## 读取顺序\n有时候部分的值可能未被创建，即尚不存在，此时TranslucentFlyouts将使用特定的读取顺序作为回退，尽可能读取到创建的值。   \n你可以使用此特性创建适用于多个用户的统一配置\n1. `HKEY_CURRENT_USER\\SOFTWARE\\TranslucentFlyouts\\` \n2. `HKEY_LOCAL_MACHINE\\SOFTWARE\\TranslucentFlyouts\\`\n3. 使用默认值",
-			"file": "Config/de-de/CONFIG.md",
-			"file_size": 5284,
-			"file_write_time": 133359758098951051,
-			"settings":
-			{
-				"buffer_size": 4184,
-				"encoding": "UTF-8",
-				"line_ending": "Windows"
-			},
-			"undo_stack":
-			[
-				[
-					9,
-					1,
-					"paste",
-					null,
-					"AgAAABcAAAAAAAAA9wAAAAAAAAAAAAAA9wAAAAAAAAD3AAAAAAAAAKQAAADnlLHkuo7lj6/phY3nva7nmoTlip/og73ovoPlpJrvvIzmiYDku6Xor6XpobXpnaLlj6/og73ml6Dms5Xlj4rml7blvpfliLDmm7TmlrDjgIIgIArlm6DmraTmiJHku6zlkbzlkIHlpKflrrbkuIDotbflrozlloTov5nku73mlofmoaPvvIzku7vkvZVQUumDveaYr+WPl+asoui/jueahO+8gQ",
-					"AQAAAAAAAAABAAAAUQAAAAAAAAAXAAAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					13,
-					1,
-					"paste",
-					null,
-					"AgAAAPsAAAAAAAAACgEAAAAAAAAAAAAACgEAAAAAAAAKAQAAAAAAAAwAAADlhbblroPor63oqIA",
-					"AQAAAAAAAAABAAAA/wAAAAAAAAD7AAAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					17,
-					1,
-					"left_delete",
-					null,
-					"AQAAABgBAAAAAAAAGAEAAAAAAAABAAAAZQ",
-					"AQAAAAAAAAABAAAAGQEAAAAAAAAZAQAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					19,
-					1,
-					"insert",
-					{
-						"characters": "z"
-					},
-					"AQAAABgBAAAAAAAAGQEAAAAAAAAAAAAA",
-					"AQAAAAAAAAABAAAAGAEAAAAAAAAYAQAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					21,
-					1,
-					"right_delete",
-					null,
-					"AQAAABkBAAAAAAAAGQEAAAAAAAABAAAAbg",
-					"AQAAAAAAAAABAAAAGQEAAAAAAAAZAQAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					23,
-					1,
-					"insert",
-					{
-						"characters": "h"
-					},
-					"AQAAABkBAAAAAAAAGgEAAAAAAAAAAAAA",
-					"AQAAAAAAAAABAAAAGQEAAAAAAAAZAQAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					26,
-					1,
-					"left_delete",
-					null,
-					"AQAAABsBAAAAAAAAGwEAAAAAAAABAAAAdQ",
-					"AQAAAAAAAAABAAAAHAEAAAAAAAAcAQAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					28,
-					1,
-					"right_delete",
-					null,
-					"AQAAABsBAAAAAAAAGwEAAAAAAAABAAAAcw",
-					"AQAAAAAAAAABAAAAGwEAAAAAAAAbAQAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					30,
-					1,
-					"insert",
-					{
-						"characters": "c"
-					},
-					"AQAAABsBAAAAAAAAHAEAAAAAAAAAAAAA",
-					"AQAAAAAAAAABAAAAGwEAAAAAAAAbAQAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					32,
-					1,
-					"insert",
-					{
-						"characters": "n"
-					},
-					"AQAAABwBAAAAAAAAHQEAAAAAAAAAAAAA",
-					"AQAAAAAAAAABAAAAHAEAAAAAAAAcAQAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					38,
-					1,
-					"insert",
-					{
-						"characters": "C"
-					},
-					"AgAAAAwBAAAAAAAADQEAAAAAAAAAAAAADQEAAAAAAAANAQAAAAAAAAcAAABFbmdsaXNo",
-					"AQAAAAAAAAABAAAADAEAAAAAAAATAQAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					40,
-					1,
-					"insert",
-					{
-						"characters": "h"
-					},
-					"AQAAAA0BAAAAAAAADgEAAAAAAAAAAAAA",
-					"AQAAAAAAAAABAAAADQEAAAAAAAANAQAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					42,
-					1,
-					"insert",
-					{
-						"characters": "i"
-					},
-					"AQAAAA4BAAAAAAAADwEAAAAAAAAAAAAA",
-					"AQAAAAAAAAABAAAADgEAAAAAAAAOAQAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					44,
-					1,
-					"insert",
-					{
-						"characters": "n"
-					},
-					"AQAAAA8BAAAAAAAAEAEAAAAAAAAAAAAA",
-					"AQAAAAAAAAABAAAADwEAAAAAAAAPAQAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					46,
-					1,
-					"insert",
-					{
-						"characters": "e"
-					},
-					"AQAAABABAAAAAAAAEQEAAAAAAAAAAAAA",
-					"AQAAAAAAAAABAAAAEAEAAAAAAAAQAQAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					48,
-					1,
-					"insert",
-					{
-						"characters": "s"
-					},
-					"AQAAABEBAAAAAAAAEgEAAAAAAAAAAAAA",
-					"AQAAAAAAAAABAAAAEQEAAAAAAAARAQAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					50,
-					1,
-					"insert",
-					{
-						"characters": "e"
-					},
-					"AQAAABIBAAAAAAAAEwEAAAAAAAAAAAAA",
-					"AQAAAAAAAAABAAAAEgEAAAAAAAASAQAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					66,
-					1,
-					"paste",
-					null,
-					"AgAAADEBAAAAAAAAPAEAAAAAAAAAAAAAPAEAAAAAAAA8AQAAAAAAAAwAAADnm67moIfniYjmnKw",
-					"AQAAAAAAAAABAAAANQEAAAAAAAAxAQAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					73,
-					1,
-					"left_delete",
-					null,
-					"AQAAADwBAAAAAAAAPAEAAAAAAAADAAAA77ya",
-					"AQAAAAAAAAABAAAAPQEAAAAAAAA9AQAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					75,
-					1,
-					"insert",
-					{
-						"characters": ":"
-					},
-					"AQAAADwBAAAAAAAAPQEAAAAAAAAAAAAA",
-					"AQAAAAAAAAABAAAAPAEAAAAAAAA8AQAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					81,
-					1,
-					"insert",
-					{
-						"characters": "G"
-					},
-					"AgAAAC4BAAAAAAAALwEAAAAAAAAAAAAALwEAAAAAAAAvAQAAAAAAAAYAAADmj4/ov7A",
-					"AQAAAAAAAAABAAAALgEAAAAAAAAwAQAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					83,
-					1,
-					"insert",
-					{
-						"characters": "u"
-					},
-					"AQAAAC8BAAAAAAAAMAEAAAAAAAAAAAAA",
-					"AQAAAAAAAAABAAAALwEAAAAAAAAvAQAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					85,
-					1,
-					"insert",
-					{
-						"characters": "i"
-					},
-					"AQAAADABAAAAAAAAMQEAAAAAAAAAAAAA",
-					"AQAAAAAAAAABAAAAMAEAAAAAAAAwAQAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					87,
-					1,
-					"insert",
-					{
-						"characters": "ds"
-					},
-					"AgAAADEBAAAAAAAAMgEAAAAAAAAAAAAAMgEAAAAAAAAzAQAAAAAAAAAAAAA",
-					"AQAAAAAAAAABAAAAMQEAAAAAAAAxAQAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					90,
-					1,
-					"left_delete",
-					null,
-					"AQAAADIBAAAAAAAAMgEAAAAAAAABAAAAcw",
-					"AQAAAAAAAAABAAAAMwEAAAAAAAAzAQAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					92,
-					1,
-					"insert",
-					{
-						"characters": "é"
-					},
-					"AQAAADIBAAAAAAAAMwEAAAAAAAAAAAAA",
-					"AQAAAAAAAAABAAAAMgEAAAAAAAAyAQAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					94,
-					1,
-					"left_delete",
-					null,
-					"AQAAADIBAAAAAAAAMgEAAAAAAAACAAAAw6k",
-					"AQAAAAAAAAABAAAAMwEAAAAAAAAzAQAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					96,
-					1,
-					"insert",
-					{
-						"characters": "4"
-					},
-					"AQAAADIBAAAAAAAAMwEAAAAAAAAAAAAA",
-					"AQAAAAAAAAABAAAAMgEAAAAAAAAyAQAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					98,
-					1,
-					"insert",
-					{
-						"characters": "e"
-					},
-					"AQAAADMBAAAAAAAANAEAAAAAAAAAAAAA",
-					"AQAAAAAAAAABAAAAMwEAAAAAAAAzAQAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					100,
-					1,
-					"left_delete",
-					null,
-					"AQAAADMBAAAAAAAAMwEAAAAAAAABAAAAZQ",
-					"AQAAAAAAAAABAAAANAEAAAAAAAA0AQAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					102,
-					1,
-					"left_delete",
-					null,
-					"AQAAADIBAAAAAAAAMgEAAAAAAAABAAAANA",
-					"AQAAAAAAAAABAAAAMwEAAAAAAAAzAQAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					104,
-					1,
-					"insert",
-					{
-						"characters": "e"
-					},
-					"AQAAADIBAAAAAAAAMwEAAAAAAAAAAAAA",
-					"AQAAAAAAAAABAAAAMgEAAAAAAAAyAQAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					110,
-					1,
-					"paste",
-					null,
-					"BAAAAF0BAAAAAAAAXQEAAAAAAAB2AAAA5LiN5pSv5oyB5pu05pep55qE54mI5pys77yM5a+55LqO5pu05paw55qE54mI5pys6ICM6KiA77yM6K+l6aG16Z2i5Y+K5a2Q6aG16Z2i5omA5pi+56S655qE5YaF5a655Y+v6IO95bey57uP6L+H5pe244CCIF0BAAAAAAAA+AEAAAAAAAAAAAAAVAEAAAAAAABUAQAAAAAAAAcAAADms6jmhI86VAEAAAAAAABaAQAAAAAAAAAAAAA",
-					"AQAAAAAAAAACAAAAVwEAAAAAAABUAQAAAAAAAAAAAAAAAPC/hQEAAAAAAABdAQAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					120,
-					1,
-					"paste",
-					null,
-					"AgAAAP8BAAAAAAAAtAIAAAAAAAAAAAAAtAIAAAAAAAC0AgAAAAAAAIUAAADlvZPliY3niYjmnKxUcmFuc2x1Y2VudEZseW91dHPkvb/nlKjms6jlhozooajlgqjlrZjphY3nva7kv6Hmga/jgIIgICAK5a2Y5YKo5L2N572u77yaYEhLRVlfQ1VSUkVOVF9VU0VSXFNPRlRXQVJFXFRyYW5zbHVjZW50Rmx5b3V0c1xg",
-					"AQAAAAAAAAABAAAAWgIAAAAAAAD/AQAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					124,
-					1,
-					"insert",
-					{
-						"characters": "~"
-					},
-					"AQAAAIMCAAAAAAAAhAIAAAAAAAAAAAAA",
-					"AQAAAAAAAAABAAAAgwIAAAAAAACDAgAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					126,
-					1,
-					"left_delete",
-					null,
-					"AQAAAIMCAAAAAAAAgwIAAAAAAAABAAAAfg",
-					"AQAAAAAAAAABAAAAhAIAAAAAAACEAgAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					128,
-					1,
-					"insert",
-					{
-						"characters": "'"
-					},
-					"AQAAAIMCAAAAAAAAhAIAAAAAAAAAAAAA",
-					"AQAAAAAAAAABAAAAgwIAAAAAAACDAgAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					130,
-					1,
-					"left_delete",
-					null,
-					"AQAAAIMCAAAAAAAAgwIAAAAAAAABAAAAJw",
-					"AQAAAAAAAAABAAAAhAIAAAAAAACEAgAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					132,
-					1,
-					"insert",
-					{
-						"characters": "´´"
-					},
-					"AgAAAIMCAAAAAAAAhAIAAAAAAAAAAAAAhAIAAAAAAACFAgAAAAAAAAAAAAA",
-					"AQAAAAAAAAABAAAAgwIAAAAAAACDAgAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					135,
-					1,
-					"left_delete",
-					null,
-					"AQAAAIQCAAAAAAAAhAIAAAAAAAACAAAAwrQ",
-					"AQAAAAAAAAABAAAAhQIAAAAAAACFAgAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					137,
-					1,
-					"left_delete",
-					null,
-					"AQAAAIMCAAAAAAAAgwIAAAAAAAACAAAAwrQ",
-					"AQAAAAAAAAABAAAAhAIAAAAAAACEAgAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					139,
-					1,
-					"insert",
-					{
-						"characters": "``"
-					},
-					"AgAAAIMCAAAAAAAAhAIAAAAAAAAAAAAAhAIAAAAAAACFAgAAAAAAAAAAAAA",
-					"AQAAAAAAAAABAAAAgwIAAAAAAACDAgAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					142,
-					1,
-					"left_delete",
-					null,
-					"AQAAAIQCAAAAAAAAhAIAAAAAAAABAAAAYA",
-					"AQAAAAAAAAABAAAAhQIAAAAAAACFAgAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					146,
-					1,
-					"left_delete",
-					null,
-					"AQAAALcCAAAAAAAAtwIAAAAAAAABAAAAIA",
-					"AQAAAAAAAAABAAAAuAIAAAAAAAC4AgAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					148,
-					1,
-					"left_delete",
-					null,
-					"AQAAALYCAAAAAAAAtgIAAAAAAAABAAAAIA",
-					"AQAAAAAAAAABAAAAtwIAAAAAAAC3AgAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					150,
-					1,
-					"left_delete",
-					null,
-					"AQAAALUCAAAAAAAAtQIAAAAAAAABAAAAIA",
-					"AQAAAAAAAAABAAAAtgIAAAAAAAC2AgAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					152,
-					1,
-					"insert_snippet",
-					{
-						"contents": "`$0`"
-					},
-					"AQAAALUCAAAAAAAAtwIAAAAAAAAAAAAA",
-					"AQAAAAAAAAABAAAAtQIAAAAAAAC1AgAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					155,
-					1,
-					"left_delete",
-					null,
-					"AQAAALYCAAAAAAAAtgIAAAAAAAABAAAAYA",
-					"AQAAAAAAAAABAAAAtwIAAAAAAAC3AgAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					159,
-					1,
-					"paste",
-					null,
-					"AgAAALcCAAAAAAAAlgMAAAAAAAAAAAAAlgMAAAAAAACWAwAAAAAAAJEAAADov5nph4znmoTlgLznlKjkuo7lrprkuYnlvLnlh7roj5zljZXlkozkuIvmi4nmjqfku7bnmoTpgJrnlKjlpJbop4LvvIzlrZDpobnkuK3kuI7kuYvnm7jlkIznmoTlgLzlsIbooqvkvJjlhYjor7vlj5bjgIIgICAK5pyJ5YWz55qE5a2Q6aG577yM6KeB77ya",
-					"AQAAAAAAAAABAAAA6gIAAAAAAAC3AgAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					163,
-					1,
-					"insert",
-					{
-						"characters": "\n"
-					},
-					"AQAAALYCAAAAAAAAtwIAAAAAAAAAAAAA",
-					"AQAAAAAAAAABAAAAtgIAAAAAAAC2AgAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					166,
-					1,
-					"insert",
-					{
-						"characters": "\n"
-					},
-					"AQAAAJgDAAAAAAAAmQMAAAAAAAAAAAAA",
-					"AQAAAAAAAAABAAAAmAMAAAAAAACYAwAAAAAAAAAAAAAAAAAA"
-				],
-				[
-					169,
-					1,
-					"insert",
-					{
-						"characters": "\n"
-					},
-					"AQAAANsDAAAAAAAA3AMAAAAAAAAAAAAA",
-					"AQAAAAAAAAABAAAA2wMAAAAAAADbAwAAAAAAAAAAAAAAAAAA"
-				],
-				[
-					173,
-					1,
-					"paste",
-					null,
-					"AgAAAN8DAAAAAAAA6AMAAAAAAAAAAAAA6AMAAAAAAADoAwAAAAAAAAsAAADlgLwK57G75Z6LOg",
-					"AQAAAAAAAAABAAAA5AMAAAAAAADfAwAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					187,
-					1,
-					"right_delete",
-					null,
-					"AQAAAAgEAAAAAAAACAQAAAAAAAADAAAA5ZCN",
-					"AQAAAAAAAAABAAAACAQAAAAAAAAIBAAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					189,
-					1,
-					"right_delete",
-					null,
-					"AQAAAAgEAAAAAAAACAQAAAAAAAADAAAA56ew",
-					"AQAAAAAAAAABAAAACAQAAAAAAAAIBAAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					192,
-					1,
-					"right_delete",
-					null,
-					"AQAAABIEAAAAAAAAEgQAAAAAAAADAAAA5Y+v",
-					"AQAAAAAAAAABAAAAEgQAAAAAAAASBAAAAAAAAAAAAAAAAEJA"
-				],
-				[
-					194,
-					1,
-					"right_delete",
-					null,
-					"AQAAABIEAAAAAAAAEgQAAAAAAAADAAAA6KKr",
-					"AQAAAAAAAAABAAAAEgQAAAAAAAASBAAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					196,
-					1,
-					"right_delete",
-					null,
-					"AQAAABIEAAAAAAAAEgQAAAAAAAADAAAA5o6l",
-					"AQAAAAAAAAABAAAAEgQAAAAAAAASBAAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					198,
-					1,
-					"right_delete",
-					null,
-					"AQAAABIEAAAAAAAAEgQAAAAAAAADAAAA5Y+X",
-					"AQAAAAAAAAABAAAAEgQAAAAAAAASBAAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					200,
-					1,
-					"right_delete",
-					null,
-					"AQAAABIEAAAAAAAAEgQAAAAAAAADAAAA55qE",
-					"AQAAAAAAAAABAAAAEgQAAAAAAAASBAAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					202,
-					1,
-					"right_delete",
-					null,
-					"AQAAABIEAAAAAAAAEgQAAAAAAAADAAAA5YC8",
-					"AQAAAAAAAAABAAAAEgQAAAAAAAASBAAAAAAAAAAAAAAAAPC/"
-				],
-				[
-					205,
-					1,
-					"right_delete",
-					null,
-					"AQAAABwEAAAAAAAAHAQAAAAAAAADAAAA5o+P",
-					"AQAAAAAAAAABAAAAHAQAAAAAAAAcBAAAAAAAAAAAAAAAAEJA"
-				],
-				[
-					207,
-					1,
-					"right_delete",
-					null,
-					"AQAAABwEAAAAAAAAHAQAAAAAAAADAAAA6L+w",
-					"AQAAAAAAAAABAAAAHAQAAAAAAAAcBAAAAAAAAAAAAAAAAPC/"
-				]
-			]
-		},
-		{
-			"contents": "Package Control Messages\n========================\n\nPandoc\n------\n\n  You will need a Pandoc executable for this module to work.\n  \n  http://johnmacfarlane.net/pandoc/installing.html\n  \n  You can configure the path to pandoc using the setting key `pandoc-path`.\n  \n  Visit the project page for more info, report bugs, etc.\n  \n  https://github.com/tbfisher/sublimetext-Pandoc\n",
-			"settings":
-			{
-				"buffer_size": 373,
-				"line_ending": "Windows",
-				"name": "Package Control Messages",
-				"read_only": true,
-				"scratch": true
-			},
-			"undo_stack":
-			[
-				[
-					1,
-					1,
-					"insert",
-					{
-						"characters": "Package Control Messages\n========================\n\nPandoc\n------\n\n  You will need a Pandoc executable for this module to work.\n  \n  http://johnmacfarlane.net/pandoc/installing.html\n  \n  You can configure the path to pandoc using the setting key `pandoc-path`.\n  \n  Visit the project page for more info, report bugs, etc.\n  \n  https://github.com/tbfisher/sublimetext-Pandoc\n"
-					},
-					"HAAAAAAAAAAAAAAAGAAAAAAAAAAAAAAAGAAAAAAAAAAZAAAAAAAAAAAAAAAZAAAAAAAAADEAAAAAAAAAAAAAADEAAAAAAAAAMgAAAAAAAAAAAAAAMgAAAAAAAAAzAAAAAAAAAAAAAAAzAAAAAAAAADkAAAAAAAAAAAAAADkAAAAAAAAAOgAAAAAAAAAAAAAAOgAAAAAAAABAAAAAAAAAAAAAAABAAAAAAAAAAEEAAAAAAAAAAAAAAEEAAAAAAAAAQgAAAAAAAAAAAAAAQgAAAAAAAAB+AAAAAAAAAAAAAAB+AAAAAAAAAH8AAAAAAAAAAAAAAH8AAAAAAAAAgQAAAAAAAAAAAAAAgQAAAAAAAACCAAAAAAAAAAAAAACCAAAAAAAAALQAAAAAAAAAAAAAALQAAAAAAAAAtQAAAAAAAAAAAAAAtQAAAAAAAAC3AAAAAAAAAAAAAAC3AAAAAAAAALgAAAAAAAAAAAAAALgAAAAAAAAAAwEAAAAAAAAAAAAAAwEAAAAAAAAEAQAAAAAAAAAAAAAEAQAAAAAAAAYBAAAAAAAAAAAAAAYBAAAAAAAABwEAAAAAAAAAAAAABwEAAAAAAABAAQAAAAAAAAAAAABAAQAAAAAAAEEBAAAAAAAAAAAAAEEBAAAAAAAAQwEAAAAAAAAAAAAAQwEAAAAAAABEAQAAAAAAAAAAAABEAQAAAAAAAHQBAAAAAAAAAAAAAHQBAAAAAAAAdQEAAAAAAAAAAAAA",
-					"AQAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPC/"
-				]
-			]
-		},
-		{
-			"contents": "名称\t可被接受的值\t描述\nEffectType\n默认值: 5\n无: 0\n完全透明: 1\n纯色: 2\n模糊: 3\n亚克力: 4\n现代化亚克力: 5\n亚克力背景层: 6\n云母背景层: 7\n云母变体背景层: 8\n弹出控件使用的效果和背景类型。\n\nWindows 10:  不支持6、7、8，使用5等同于使用4\nWindows 11 22H2+:  不支持2、3\nWindows 11 (Build 22000 之前):  不支持6、8\n注意: 使用6、7、8时，流利菜单动画将无法正确渲染\nCornerType\n默认值: 3\n不更改: 0\n直角: 1\n大圆角: 2\n小圆角: 3\n弹出控件使用的边角类型。\n\nWindows 10:  不支持\nEnableDropShadow\n默认值: 0\n禁用: 0\n启用: 1\n开启额外带有阴影的边框。\n注意：当且仅当EffectType为4或5，且CornerType为1时才可见\nNoBorderColor\n默认值: 0\n使用边框颜色: 0\n不使用边框颜色: 1\n不渲染系统边框。\n\nWindows 10:  仅支持移除弹出菜单的系统边框\nEnableThemeColorization\n默认值: 0\n禁用: 0\n启用: 1\n使用你当前的主题色作为系统边框颜色\nDarkMode_BorderColor/LightMode_BorderColor值存在时，该选项将被忽略\nDarkMode_BorderColor\n默认值: 主题定义的值\n深色模式下边框颜色 (AARRGGBB)。\n\nWindows 10:  仅支持覆盖弹出菜单的系统边框颜色\nWindows 11:  CornerType不为1时，Alpha通道将总是被忽略\nLightMode_BorderColor\n默认值: 主题定义的值\n浅色模式下边框颜色 (AARRGGBB)。\n\nWindows 10:  仅支持覆盖弹出菜单的系统边框颜色\nWindows 11:  使用圆角时，Alpha通道将总是被忽略\nDarkMode_GradientColor\n默认值: 0x412B2B2B\n深色模式下叠加色的颜色 (AARRGGBB)，被EffectType使用。\n\n注意：当EffectType为6、7、8时，该值将会被忽略\nLightMode_GradientColor\n默认值: 0x9EDDDDDD\n浅色模式下叠加色的颜色 (AARRGGBB)，被EffectType使用。\n\n注意：当EffectType为6、7、8时，该值将会被忽略\nDisabled\n默认值: 0\n禁用: 0\n启用: 1\n禁用TranslucentFlyouts。\n弹出菜单和下拉控件的半透明和动画效果将消失。",
-			"settings":
-			{
-				"buffer_size": 1140,
-				"line_ending": "Windows",
-				"name": "名称可被接受的值描述"
-			},
-			"undo_stack":
-			[
-				[
-					1,
-					1,
-					"paste",
-					null,
-					"AQAAAAAAAAAAAAAAdAQAAAAAAAAAAAAA",
-					"AQAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPC/"
-				]
-			]
-		},
-		{
-			"contents": "Name Zulässige Werte Beschreibung\nEffektTyp\nVoreinstellung: 5\nKeine: 0\nVollständig transparent: 1\nEinfarbig: 2\nUnscharf: 3\nAcryl: 4\nModernes Acryl: 5\nAcryl-Hintergrundschicht: 6\nGlimmer-Hintergrundebene: 7\nGlimmer-Variante Hintergrundebene: 8\nDie Popup-Steuerung verwendet den Effekt- und Hintergrundtyp.\n\nWindows 10: 6, 7, 8 werden nicht unterstützt, die Verwendung von 5 entspricht der Verwendung von 4\nWindows 11 22H2+: 2, 3 werden nicht unterstützt.\nWindows 11 (vor Build 22000): 6, 8 werden nicht unterstützt\nHinweis: Fließende Menüanimationen werden bei Verwendung von 6, 7 oder 8 nicht korrekt wiedergegeben.\nEckeTyp\nVoreinstellung: 3\nKeine Änderung: 0\nRechtwinklig: 1\nGroße abgerundete Ecken: 2\nKleine abgerundete Ecken: 3\nDie Art der Ecken, die von dem Popup-Steuerelement verwendet werden.\n\nWindows 10: Nicht unterstützt\nEnableDropShadow\nVoreinstellung: 0\nDeaktivieren: 0\nAktivieren: 1\nAktiviert einen zusätzlichen Rahmen mit Schlagschatten.\nHinweis: Sichtbar, wenn und nur wenn EffectType 4 oder 5 und CornerType 1 ist.\nNoBorderColor\nVoreinstellung: 0\nRahmenfarbe verwenden: 0\nKeineRahmenFarbe: 1\nStellt den Systemrand nicht dar.\n\nWindows 10: Unterstützt nur das Entfernen des Systemrahmens von Popup-Menüs.\nEnableThemeColourization\nVoreinstellung: 0\nDeaktivieren: 0\nAktivieren: 1\nVerwendet die Farbe des aktuellen Themas als Farbe für den Systemrahmen.\nDiese Option wird ignoriert, wenn der Wert DarkMode_BorderColor/LightMode_BorderColor vorhanden ist.\nDarkMode_BorderColor\nStandard: Theme-definierter Wert\nDarkMode_BorderColor (AARRGGBB).\n\nWindows 10: Es wird nur die System-Rahmenfarbe zum Überschreiben von Popup-Menüs unterstützt.\nWindows 11: Der Alphakanal wird immer ignoriert, wenn CornerType nicht 1 ist.\nLightMode_BorderColor\nStandard: Themenspezifischer Wert\nFarbe des Rahmens im hellen Modus (AARRGGBB).\n\nWindows 10: Unterstützt nur die System-Rahmenfarbe zum Überschreiben von Popup-Menüs\nWindows 11: Der Alphakanal wird immer ignoriert, wenn abgerundete Ecken verwendet werden.\nDarkMode_GradientColor\nStandardwert: 0x412B2B2B\nDie Farbe der Überlagerungsfarbe (AARRGGBB) im dunklen Modus, die von EffectType verwendet wird.\n\nHinweis: Dieser Wert wird ignoriert, wenn EffectType 6, 7 oder 8 ist.\nLightMode_GradientColor\nStandardwert: 0x9EDDDDDD\nDie Farbe des Farbverlaufs (AARRGGBB) im hellen Modus, der von EffectType verwendet wird.\n\nHinweis: Dieser Wert wird ignoriert, wenn EffectType 6, 7 oder 8 ist.\nDeaktiviert\nVoreinstellung: 0\nDeaktiviert: 0\nAktiviert: 1\nDeaktiviert TranslucentFlyouts.\nHalbtransparente und animierte Effekte von Popup-Menüs und Dropdown-Steuerelementen werden ausgeblendet.",
-			"settings":
-			{
-				"buffer_size": 2624,
-				"line_ending": "Windows",
-				"name": "Name Zulässige Werte Beschreibung"
-			},
-			"undo_stack":
-			[
-				[
-					1,
-					1,
-					"paste",
-					null,
-					"AQAAAAAAAAAAAAAAQAoAAAAAAAAAAAAA",
-					"AQAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPC/"
-				]
-			]
-		}
 	],
 	"build_system": "",
 	"build_system_choices":
@@ -762,6 +123,30 @@
 		"last_filter": "",
 		"selected_items":
 		[
+			[
+				"mar",
+				"Markdown Preview: Preview in Browser"
+			],
+			[
+				"pan",
+				"Pandoc"
+			],
+			[
+				"markdo",
+				"Markdown Preview: Preview in Browser"
+			],
+			[
+				"markd",
+				"Markdown Preview: Preview in Browser"
+			],
+			[
+				"pand",
+				"Pandoc"
+			],
+			[
+				"mark",
+				"Markdown Preview: Preview in Browser"
+			],
 			[
 				"pandoc",
 				"Pandoc"
@@ -1249,30 +634,6 @@
 			[
 				"package ",
 				"Package Control: Install Package"
-			],
-			[
-				"list",
-				"Package Control: List Packages"
-			],
-			[
-				"A File Icon Settings",
-				"Preferences: A File Icon Settings"
-			],
-			[
-				"a ",
-				"A File Icon: Revert to a Freshly Installed State"
-			],
-			[
-				"paca",
-				"Package Control: Remove Package"
-			],
-			[
-				"Package Control: u",
-				"Package Control: Upgrade/Overwrite All Packages"
-			],
-			[
-				"Package Control: up",
-				"Package Control: Upgrade/Overwrite All Packages"
 			]
 		],
 		"width": 0.0
@@ -1316,13 +677,49 @@
 		"/Y/github/TranslucentFlyouts",
 		"/Y/github/TranslucentFlyouts/Config",
 		"/Y/github/TranslucentFlyouts/Config/de-de",
-		"/Y/github/TranslucentFlyouts/Config/zh-cn"
+		"/Y/github/TranslucentFlyouts/Config/de-de/DropDown",
+		"/Y/github/TranslucentFlyouts/Config/de-de/Menu",
+		"/Y/github/TranslucentFlyouts/Config/de-de/Menu/Animation",
+		"/Y/github/TranslucentFlyouts/Config/de-de/Menu/CustomRendering",
+		"/Y/github/TranslucentFlyouts/Config/de-de/Menu/DisabledHot",
+		"/Y/github/TranslucentFlyouts/Config/de-de/Menu/Focusing",
+		"/Y/github/TranslucentFlyouts/Config/de-de/Menu/Hot",
+		"/Y/github/TranslucentFlyouts/Config/de-de/Menu/Separator",
+		"/Y/github/TranslucentFlyouts/Config/zh-cn",
+		"/Y/github/TranslucentFlyouts/Config/zh-cn/DropDown",
+		"/Y/github/TranslucentFlyouts/Config/zh-cn/Menu",
+		"/Y/github/TranslucentFlyouts/Config/zh-cn/Menu/Animation",
+		"/Y/github/TranslucentFlyouts/Config/zh-cn/Menu/CustomRendering",
+		"/Y/github/TranslucentFlyouts/Config/zh-cn/Menu/DisabledHot",
+		"/Y/github/TranslucentFlyouts/Config/zh-cn/Menu/Focusing",
+		"/Y/github/TranslucentFlyouts/Config/zh-cn/Menu/Hot",
+		"/Y/github/TranslucentFlyouts/Config/zh-cn/Menu/Separator"
 	],
 	"file_history":
 	[
+		"/Y/github/TranslucentFlyouts/Config/zh-cn/CONFIG.md",
+		"/Y/github/TranslucentFlyouts/Config/de-de/Menu/CONFIG.md",
+		"/Y/github/TranslucentFlyouts/Config/de-de/CONFIG.md",
+		"/Y/github/TranslucentFlyouts/Config/zh-cn/Menu/CONFIG.md",
+		"/Y/github/TranslucentFlyouts/Config/zh-cn/DropDown/CONFIG.md",
+		"/Y/github/TranslucentFlyouts/Config/de-de/DropDown/CONFIG.md",
+		"/Y/github/TranslucentFlyouts/Config/zh-cn/Menu/Animation/CONFIG.md",
+		"/Y/github/TranslucentFlyouts/Config/de-de/Menu/Animation/CONFIG.md",
+		"/Y/github/TranslucentFlyouts/Config/zh-cn/Menu/CustomRendering/CONFIG.md",
+		"/Y/github/TranslucentFlyouts/Config/de-de/Menu/CustomRendering/CONFIG.md",
+		"/Y/github/TranslucentFlyouts/Config/de-de/Menu/DisabledHot/CONFIG.md",
+		"/Y/github/TranslucentFlyouts/Config/zh-cn/Menu/DisabledHot/CONFIG.md",
+		"/Y/github/TranslucentFlyouts/Config/zh-cn/Menu/Focusing/CONFIG.md",
+		"/Y/github/TranslucentFlyouts/Config/de-de/Menu/Focusing/CONFIG.md",
+		"/Y/github/TranslucentFlyouts/Config/zh-cn/Menu/Hot/CONFIG.md",
+		"/Y/github/TranslucentFlyouts/Config/de-de/Menu/Hot/CONFIG.md",
+		"/Y/github/TranslucentFlyouts/Config/zh-cn/Menu/Separator/CONFIG.md",
+		"/Y/github/TranslucentFlyouts/Config/de-de/Menu/Separator/CONFIG.md",
+		"/C/Users/KaYo Shin/Desktop/cfe7.sh",
+		"/C/Users/KaYo Shin/Desktop/LA7.sh",
+		"/G/root.appbox/Sublime 4/Data/Packages/User/Pandoc.sublime-settings",
 		"/G/root.appbox/UniExtract/docs/FORMATS.md",
 		"/G/root.appbox/Sublime 4/Data/Packages/Pandoc/Pandoc.sublime-settings",
-		"/G/root.appbox/Sublime 4/Data/Packages/User/Pandoc.sublime-settings",
 		"/Y/github/TranslucentFlyouts/TranslucentFlyouts2.sublime-project",
 		"/C/Users/KaYo Shin/Desktop/run py",
 		"/V/AppLocal.md",
@@ -1365,8 +762,6 @@
 		"/G/root.appbox/Chrome/_devtools/stylesheet%3A/tellonym.me/profile/settings/style",
 		"/C/Windows/System32/drivers/etc/hosts",
 		"/C/Users/KaYo Shin/AppData/Local/Temp/TC4Shell/O0000/AndroidManifest.xml",
-		"/C/Users/KaYo Shin/Desktop/cfe7.sh",
-		"/C/Users/KaYo Shin/Desktop/LA7.sh",
 		"/V/storage.Ubuntu.x02/Ubuntu.txt",
 		"/V/storage.Ubuntu.x02/iommu kernel.txt",
 		"/V/storage.Ubuntu.x02/Neues Textdokument.txt",
@@ -1429,25 +824,7 @@
 		"/G/Downloads/locale.mo",
 		"/C/Program Files (x86)/Steam/steamui/skins/Fluent For Steam/libraryroot.custom.css",
 		"/C/Users/KaYo Shin/Desktop/TRANSPARENT/Transparent.CURTAINSTYLE",
-		"/V/storage.x02.media.versalife/Design Factory/Ten Design Engine/_Soft 7 2021/Transparent_Blur_Aero (Bearbeitet)/Transparent_Blur_Aero (Bearbeitet).CURTAINSTYLE",
-		"/C/Users/KaYo Shin/Desktop/THIS FILE NEEDS TRANSLATION, ANY PR IS WELCOMED!!!",
-		"/C/Users/KaYo Shin/AppData/Local/Temp/TC4Shell/O0002/README.md",
-		"/C/Users/KaYo Shin/AppData/Local/Temp/TC4Shell/O0003/setup.sh",
-		"/Y/github/synomin7/CHANGELOG",
-		"/C/Users/KaYo Shin/AppData/Local/Temp/TC4Shell/O0001/README.md",
-		"/G/root.appbox/WinSCP/logs/root.log",
-		"/Y/github/synomin7/README_en.md",
-		"/Y/github/synomin7/README.md",
-		"/G/Virtual Machines/Shared - DL/713/webmin/README_en.md",
-		"/G/root.appbox/RipMe/Portable 4K Stogram 64-bit/App/DefaultData/Settings/4KSto.reg",
-		"/G/root.appbox/RipMe/Portable 4K Stogram 64-bit/Data/PortableApps.comLauncherRuntimeData-4KStogramPortable.ini",
-		"/G/root.appbox/RipMe/Portable 4K Stogram 64-bit/Data/settings/4KStogramSettings.ini",
-		"/G/root.appbox/RipMe/Portable 4K Stogram 64-bit/Data/settings/4K.reg",
-		"/G/root.appbox/RipMe/Portable 4K Stogram 64-bit/App/AppInfo/AppInfo.ini",
-		"/G/root.appbox/RipMe/Portable 4K Stogram 64-bit/App/AppInfo/Launcher/4KStogramPortable.ini",
-		"/G/root.appbox/RipMe/Portable 4K Stogram 64-bit/App/AppInfo/Launcher/4K Stogram.ini",
-		"/C/Users/KaYo Shin/Desktop/runas.cmd",
-		"/G/Virtual Machines/unlocker.md"
+		"/V/storage.x02.media.versalife/Design Factory/Ten Design Engine/_Soft 7 2021/Transparent_Blur_Aero (Bearbeitet)/Transparent_Blur_Aero (Bearbeitet).CURTAINSTYLE"
 	],
 	"find":
 	{
@@ -1465,6 +842,11 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"Lichtmodus",
+			"<dt><b>",
+			"“",
+			"„",
+			"\\",
 			"clrFontABGR",
 			"OnClickClrFont",
 			"clrFontABGR",
@@ -1523,6 +905,9 @@
 		"regex": false,
 		"replace_history":
 		[
+			"Modus \"Hell\"",
+			"`",
+			"/",
 			"\n",
 			"\\",
 			"0c0c0c"
@@ -1540,380 +925,6 @@
 		{
 			"sheets":
 			[
-				{
-					"buffer": 0,
-					"file": "Config/de-de/CONFIG.md",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 4184,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								0,
-								4184
-							]
-						],
-						"settings":
-						{
-							"bracket_highlighter.busy": false,
-							"bracket_highlighter.locations":
-							{
-								"close":
-								{
-								},
-								"icon":
-								{
-								},
-								"open":
-								{
-								},
-								"unmatched":
-								{
-								}
-							},
-							"bracket_highlighter.regions":
-							[
-								"bh_curly",
-								"bh_curly_center",
-								"bh_curly_open",
-								"bh_curly_close",
-								"bh_curly_content",
-								"bh_double_quote",
-								"bh_double_quote_center",
-								"bh_double_quote_open",
-								"bh_double_quote_close",
-								"bh_double_quote_content",
-								"bh_c_define",
-								"bh_c_define_center",
-								"bh_c_define_open",
-								"bh_c_define_close",
-								"bh_c_define_content",
-								"bh_single_quote",
-								"bh_single_quote_center",
-								"bh_single_quote_open",
-								"bh_single_quote_close",
-								"bh_single_quote_content",
-								"bh_default",
-								"bh_default_center",
-								"bh_default_open",
-								"bh_default_close",
-								"bh_default_content",
-								"bh_unmatched",
-								"bh_unmatched_center",
-								"bh_unmatched_open",
-								"bh_unmatched_close",
-								"bh_unmatched_content",
-								"bh_tag",
-								"bh_tag_center",
-								"bh_tag_open",
-								"bh_tag_close",
-								"bh_tag_content",
-								"bh_round",
-								"bh_round_center",
-								"bh_round_open",
-								"bh_round_close",
-								"bh_round_content",
-								"bh_regex",
-								"bh_regex_center",
-								"bh_regex_open",
-								"bh_regex_close",
-								"bh_regex_content",
-								"bh_square",
-								"bh_square_center",
-								"bh_square_open",
-								"bh_square_close",
-								"bh_square_content",
-								"bh_angle",
-								"bh_angle_center",
-								"bh_angle_open",
-								"bh_angle_close",
-								"bh_angle_content"
-							],
-							"bs_sintax": "markdown",
-							"buffer_scroll_name": "d617f1c0",
-							"origPos":
-							[
-								0.0,
-								0.0
-							],
-							"parser": "github",
-							"spell_check": false,
-							"syncScroll": false,
-							"syntax": "Packages/Markdown/Markdown.sublime-syntax",
-							"target": "browser"
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 1,
-					"stack_multiselect": false,
-					"type": "text"
-				},
-				{
-					"buffer": 1,
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 373,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								373,
-								373
-							]
-						],
-						"settings":
-						{
-							"auto_indent": false,
-							"bracket_highlighter.busy": false,
-							"bs_sintax": "plain text",
-							"default_dir": "Y:\\github\\TranslucentFlyouts\\Config\\de-de",
-							"origPos":
-							[
-								0.0,
-								0.0
-							],
-							"syntax": "Packages/Text/Plain text.tmLanguage",
-							"tab_width": 2,
-							"word_wrap": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 2,
-					"stack_multiselect": false,
-					"type": "text"
-				},
-				{
-					"buffer": 2,
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 1140,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								1140,
-								1140
-							]
-						],
-						"settings":
-						{
-							"auto_name": "名称可被接受的值描述",
-							"bracket_highlighter.busy": false,
-							"bracket_highlighter.locations":
-							{
-								"close":
-								{
-								},
-								"icon":
-								{
-								},
-								"open":
-								{
-								},
-								"unmatched":
-								{
-								}
-							},
-							"bracket_highlighter.regions":
-							[
-								"bh_curly",
-								"bh_curly_center",
-								"bh_curly_open",
-								"bh_curly_close",
-								"bh_curly_content",
-								"bh_double_quote",
-								"bh_double_quote_center",
-								"bh_double_quote_open",
-								"bh_double_quote_close",
-								"bh_double_quote_content",
-								"bh_c_define",
-								"bh_c_define_center",
-								"bh_c_define_open",
-								"bh_c_define_close",
-								"bh_c_define_content",
-								"bh_single_quote",
-								"bh_single_quote_center",
-								"bh_single_quote_open",
-								"bh_single_quote_close",
-								"bh_single_quote_content",
-								"bh_default",
-								"bh_default_center",
-								"bh_default_open",
-								"bh_default_close",
-								"bh_default_content",
-								"bh_unmatched",
-								"bh_unmatched_center",
-								"bh_unmatched_open",
-								"bh_unmatched_close",
-								"bh_unmatched_content",
-								"bh_tag",
-								"bh_tag_center",
-								"bh_tag_open",
-								"bh_tag_close",
-								"bh_tag_content",
-								"bh_round",
-								"bh_round_center",
-								"bh_round_open",
-								"bh_round_close",
-								"bh_round_content",
-								"bh_regex",
-								"bh_regex_center",
-								"bh_regex_open",
-								"bh_regex_close",
-								"bh_regex_content",
-								"bh_square",
-								"bh_square_center",
-								"bh_square_open",
-								"bh_square_close",
-								"bh_square_content",
-								"bh_angle",
-								"bh_angle_center",
-								"bh_angle_open",
-								"bh_angle_close",
-								"bh_angle_content"
-							],
-							"bs_sintax": "plain text",
-							"default_dir": "Y:\\github\\TranslucentFlyouts\\Config\\de-de",
-							"origPos":
-							[
-								0.0,
-								1098.0
-							],
-							"syntax": "Packages/Text/Plain text.tmLanguage"
-						},
-						"translation.x": 0.0,
-						"translation.y": 1098.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 3,
-					"stack_multiselect": false,
-					"type": "text"
-				},
-				{
-					"buffer": 3,
-					"selected": true,
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 2624,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								0,
-								0
-							]
-						],
-						"settings":
-						{
-							"auto_name": "Name Zulässige Werte Beschreibung",
-							"bracket_highlighter.busy": false,
-							"bracket_highlighter.locations":
-							{
-								"close":
-								{
-								},
-								"icon":
-								{
-								},
-								"open":
-								{
-								},
-								"unmatched":
-								{
-								}
-							},
-							"bracket_highlighter.regions":
-							[
-								"bh_curly",
-								"bh_curly_center",
-								"bh_curly_open",
-								"bh_curly_close",
-								"bh_curly_content",
-								"bh_double_quote",
-								"bh_double_quote_center",
-								"bh_double_quote_open",
-								"bh_double_quote_close",
-								"bh_double_quote_content",
-								"bh_c_define",
-								"bh_c_define_center",
-								"bh_c_define_open",
-								"bh_c_define_close",
-								"bh_c_define_content",
-								"bh_single_quote",
-								"bh_single_quote_center",
-								"bh_single_quote_open",
-								"bh_single_quote_close",
-								"bh_single_quote_content",
-								"bh_default",
-								"bh_default_center",
-								"bh_default_open",
-								"bh_default_close",
-								"bh_default_content",
-								"bh_unmatched",
-								"bh_unmatched_center",
-								"bh_unmatched_open",
-								"bh_unmatched_close",
-								"bh_unmatched_content",
-								"bh_tag",
-								"bh_tag_center",
-								"bh_tag_open",
-								"bh_tag_close",
-								"bh_tag_content",
-								"bh_round",
-								"bh_round_center",
-								"bh_round_open",
-								"bh_round_close",
-								"bh_round_content",
-								"bh_regex",
-								"bh_regex_center",
-								"bh_regex_open",
-								"bh_regex_close",
-								"bh_regex_content",
-								"bh_square",
-								"bh_square_center",
-								"bh_square_open",
-								"bh_square_close",
-								"bh_square_content",
-								"bh_angle",
-								"bh_angle_center",
-								"bh_angle_open",
-								"bh_angle_close",
-								"bh_angle_content"
-							],
-							"bs_sintax": "plain text",
-							"default_dir": "Y:\\github\\TranslucentFlyouts\\Config\\de-de",
-							"origPos":
-							[
-								0.0,
-								0.0
-							],
-							"syntax": "Packages/Text/Plain text.tmLanguage"
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 0,
-					"stack_multiselect": false,
-					"type": "text"
-				}
 			]
 		}
 	],
@@ -1984,7 +995,7 @@
 	"project": "TranslucentFlyouts2.sublime-project",
 	"replace":
 	{
-		"height": 54.0
+		"height": 114.0
 	},
 	"save_all_on_build": true,
 	"select_file":

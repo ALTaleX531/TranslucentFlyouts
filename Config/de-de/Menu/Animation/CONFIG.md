@@ -2,7 +2,7 @@
 [Zurück zur vorherigen Ebene](../CONFIG.md)
 ## Beschreibung
 > Hinweis:
-> Das Festlegen der meisten Werte auf dieser Seite erfordert, dass „EnableFluentAnimation“ in [Menu](../CONFIG.md) 1 ist, andernfalls werden diese Werte ignoriert.
+> Das Festlegen der meisten Werte auf dieser Seite erfordert, dass `EnableFluentAnimation` in [Menu](../CONFIG.md) 1 ist, andernfalls werden diese Werte ignoriert.
 
 Speicherort: `HKEY_CURRENT_USER\SOFTWARE\TranslucentFlyouts\Menu\Animation`   
 ## Wert

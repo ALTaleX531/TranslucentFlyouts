@@ -2,7 +2,7 @@
 [Zurück zur vorherigen Ebene](../CONFIG.md)
 ## Beschreibung
 > Hinweis:
-> „EnableCustomRendering“ in [Menu](../CONFIG.md) muss 1 sein, sonst wird der Wert dieser Seite ignoriert.
+> `EnableCustomRendering` in [Menu](../CONFIG.md) muss 1 sein, sonst wird der Wert dieser Seite ignoriert.
 
 Relevante Speicherorte:
 - `HKEY_CURRENT_USER\SOFTWARE\TranslucentFlyouts\Menu\DisabledHot`
@@ -21,7 +21,7 @@ Geben Sie ein: <b>DWORD</b>
 <tr>
 <td width="10%">
 <dl>
-<dt><b>Eckenradius</b></dt>
+<dt><b>CornerRadius</b></dt>
 <dt>Standard: 8</dt>
 </dl>
 </td>
@@ -94,7 +94,7 @@ Geben Sie ein: <b>DWORD</b>
 <tr>
 <td width="10%">
 <dl>
-<dt><b>Deaktiviert</b></dt>
+<dt><b>Disabled</b></dt>
 <dt>Standard: 0</dt>
 </dl>
 </td>

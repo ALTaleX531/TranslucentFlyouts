@@ -10,7 +10,7 @@ Zielversion:
 > Frühere Versionen werden nicht unterstützt und der auf dieser Seite und den Unterseiten angezeigte Inhalt ist für neuere Versionen möglicherweise veraltet.  
 
 Die aktuelle Version von TranslucentFlyouts verwendet die Registrierung zum Speichern von Konfigurationsinformationen.
-Speicherort: `HKEY_CURRENT_USER\\SOFTWARE\\TranslucentFlyouts\\`
+Speicherort: `HKEY_CURRENT_USER\SOFTWARE\TranslucentFlyouts\`
 
 Der Wert hier wird verwendet, um das gemeinsame Erscheinungsbild des Popup-Menüs und des Dropdown-Steuerelements zu definieren, und derselbe Wert im Unterelement wird zuerst gelesen.
 Zugehörige Unterpunkte finden Sie unter:
@@ -31,7 +31,7 @@ Typ: <b>DWORD</b>
 <tr>
 <td width="10%">
 <dl>
-<dt><b>Effekttyp</b></dt>
+<dt><b>EffectType</b></dt>
 <dt>Standard: 5</dt>
 </dl>
 </td>
@@ -150,7 +150,7 @@ Typ: <b>DWORD</b>
 </dl>
 </td>
 <td width="30%">
-<dt> Randfarbe im Dunkelmodus (AARRGGBB). </dt>
+<dt> Randfarbe im Modus "Dunkel" (AARRGGBB). </dt>
 <br>
 <dt><b>Windows 10: </b>Unterstützt nur Systemrahmenfarben, die Popup-Menüs überschreiben</dt>
 <dt><b>Windows 11: </b>Wenn CornerType nicht 1 ist, wird der Alpha-Kanal immer ignoriert</dt>
@@ -169,7 +169,7 @@ Typ: <b>DWORD</b>
 </dl>
 </td>
 <td width="30%">
-<dt> Randfarbe im Lichtmodus (AARRGGBB). </dt>
+<dt> Randfarbe im Modus "Hell" (AARRGGBB). </dt>
 <br>
 <dt><b>Windows 10: </b>Unterstützt nur Systemrahmenfarben, die Popup-Menüs überschreiben</dt>
 <dt><b>Windows 11: </b>Bei Verwendung abgerundeter Ecken wird der Alphakanal immer ignoriert</dt>
@@ -206,7 +206,7 @@ Typ: <b>DWORD</b>
 </dl>
 </td>
 <td width="30%">
-<dt>Die Farbe der Überlagerungsfarbe im Lichtmodus (AARRGGBB), die von EffectType verwendet wird. </dt>
+<dt>Die Farbe der Überlagerungsfarbe im Modus "Hell" (AARRGGBB), die von EffectType verwendet wird. </dt>
 <br>
 <b>Hinweis:</b> Wenn EffectType 6, 7, 8 ist, wird dieser Wert ignoriert
 </td>
@@ -215,7 +215,7 @@ Typ: <b>DWORD</b>
 <tr>
 <td width="10%">
 <dl>
-<dt><b>Deaktiviert</b></dt>
+<dt><b>Disabled</b></dt>
 <dt>Standard: 0</dt>
 </dl>
 </td>

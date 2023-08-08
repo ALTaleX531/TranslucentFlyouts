@@ -18,7 +18,7 @@ Geben Sie ein: <b>DWORD</b>
 <tr>
 <td width="10%">
 <dl>
-<dt><b>Breite</b></dt>
+<dt><b>Width</b></dt>
 <dt>Standard: 1000</dt>
 </dl>
 </td>
