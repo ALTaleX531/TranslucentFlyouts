@@ -25,7 +25,9 @@ const array g_blockList
 	L"GameBarFTServer.exe"sv,
 	L"ShellExperienceHost.exe"sv,
 	L"StartMenuExperienceHost.exe"sv,
-	L"msedgewebview2.exe"sv
+	L"msedgewebview2.exe"sv,
+	// For compatibility issues
+	L"StartAllBackX64.dll"sv
 };
 
 #pragma data_seg("hook")

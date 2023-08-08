@@ -104,10 +104,6 @@ namespace TranslucentFlyouts::MenuAnimation
 						 nullptr
 					 );
 			THROW_LAST_ERROR_IF_NULL(window);
-			if (GetClassLongPtr(window, GCL_STYLE) & (CS_DROPSHADOW | CS_SAVEBITS))
-			{
-				SetClassLongPtr(window, GCL_STYLE, GetClassLongPtr(window, GCL_STYLE) &~(CS_DROPSHADOW | CS_SAVEBITS));
-			}
 
 			auto menuDC{wil::GetWindowDC(hWnd)};
 			THROW_LAST_ERROR_IF_NULL(menuDC);
@@ -188,7 +184,10 @@ namespace TranslucentFlyouts::MenuAnimation
 	private:
 		bool							m_reverse{false};
 		bool							m_started{false};
+		bool							m_useSysDropShadow{false};
+		float							m_cornerRadius{0.f};// 0.f, 4.f, 8.f
 		float							m_ratio{0.f};
+		DWORD							m_animationStyle{0};
 		POINT							m_cursorPos{};
 
 		HWND							m_backdropWindow{nullptr};
@@ -212,6 +211,7 @@ namespace TranslucentFlyouts::MenuAnimation
 			Attach();
 
 			Utils::CloakWindow(m_menuWindow, TRUE);
+			SetCapture(m_menuWindow);
 
 			window = CreateWindowExW(
 						 WS_EX_NOREDIRECTIONBITMAP | WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_PALETTEWINDOW,
@@ -249,18 +249,23 @@ namespace TranslucentFlyouts::MenuAnimation
 			auto info{menuHandler.GetMenuRenderingInfo(m_menuWindow)};
 			if (info.useUxTheme)
 			{
-				// We are on Windows 10 or the corner is not round
-				if (
-					FAILED(menuHandler.HandleRoundCorners(L"Menu"sv, window)) ||
+				DWORD cornerType
+				{
 					RegHelper::GetDword(
 						L"Menu",
 						L"CornerType",
 						3
-					) == 1
+					)
+				};
+
+				// We are on Windows 10 or the corner is not round
+				if (
+					FAILED(menuHandler.HandleRoundCorners(L"Menu"sv, window)) ||
+					cornerType == 1
 				)
 				{
-					SetClassLongPtr(window, GCL_STYLE, GetClassLongPtr(window, GCL_STYLE) | (CS_DROPSHADOW | CS_SAVEBITS));
-
+					m_cornerRadius = 0.f;
+					
 					DWORD effectType
 					{
 						RegHelper::GetDword(
@@ -281,6 +286,30 @@ namespace TranslucentFlyouts::MenuAnimation
 						EffectHelper::SetWindowBackdrop(window, TRUE, 0, 4);
 					}
 				}
+				else
+				{
+					switch (cornerType)
+					{
+						case 1:
+						{
+							m_cornerRadius = 0.f;
+							break;
+						}
+						case 2:
+						{
+							m_cornerRadius = 8.f;
+							break;
+						}
+						case 0:
+						case 3:
+						{
+							m_cornerRadius = 4.f;
+							break;
+						}
+						default:
+							break;
+					}
+				}
 
 				menuHandler.HandleSysBorderColors(L"Menu"sv, window, info.useDarkMode, info.borderColor);
 				EffectHelper::EnableWindowDarkMode(window, info.useDarkMode);
@@ -290,15 +319,11 @@ namespace TranslucentFlyouts::MenuAnimation
 			}
 			else
 			{
-				// Windows 2000 style
-				SetClassLongPtr(window, GCL_STYLE, GetClassLongPtr(window, GCL_STYLE) | (CS_DROPSHADOW | CS_SAVEBITS));
+				m_cornerRadius = 0.f;
 			}
 
 			THROW_IF_WIN32_BOOL_FALSE(SetLayeredWindowAttributes(window, 0, 255, LWA_ALPHA));
 			THROW_IF_WIN32_BOOL_FALSE(SetLayeredWindowAttributes(m_backdropWindow, 0, 0, LWA_ALPHA));
-			THROW_IF_WIN32_BOOL_FALSE(
-				SetWindowPos(window, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW)
-			);
 			Utils::CloakWindow(window, TRUE);
 			THROW_IF_WIN32_BOOL_FALSE(
 				SetWindowPos(m_backdropWindow, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW)
@@ -373,14 +398,11 @@ namespace TranslucentFlyouts::MenuAnimation
 		{
 			if (m_menuWindow)
 			{
-				SendMessageW(m_menuWindow, WM_MAFINISHED, 0, 0);
+				// DO NOT USE SendMessage HERE OTHERWISE IT WILL CAUSE DEAD LOCK
+				SendNotifyMessageW(m_menuWindow, WM_MAFINISHED, 0, 0);
 			}
 			if (window)
 			{
-				if (GetClassLongPtr(window, GCL_STYLE) & (CS_DROPSHADOW | CS_SAVEBITS))
-				{
-					SetClassLongPtr(window, GCL_STYLE, GetClassLongPtr(window, GCL_STYLE) & ~(CS_DROPSHADOW | CS_SAVEBITS));
-				}
 				SendNotifyMessageW(window, WM_CLOSE, 0, 0);
 				window = nullptr;
 			}
@@ -497,18 +519,6 @@ namespace TranslucentFlyouts::MenuAnimation
 					wil::CoCreateInstance<IUIAnimationTransitionLibrary2>(CLSID_UIAnimationTransitionLibrary2)
 				};
 				
-				constexpr float endValue{0.f};
-				float beginValue{0.f};
-
-				if (reverse)
-				{
-					beginValue = float(size.cy) - float(size.cy) * m_ratio;
-				}
-				else
-				{
-					beginValue = -float(size.cy) + float(size.cy) * m_ratio;
-				}
-
 				// Synchronizing WAM and DirectComposition time such that when WAM Update is called, 
 				// the value reflects the DirectComposition value at the given time.
 				DCOMPOSITION_FRAME_STATISTICS frameStatistics{};
@@ -517,36 +527,81 @@ namespace TranslucentFlyouts::MenuAnimation
 				);
 				UI_ANIMATION_SECONDS timeNow{static_cast<double>(frameStatistics.nextEstimatedFrameTime.QuadPart) / static_cast<double>(frameStatistics.timeFrequency.QuadPart)};
 
+				auto MakeAnimation = [&](std::function<com_ptr<IUIAnimationTransition2>(com_ptr<IUIAnimationVariable2> variable)> callback)
 				{
-					com_ptr<IDCompositionAnimation> dcompAnimation{nullptr};
-					THROW_IF_FAILED(
-						dcompDevice->CreateAnimation(&dcompAnimation)
-					);
+					if (callback)
+					{
+						com_ptr<IUIAnimationVariable2> variable{nullptr};
+						com_ptr<IUIAnimationStoryboard2> storyboard{nullptr};
+						THROW_IF_FAILED(
+							manager->CreateAnimationVariable(0., &variable)
+						);
+						THROW_IF_FAILED(
+							manager->CreateStoryboard(&storyboard)
+						);
+						com_ptr<IUIAnimationTransition2> transition{callback(variable)};
+						THROW_IF_FAILED(
+							storyboard->AddTransition(variable.get(), transition.get())
+						);
+						THROW_IF_FAILED(
+							manager->Update(timeNow)
+						);
+						THROW_IF_FAILED(
+							storyboard->Schedule(timeNow)
+						);
 
-					com_ptr<IUIAnimationVariable2> variable{nullptr};
-					com_ptr<IUIAnimationStoryboard2> storyboard{nullptr};
-					com_ptr<IUIAnimationTransition2> transition{nullptr};
-					THROW_IF_FAILED(
-						manager->CreateAnimationVariable(beginValue, &variable)
-					);
-					THROW_IF_FAILED(
-						manager->CreateStoryboard(&storyboard)
-					);
-					THROW_IF_FAILED(
-						library->CreateCubicBezierLinearTransition(static_cast<float>(m_popupInDuration.count()) / 1000.f, endValue, 0, 0, 0, 1, &transition)
-					);
-					THROW_IF_FAILED(
-						storyboard->AddTransition(variable.get(), transition.get())
-					);
-					THROW_IF_FAILED(
-						manager->Update(timeNow)
-					);
-					THROW_IF_FAILED(
-						storyboard->Schedule(timeNow)
-					);
-					THROW_IF_FAILED(
-						variable->GetCurve(dcompAnimation.get())
-					);
+						com_ptr<IDCompositionAnimation> dcompAnimation{nullptr};
+						THROW_IF_FAILED(
+							dcompDevice->CreateAnimation(&dcompAnimation)
+						);
+						THROW_IF_FAILED(
+							variable->GetCurve(dcompAnimation.get())
+						);
+
+						return dcompAnimation;
+					}
+
+					return com_ptr<IDCompositionAnimation>{nullptr};
+				};
+
+				float width
+				{
+					static_cast<float>(windowRect.right - windowRect.left)
+				};
+				float height
+				{
+					static_cast<float>(windowRect.bottom - windowRect.top)
+				};
+				
+				if (m_animationStyle == 0)
+				{
+					constexpr double endValue{0.};
+					double beginValue{0.};
+
+					if (reverse)
+					{
+						beginValue = static_cast<double>(size.cy) * (1. - static_cast<double>(m_ratio));
+					}
+					else
+					{
+						beginValue = static_cast<double>(size.cy) * (-1. + static_cast<double>(m_ratio));
+					}
+
+					com_ptr<IDCompositionAnimation> dcompAnimation
+					{
+						MakeAnimation([&](com_ptr<IUIAnimationVariable2> variable)
+						{
+							com_ptr<IUIAnimationTransition2> transition{nullptr};
+							THROW_IF_FAILED(
+								library->CreateCubicBezierLinearTransition(static_cast<double>(m_popupInDuration.count()) / 1000., endValue, 0, 0, 0, 1, &transition)
+							);
+							THROW_IF_FAILED(
+								transition->SetInitialValue(beginValue)
+							);
+
+							return transition;
+						})
+					};
 
 					THROW_IF_FAILED(m_thumbnailVisual->SetOffsetX(0.f));
 					THROW_IF_FAILED(m_thumbnailVisual->SetOffsetY(dcompAnimation.get()));
@@ -555,36 +610,328 @@ namespace TranslucentFlyouts::MenuAnimation
 					THROW_IF_FAILED(m_backdropThumbnailVisual->SetOffsetY(dcompAnimation.get()));
 				}
 
+				if (m_animationStyle == 1)
 				{
-					com_ptr<IDCompositionAnimation> dcompAnimation{nullptr};
+					POINT clientPoint{m_cursorPos};
+					THROW_IF_WIN32_BOOL_FALSE(ScreenToClient(m_menuWindow, &clientPoint));
+					
+					D2D1_POINT_2F startPoint
+					{
+						static_cast<float>(min(max(0., static_cast<double>(clientPoint.x)), width)),
+						static_cast<float>(
+							abs(height - static_cast<double>(clientPoint.y)) >
+							abs(0. - static_cast<double>(clientPoint.y))
+							? 0. : height
+						)
+					};
+					double maxRadius{sqrt(width * width + height * height)};
+
+					com_ptr<IDCompositionRectangleClip> clip{nullptr};
+					THROW_IF_FAILED(dcompDevice->CreateRectangleClip(&clip));
 					THROW_IF_FAILED(
-						dcompDevice->CreateAnimation(&dcompAnimation)
+						clip->SetTop(
+							MakeAnimation([&](com_ptr<IUIAnimationVariable2> variable)
+					{
+						com_ptr<IUIAnimationTransition2> transition{nullptr};
+						THROW_IF_FAILED(
+							library->CreateCubicBezierLinearTransition(
+								static_cast<double>(m_popupInDuration.count()) / 1000.,
+								static_cast<double>(startPoint.y) - static_cast<double>(maxRadius),
+								0, 0, 0, 1, &transition
+							)
+						);
+						THROW_IF_FAILED(
+							transition->SetInitialValue(static_cast<double>(startPoint.y) - static_cast<double>(maxRadius) * m_ratio)
+						);
+
+						return transition;
+					}).get()
+						)
+					);
+					THROW_IF_FAILED(
+						clip->SetBottom(
+							MakeAnimation([&](com_ptr<IUIAnimationVariable2> variable)
+					{
+						com_ptr<IUIAnimationTransition2> transition{nullptr};
+						THROW_IF_FAILED(
+							library->CreateCubicBezierLinearTransition(
+								static_cast<double>(m_popupInDuration.count()) / 1000.,
+								static_cast<double>(startPoint.y) + static_cast<double>(maxRadius),
+								0, 0, 0, 1, &transition
+							)
+						);
+						THROW_IF_FAILED(
+							transition->SetInitialValue(static_cast<double>(startPoint.y) + static_cast<double>(maxRadius) * m_ratio)
+						);
+
+						return transition;
+					}).get()
+						)
+					);
+					THROW_IF_FAILED(
+						clip->SetLeft(
+							MakeAnimation([&](com_ptr<IUIAnimationVariable2> variable)
+					{
+						com_ptr<IUIAnimationTransition2> transition{nullptr};
+						THROW_IF_FAILED(
+							library->CreateCubicBezierLinearTransition(
+								static_cast<double>(m_popupInDuration.count()) / 1000.,
+								static_cast<double>(startPoint.x) - static_cast<double>(maxRadius),
+								0, 0, 0, 1, &transition
+							)
+						);
+						THROW_IF_FAILED(
+							transition->SetInitialValue(static_cast<double>(startPoint.x) - static_cast<double>(maxRadius) * m_ratio)
+						);
+
+						return transition;
+					}).get()
+						)
+					);
+					THROW_IF_FAILED(
+						clip->SetRight(
+							MakeAnimation([&](com_ptr<IUIAnimationVariable2> variable)
+					{
+						com_ptr<IUIAnimationTransition2> transition{nullptr};
+						THROW_IF_FAILED(
+							library->CreateCubicBezierLinearTransition(
+								static_cast<double>(m_popupInDuration.count()) / 1000.,
+								static_cast<double>(startPoint.x) + static_cast<double>(maxRadius),
+								0, 0, 0, 1, &transition
+							)
+						);
+						THROW_IF_FAILED(
+							transition->SetInitialValue(static_cast<double>(startPoint.x) + static_cast<double>(maxRadius) * m_ratio)
+						);
+
+						return transition;
+					}).get()
+						)
 					);
 
-					com_ptr<IUIAnimationVariable2> variable{nullptr};
-					com_ptr<IUIAnimationStoryboard2> storyboard{nullptr};
-					com_ptr<IUIAnimationTransition2> transition{nullptr};
+					auto dcompAnimation
+					{
+						MakeAnimation([&](com_ptr<IUIAnimationVariable2> variable)
+						{
+							com_ptr<IUIAnimationTransition2> transition{nullptr};
+							THROW_IF_FAILED(
+								library->CreateCubicBezierLinearTransition(
+									static_cast<double>(m_popupInDuration.count()) / 1000.,
+									static_cast<double>(maxRadius),
+									0, 0, 0, 1, &transition
+								)
+							);
+							THROW_IF_FAILED(
+								transition->SetInitialValue(0.)
+							);
+
+							return transition;
+						})
+					};
+					THROW_IF_FAILED(clip->SetBottomLeftRadiusX(dcompAnimation.get()));
+					THROW_IF_FAILED(clip->SetBottomLeftRadiusY(dcompAnimation.get()));
+					THROW_IF_FAILED(clip->SetBottomRightRadiusX(dcompAnimation.get()));
+					THROW_IF_FAILED(clip->SetBottomRightRadiusY(dcompAnimation.get()));
+					THROW_IF_FAILED(clip->SetTopLeftRadiusX(dcompAnimation.get()));
+					THROW_IF_FAILED(clip->SetTopLeftRadiusY(dcompAnimation.get()));
+					THROW_IF_FAILED(clip->SetTopRightRadiusX(dcompAnimation.get()));
+					THROW_IF_FAILED(clip->SetTopRightRadiusY(dcompAnimation.get()));
+
+					THROW_IF_FAILED(m_thumbnailVisual->SetClip(clip.get()));
+					THROW_IF_FAILED(m_backdropThumbnailVisual->SetClip(clip.get()));
+				}
+
+				if (m_animationStyle == 2)
+				{
+					POINT clientPoint{m_cursorPos};
+					THROW_IF_WIN32_BOOL_FALSE(ScreenToClient(m_menuWindow, &clientPoint));
+
+					D2D1_POINT_2F startPoint
+					{
+						abs(width - static_cast<float>(clientPoint.x)) >
+						abs(0.f - static_cast<float>(clientPoint.x))
+						? 0.f : width,
+						abs(height - static_cast<float>(clientPoint.y)) >
+						abs(0.f - static_cast<float>(clientPoint.y))
+						? 0.f : height
+					};
+
+					com_ptr<IDCompositionRectangleClip> clip{nullptr};
+					THROW_IF_FAILED(dcompDevice->CreateRectangleClip(&clip));
+
 					THROW_IF_FAILED(
-						manager->CreateAnimationVariable(0.f, &variable)
+						clip->SetTop(
+							MakeAnimation([&](com_ptr<IUIAnimationVariable2> variable)
+					{
+						com_ptr<IUIAnimationTransition2> transition{nullptr};
+						THROW_IF_FAILED(
+							library->CreateSmoothStopTransition(
+								static_cast<double>(m_popupInDuration.count()) / 1000.,
+								static_cast<double>(startPoint.y) - static_cast<double>(height),
+								&transition
+							)
+						);
+						THROW_IF_FAILED(
+							transition->SetInitialValue(static_cast<double>(startPoint.y) - static_cast<double>(height) * m_ratio)
+						);
+
+						return transition;
+					}).get()
+						)
 					);
 					THROW_IF_FAILED(
-						manager->CreateStoryboard(&storyboard)
+						clip->SetBottom(
+							MakeAnimation([&](com_ptr<IUIAnimationVariable2> variable)
+					{
+						com_ptr<IUIAnimationTransition2> transition{nullptr};
+						THROW_IF_FAILED(
+							library->CreateSmoothStopTransition(
+								static_cast<double>(m_popupInDuration.count()) / 1000.,
+								static_cast<double>(startPoint.y) + static_cast<double>(height),
+								&transition
+							)
+						);
+						THROW_IF_FAILED(
+							transition->SetInitialValue(static_cast<double>(startPoint.y) + static_cast<double>(height) * m_ratio)
+						);
+
+						return transition;
+					}).get()
+						)
 					);
 					THROW_IF_FAILED(
-						library->CreateLinearTransition(static_cast<float>(m_fadeInDuration.count()) / 1000.f, 1.f, &transition)
+						clip->SetLeft(
+							MakeAnimation([&](com_ptr<IUIAnimationVariable2> variable)
+					{
+						com_ptr<IUIAnimationTransition2> transition{nullptr};
+						THROW_IF_FAILED(
+							library->CreateSmoothStopTransition(
+								static_cast<double>(m_popupInDuration.count()) / 1000.,
+								static_cast<double>(startPoint.x) - static_cast<double>(width),
+								&transition
+							)
+						);
+						THROW_IF_FAILED(
+							transition->SetInitialValue(static_cast<double>(startPoint.x) - static_cast<double>(width) * m_ratio)
+						);
+
+						return transition;
+					}).get()
+						)
 					);
 					THROW_IF_FAILED(
-						storyboard->AddTransition(variable.get(), transition.get())
+						clip->SetRight(
+							MakeAnimation([&](com_ptr<IUIAnimationVariable2> variable)
+					{
+						com_ptr<IUIAnimationTransition2> transition{nullptr};
+						THROW_IF_FAILED(
+							library->CreateSmoothStopTransition(
+								static_cast<double>(m_popupInDuration.count()) / 1000.,
+								static_cast<double>(startPoint.x) + static_cast<double>(width),
+								&transition
+							)
+						);
+						THROW_IF_FAILED(
+							transition->SetInitialValue(static_cast<double>(startPoint.x) + static_cast<double>(width) * m_ratio)
+						);
+
+						return transition;
+					}).get()
+						)
+					);
+
+					THROW_IF_FAILED(clip->SetBottomLeftRadiusX(m_cornerRadius));
+					THROW_IF_FAILED(clip->SetBottomLeftRadiusY(m_cornerRadius));
+					THROW_IF_FAILED(clip->SetBottomRightRadiusX(m_cornerRadius));
+					THROW_IF_FAILED(clip->SetBottomRightRadiusY(m_cornerRadius));
+					THROW_IF_FAILED(clip->SetTopLeftRadiusX(m_cornerRadius));
+					THROW_IF_FAILED(clip->SetTopLeftRadiusY(m_cornerRadius));
+					THROW_IF_FAILED(clip->SetTopRightRadiusX(m_cornerRadius));
+					THROW_IF_FAILED(clip->SetTopRightRadiusY(m_cornerRadius));
+
+					THROW_IF_FAILED(m_thumbnailVisual->SetClip(clip.get()));
+					THROW_IF_FAILED(m_backdropThumbnailVisual->SetClip(clip.get()));
+
+					com_ptr<IDCompositionAnimation> dcompAnimation
+					{
+						MakeAnimation([&](com_ptr<IUIAnimationVariable2> variable)
+					{
+						com_ptr<IUIAnimationTransition2> transition{nullptr};
+						THROW_IF_FAILED(
+							library->CreateCubicBezierLinearTransition(static_cast<double>(m_popupInDuration.count()) / 1000., 0., 0, 0, 0, 1, &transition)
+						);
+						THROW_IF_FAILED(
+							transition->SetInitialValue(
+								static_cast<double>(-width) * static_cast<double>(m_ratio) +
+								static_cast<double>(startPoint.x)
+							)
+						);
+
+						return transition;
+					})
+					};
+
+					THROW_IF_FAILED(m_thumbnailVisual->SetOffsetX(dcompAnimation.get()));
+				}
+
+				if (m_animationStyle == 3)
+				{
+					com_ptr<IDCompositionAnimation> dcompAnimation
+					{
+						MakeAnimation([&](com_ptr<IUIAnimationVariable2> variable)
+					{
+						com_ptr<IUIAnimationTransition2> transition{nullptr};
+						THROW_IF_FAILED(
+							library->CreateCubicBezierLinearTransition(static_cast<double>(m_popupInDuration.count()) / 1000., 1., 0, 0, 0, 1, &transition)
+						);
+						THROW_IF_FAILED(
+							transition->SetInitialValue(
+								0.85
+							)
+						);
+
+						return transition;
+					})
+					};
+
+					com_ptr<IDCompositionScaleTransform3D> transform{nullptr};
+					THROW_IF_FAILED(
+						dcompDevice->CreateScaleTransform3D(&transform)
+					);
+
+					THROW_IF_FAILED(
+						transform->SetCenterX(static_cast<float>(width / 2.))
 					);
 					THROW_IF_FAILED(
-						manager->Update(timeNow)
+						transform->SetCenterY(static_cast<float>(width / 2.))
 					);
 					THROW_IF_FAILED(
-						storyboard->Schedule(timeNow)
+						transform->SetScaleX(dcompAnimation.get())
 					);
 					THROW_IF_FAILED(
-						variable->GetCurve(dcompAnimation.get())
+						transform->SetScaleY(dcompAnimation.get())
 					);
+
+					THROW_IF_FAILED(m_thumbnailVisual.query<IDCompositionVisual3>()->SetTransform(transform.get()));
+					THROW_IF_FAILED(m_backdropThumbnailVisual.query<IDCompositionVisual3>()->SetTransform(transform.get()));
+				}
+
+				{
+					com_ptr<IDCompositionAnimation> dcompAnimation
+					{
+						MakeAnimation([&](com_ptr<IUIAnimationVariable2> variable)
+						{
+							com_ptr<IUIAnimationTransition2> transition{nullptr};
+							THROW_IF_FAILED(
+								library->CreateLinearTransition(static_cast<double>(m_fadeInDuration.count()) / 1000., 1., &transition)
+							);
+							THROW_IF_FAILED(
+								transition->SetInitialValue(0.)
+							);
+	
+							return transition;
+						})
+					};
 
 					THROW_IF_FAILED(m_thumbnailVisual.query<IDCompositionVisual3>()->SetOpacity(dcompAnimation.get()));
 					THROW_IF_FAILED(m_backdropThumbnailVisual.query<IDCompositionVisual3>()->SetOpacity(dcompAnimation.get()));
@@ -595,14 +942,22 @@ namespace TranslucentFlyouts::MenuAnimation
 				dcompDevice->Commit()
 			);
 
+			if (m_useSysDropShadow)
+			{
+				SetClassLongPtr(window, GCL_STYLE, GetClassLongPtr(window, GCL_STYLE) | CS_DROPSHADOW);
+			}
 			THROW_IF_WIN32_BOOL_FALSE(
 				SetWindowPos(
 					window, nullptr,
 					windowRect.left, windowRect.top, size.cx, size.cy,
-					SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED
+					SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED | SWP_SHOWWINDOW
 				)
 			);
 			Utils::CloakWindow(window, FALSE);
+			if (m_useSysDropShadow)
+			{
+				SetClassLongPtr(window, GCL_STYLE, GetClassLongPtr(window, GCL_STYLE) & ~CS_DROPSHADOW);
+			}
 			
 			Restart(m_totDuration);
 
@@ -658,16 +1013,45 @@ namespace TranslucentFlyouts::MenuAnimation
 				const auto& windowPos{*reinterpret_cast<WINDOWPOS*>(lParam)};
 				if (windowPos.flags & SWP_SHOWWINDOW)
 				{
+					LRESULT lr{DefSubclassProc(hWnd, uMsg, wParam, lParam)};
+
+					HWND backdropWindow{GetWindow(hWnd, GW_HWNDNEXT)};
+					if (Utils::IsWindowClass(backdropWindow, L"SysShadow") && IsWindowVisible(backdropWindow))
+					{
+						popupInAnimation.m_useSysDropShadow = true;
+					}
+
 					popupInAnimation.Start(
 						abs(popupInAnimation.m_cursorPos.y - windowPos.y) >
 						abs(popupInAnimation.m_cursorPos.y - (windowPos.y + windowPos.cy))
 						? true : false
 					);
+
+					return lr;
 				}
 
 				if (windowPos.flags & SWP_HIDEWINDOW)
 				{
 					popupInAnimation.Abort();
+				}
+			}
+
+			if (uMsg == MenuHandler::MN_SELECTITEM)
+			{
+				auto position{static_cast<int>(wParam)};
+				if (position != -1)
+				{
+					if (
+						RegHelper::GetDword(
+							L"Menu\\Animation",
+							L"EnableImmediateInterupting",
+							0,
+							false
+						)
+					)
+					{
+						popupInAnimation.Abort();
+					}
 				}
 			}
 
@@ -687,7 +1071,7 @@ namespace TranslucentFlyouts::MenuAnimation
 	public:
 #pragma push_macro("max")
 #undef max
-		PopupIn(HWND hWnd, float startPosRatio, std::chrono::milliseconds popupInDuration, std::chrono::milliseconds fadeInDuration) try : AnimationInfo{chrono::milliseconds::max()}, m_totDuration{max(popupInDuration, fadeInDuration)}, m_menuWindow{hWnd}, m_fadeInDuration{fadeInDuration}, m_popupInDuration{popupInDuration}, m_ratio{startPosRatio}
+		PopupIn(HWND hWnd, float startPosRatio, std::chrono::milliseconds popupInDuration, std::chrono::milliseconds fadeInDuration, DWORD animationStyle) try : AnimationInfo{chrono::milliseconds::max()}, m_totDuration{max(popupInDuration, fadeInDuration)}, m_menuWindow{hWnd}, m_fadeInDuration{fadeInDuration}, m_popupInDuration{popupInDuration}, m_ratio{startPosRatio}, m_animationStyle{animationStyle}
 #pragma pop_macro("max")
 		{
 			THROW_HR_IF(
@@ -849,11 +1233,12 @@ HRESULT MenuAnimation::CreatePopupIn(
 	HWND hWnd,
 	float startPosRatio,
 	std::chrono::milliseconds popupInDuration,
-	std::chrono::milliseconds fadeInDuration
+	std::chrono::milliseconds fadeInDuration,
+	DWORD animationStyle
 ) try
 {
 	auto& animationWorker{AnimationWorker::GetInstance()};
-	animationWorker.Schedule(make_shared<PopupIn>(hWnd, startPosRatio, popupInDuration, fadeInDuration));
+	animationWorker.Schedule(make_shared<PopupIn>(hWnd, startPosRatio, popupInDuration, fadeInDuration, animationStyle));
 
 	return S_OK;
 }

@@ -1,4 +1,4 @@
-## TranslucentFlyouts V2
+# TranslucentFlyouts V2
 
 一个在Windows10/11让大部分Win32弹出菜单半透明/全透明的应用，致力于提供更多可自定义选项以满足你的需要。
 
@@ -6,9 +6,11 @@
 TranslucentFlyouts V1 已经被移动到 [TranslucentFlyoutsV1](https://github.com/ALTaleX531/TranslucentFlyoutsV1).  
 **从TranslucentFlyouts V2开始，该项目使用[LGNU V3 license](/COPYING.LESSER)作为开源许可。**  
 
+[![license](https://img.shields.io/github/license/ALTaleX531/TranslucentFlyouts.svg)](https://www.gnu.org/licenses/lgpl-3.0.en.html)
+[![Github All Releases](https://img.shields.io/github/downloads/ALTaleX531/TranslucentFlyouts/total.svg)](https://github.com/QL-Win/QuickLook/releases)
+[![GitHub release](https://img.shields.io/github/release/ALTaleX531/TranslucentFlyouts.svg)](https://github.com/QL-Win/QuickLook/releases/latest)
 <img src="https://img.shields.io/badge/language-c++-F34B7D.svg"/>
-<img src="https://img.shields.io/github/repo-size/ALTaleX531/TranslucentFlyouts.svg"/>
-<img src="https://img.shields.io/github/last-commit/ALTaleX531/TranslucentFlyouts.svg"/>
+<img src="https://img.shields.io/github/last-commit/ALTaleX531/TranslucentFlyouts.svg"/>  
 
 ### 其它语言
 
@@ -18,7 +20,7 @@ TranslucentFlyouts V1 已经被移动到 [TranslucentFlyoutsV1](https://github.c
 
 - [图库](#gallery)
 - [如何使用](#how-to-use)
-- [配置文件](../Config/zh-cn.md)
+- [配置文件](../Config/zh-cn/CONFIG.md)
 - [一些限制和兼容性相关的问题](#limitations-and-compatibility)
 - [依靠和引用](#dependencies-and-references)
 
@@ -28,25 +30,35 @@ TranslucentFlyouts V1 已经被移动到 [TranslucentFlyoutsV1](https://github.c
 
 <details><summary><b>Acrylic 亚克力模糊</b></summary>
 
-Windows 10
-> ![Windows10 亮模式](../Images/Acrylic/LightMode_Windows10.png)
+Windows 10   
+![Windows10 亮模式](../Images/Acrylic/LightMode_Windows10.png)
 ![Windows10 暗模式](../Images/Acrylic/DarkMode_Windows10.png)
 
 Windows 11  
-> ![Windows11 亮模式](../Images/Acrylic/LightMode_Windows11.png)
+![Windows11 亮模式](../Images/Acrylic/LightMode_Windows11.png)
 ![Windows11 暗模式](../Images/Acrylic/DarkMode_Windows11.png)
 </details>
 
 <details><summary><b>Mica/MicaAlt 云母 (仅Windows 11)</b></summary>
 
-> ![Mica](../Images/Mica/DarkMode_Windows11.png)
+![Mica](../Images/Mica/DarkMode_Windows11.png)
 ![MicaAlt](../Images/Mica/DarkMode_Windows11(MicaAlt).png)
 </details>
 
 <details><summary><b>自定义渲染的例子</b></summary>
 
-> ![Sample 1](../Images/CustomRendering/LightMode_Sample1.png)
+![Sample 1](../Images/CustomRendering/LightMode_Sample1.png)
 ![Sample 2](../Images/CustomRendering/LightMode_Sample2.png)
+</details>
+
+<details><summary><b>流利的动画</b></summary>
+
+![Sample 1](../Images/FluentAnimations/Sample1.gif)   
+[下载预设](../Preset/Sample1.reg)   
+
+![Sample 2](../Images/FluentAnimations/Sample2.gif)   
+[下载预设](../Preset/Sample2.reg)   
+
 </details>
 
 ## How to use
@@ -60,16 +72,14 @@ Windows 11
 3. 以管理员身份运行"`install.cmd`"
 4. 注销以应用更改
 
-**第一次使用时或系统大版本更新后，TranslucentFlyouts需要从微软服务器下载符号文件，否则一些功能将不可用！**  
-cmd: `Rundll32 "你放置的目录/TFMain64.dll",Main /install"`
+> 注意:   
+> **第一次使用时或系统大版本更新后，TranslucentFlyouts需要从微软服务器下载符号文件，否则一些功能将不可用！**  
 
 ### 卸载
 
 1. 以管理员身份运行"`uninstall.cmd`"
 2. 注销以应用更改
 3. 手动删除剩下的文件
-
-cmd: `Rundll32 "你放置的目录/TFMain64.dll",Main /uninstall"`
 
 ## Limitations and Compatibility
 
@@ -78,10 +88,10 @@ cmd: `Rundll32 "你放置的目录/TFMain64.dll",Main /uninstall"`
 ### 在以下的情况下，TranslucentFlyouts不可用
 
 ### 1. Windows 2000 风格的弹出菜单  
->
-> ![Windows2000](../Images/Unsupported/Windows2000.png)
+![Windows2000](../Images/Unsupported/Windows2000.png)
 
-老古董
+老古董。  
+有些第三方程序比如`HoneyView`可能会造成这样的菜单。
 
 ### 2. Ownerdrawn popup menu
 >
@@ -90,28 +100,21 @@ cmd: `Rundll32 "你放置的目录/TFMain64.dll",Main /uninstall"`
 如你所见，这是一个QT弹出菜单  
 是不是看着挺像系统的那种默认菜单？  
 但是它的渲染流程与默认菜单截然不同，使得TranslucentFlyouts很难正确修改它的视觉内容
-
 ### **3. StartAllBack**
+`StartAllBack`具有对半透明弹出菜单的内置支持，并且它的渲染流程的优先级高于TranslucentFlyouts。  
+> 注意:  
+> 出于这个原因的考量，`v2.0.0-alpha.4`和更高版本的TranslucentFlyouts检测到`StartAllBack`会自动禁用自身，且该现状将继续保持直到有办法能完全禁用`StartAllBack`对弹出菜单的处理。  
+> 然而，TranslucentFlyouts仍然能对其它应用程序生效除了`资源管理器`.
 
-**你可以将TranslucentFlyouts与StartAllBack一起使用，但你真的需要注意以下情况内容**  
-StartAllBack具有对半透明弹出菜单的内置支持，并且它的渲染流程的优先级高过TranslucentFlyouts，所以TranslucentFlyouts会实际上对文件管理器什么都不做。（也许是时候反馈给StartAllBack让它们提供一个彻底关闭这种内置支持的选项！）
+**它还可能导致以下的问题**  
+![StartAllBack_MenuItemWithFlaws](../Images/StartAllBack/MenuItemWithFlaws.png)
+![StartAllBack_MenuItemColoredWithFlaws](../Images/StartAllBack/MenuItemColoredWithFlaws.png)   
+如你所见有个白白的边框环绕着高亮的菜单项，它会一直存在直到你禁用或卸载StartAllBack... 
+对于现在而言，有两种办法可以解决   
+1. 将dword值`EnableCustomRendering`设置为非0值。   
+注册表路径: HKEY_CURRENT_USER\SOFTWARE\TranslucentFlyouts\Menu\EnableCustomRendering
+2. 安装个自定义美化主题
 
-**它还可能会造成以下问题当与TranslucentFlyouts一起使用**  
-
-### 1. 菜单高亮项有缺陷
->
-> ![StartAllBack_MenuItemWithFlaws](../Images/StartAllBack/MenuItemWithFlaws.png)
-    ![StartAllBack_MenuItemColoredWithFlaws](../Images/StartAllBack/MenuItemColoredWithFlaws.png)
-如你所见有个白白的边框环绕着高亮的菜单项，它会一直存在直到你禁用或卸载StartAllBack...
-**要想解决这个问题，你需要修改TranslucentFlyouts的注册表信息，将dword值“EnableCustomRendering”设置为非零值**  
-注册表路径： HKEY_CURRENT_USER\SOFTWARE\TranslucentFlyouts\Menu\EnableCustomRendering
-
-### 2. 不正常的下拉控件
->
-> ![DropDownComparison](../Images/StartAllBack/DropDownComparison.png)  
-变得不透明了
-**要想解决这个问题，你需要修改TranslucentFlyouts的注册表信息，将dword值“Disabled”设置为非零值**  
-注册表路径： HKEY_CURRENT_USER\SOFTWARE\TranslucentFlyouts\DropDown\Disabled
 
 ## Dependencies and References
 

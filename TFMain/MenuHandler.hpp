@@ -121,6 +121,28 @@ namespace TranslucentFlyouts
 		static constexpr DWORD separatorWidth{1000};
 
 		static constexpr int systemOutlineSize{1};
+
+		static constexpr UINT MN_SETHMENU{0x01E0};
+#ifndef MN_GETHMENU
+		static constexpr UINT MN_GETHMENU{0x01E1};
+#endif // !MN_GETHMENU
+		static constexpr UINT MN_SIZEWINDOW{0x01E2};
+		static constexpr UINT MN_OPENHIERARCHY{0x01E3};
+		static constexpr UINT MN_CLOSEHIERARCHY{0x01E4};
+		static constexpr UINT MN_SELECTITEM{0x01E5};
+		static constexpr UINT MN_CANCELMENUS{0x01E6};
+		static constexpr UINT MN_SELECTFIRSTVALIDITEM{0x01E7};
+		static constexpr UINT MN_GETPOPUPMENU{0x01EA};	// obsolete
+		static constexpr UINT MN_FINDMENUWINDOWFROMPOINT{0x01EB};
+		static constexpr UINT MN_SHOWPOPUPWINDOW{0x01EC};
+		static constexpr UINT MN_MOUSEMOVE{0x01EE};
+		static constexpr UINT MN_BUTTONDOWN{0x01ED};
+		static constexpr UINT MN_BUTTONUP{0x01EF};
+		static constexpr UINT MN_SETTIMERTOOPENHIERARCHY{0x01F0};
+		static constexpr UINT MN_DBLCLK{0x01F1};
+		static constexpr UINT MN_ENDMENU{0x01F2};
+		static constexpr UINT MN_DODRAGDROP{0x01F3};
+		static constexpr UINT MN_ENDMENU2{0x01F4};
 	private:
 		struct MenuRenderingContext
 		{
@@ -158,28 +180,6 @@ namespace TranslucentFlyouts
 		static constexpr UINT WM_UAHINITMENU{0x0093};
 		static constexpr UINT WM_UAHMEASUREMENUITEM{0x0094};	// lParam is UAHMEASUREMENUITEM, return TRUE after handling it
 		static constexpr UINT WM_UAHNCPAINTMENUPOPUP{0x0095};	// lParam is UAHMENU, return TRUE after handling it
-
-		static constexpr UINT MN_SETHMENU{0x01E0};
-#ifndef MN_GETHMENU
-		static constexpr UINT MN_GETHMENU{0x01E1};
-#endif // !MN_GETHMENU
-		static constexpr UINT MN_SIZEWINDOW{0x01E2};
-		static constexpr UINT MN_OPENHIERARCHY{0x01E3};
-		static constexpr UINT MN_CLOSEHIERARCHY{0x01E4};
-		static constexpr UINT MN_SELECTITEM{0x01E5};
-		static constexpr UINT MN_CANCELMENUS{0x01E6};
-		static constexpr UINT MN_SELECTFIRSTVALIDITEM{0x01E7};
-		static constexpr UINT MN_GETPOPUPMENU{0x01EA};	// obsolete
-		static constexpr UINT MN_FINDMENUWINDOWFROMPOINT{0x01EB};
-		static constexpr UINT MN_SHOWPOPUPWINDOW{0x01EC};
-		static constexpr UINT MN_MOUSEMOVE{0x01EE};
-		static constexpr UINT MN_BUTTONDOWN{0x01ED};
-		static constexpr UINT MN_BUTTONUP{0x01EF};
-		static constexpr UINT MN_SETTIMERTOOPENHIERARCHY{0x01F0};
-		static constexpr UINT MN_DBLCLK{0x01F1};
-		static constexpr UINT MN_ENDMENU{0x01F2};
-		static constexpr UINT MN_DODRAGDROP{0x01F3};
-		static constexpr UINT MN_ENDMENU2{0x01F4};
 
 		static constexpr int nonClientMarginSize{3};
 		static constexpr int popupMenuSubclassId{0};

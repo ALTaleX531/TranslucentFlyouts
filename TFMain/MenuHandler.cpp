@@ -336,7 +336,7 @@ MenuHandler::MenuRenderingInfo MenuHandler::GetMenuRenderingInfo(HWND hWnd) try
 
 	{
 		auto selectedObject{wil::SelectObject(memoryDC.get(), bitmap.get())};
-		SendMessageW(hWnd, WM_PRINT, reinterpret_cast<WPARAM>(memoryDC.get()), PRF_CHILDREN | PRF_NONCLIENT);
+		THROW_IF_WIN32_BOOL_FALSE(PrintWindow(hWnd, memoryDC.get(), 0));
 	}
 
 	swap(g_sharedMenuInfo, info);
@@ -414,7 +414,7 @@ LRESULT CALLBACK MenuHandler::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 			{
 				// User didn't click on the menu item
 				auto position{static_cast<int>(wParam)};
-				THROW_HR_IF(E_INVALIDARG, position == 0xFFFFFFFF);
+				THROW_HR_IF(E_INVALIDARG, position == -1);
 
 				int param{0};
 				SystemParametersInfoW(SPI_GETSELECTIONFADE, 0, &param, 0);
@@ -441,7 +441,15 @@ LRESULT CALLBACK MenuHandler::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 
 				THROW_IF_FAILED(
 					MenuAnimation::CreateFadeOut(
-						hWnd, mbi, MenuAnimation::standardFadeoutDuration
+						hWnd, mbi,
+						std::chrono::milliseconds{
+							RegHelper::GetDword(
+								L"Menu\\Animation",
+								L"FadeOutTime",
+								static_cast<DWORD>(MenuAnimation::standardFadeoutDuration.count()),
+								false
+							)
+						}
 					)
 				);
 
@@ -485,9 +493,75 @@ LRESULT CALLBACK MenuHandler::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 			};
 			if (enableFluentAnimation)
 			{
+				float ratio
+				{
+					static_cast<float>(
+						RegHelper::GetDword(
+							L"Menu\\Animation",
+							L"StartRatio",
+							lround(MenuAnimation::standardStartPosRatio * 100.f),
+							false
+						)
+					) / 100.f
+				};
 				MenuAnimation::CreatePopupIn(
-					hWnd, MenuAnimation::standardStartPosRatio, MenuAnimation::standardPopupInDuration, MenuAnimation::standardFadeInDuration
+					hWnd,
+					ratio,
+					std::chrono::milliseconds{
+						RegHelper::GetDword(
+							L"Menu\\Animation",
+							L"PopInTime",
+							static_cast<DWORD>(MenuAnimation::standardPopupInDuration.count()),
+							false
+						)
+					},
+					std::chrono::milliseconds{
+						RegHelper::GetDword(
+							L"Menu\\Animation",
+							L"FadeInTime",
+							static_cast<DWORD>(MenuAnimation::standardFadeInDuration.count()),
+							false
+						)
+					},
+					RegHelper::GetDword(
+						L"Menu\\Animation",
+						L"PopInStyle",
+						0,
+						false
+					)
 				);
+			}
+
+			DwmTransitionOwnedWindow(hWnd, DWMTRANSITION_OWNEDWINDOW_REPOSITION);
+			InvalidateRect(hWnd, nullptr, TRUE);
+			UpdateWindow(hWnd);
+		}
+
+		if (uMsg == WM_WINDOWPOSCHANGED)
+		{
+			const auto& windowPos{*reinterpret_cast<WINDOWPOS*>(lParam)};
+			if (windowPos.flags & SWP_SHOWWINDOW)
+			{
+				handled = true;
+				result = DefSubclassProc(hWnd, uMsg, wParam, lParam);
+
+				DWORD noSystemDropShadow
+				{
+					RegHelper::GetDword(
+						L"Menu",
+						L"NoSystemDropShadow",
+						0,
+						false
+					)
+				};
+				if (noSystemDropShadow)
+				{
+					HWND backdropWindow{GetWindow(hWnd, GW_HWNDNEXT)};
+					if (Utils::IsWindowClass(backdropWindow, L"SysShadow"))
+					{
+						ShowWindow(backdropWindow, SW_HIDE);
+					}
+				}
 			}
 		}
 
@@ -496,29 +570,40 @@ LRESULT CALLBACK MenuHandler::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 			if (IsImmersiveContextMenu(hWnd))
 			{
 				handled = true;
+				result = DefSubclassProc(hWnd, uMsg, wParam, lParam);
 
 				POINT pt{};
 				Utils::unique_ext_hdc hdc{reinterpret_cast<HDC>(wParam)};
 
-				RECT windowRect{};
-				GetWindowRect(hWnd, &windowRect);
-				OffsetRect(&windowRect, -windowRect.left, -windowRect.top);
+				RECT paintRect{};
+				GetWindowRect(hWnd, &paintRect);
+				OffsetRect(&paintRect, -paintRect.left, -paintRect.top);
 
 				{
 					Utils::unique_ext_hdc dc{hdc.get()};
-					ExcludeClipRect(dc.get(), windowRect.left + nonClientMarginSize, windowRect.top + nonClientMarginSize, windowRect.right - nonClientMarginSize, windowRect.bottom - nonClientMarginSize);
-					FillRect(dc.get(), &windowRect, GetStockBrush(BLACK_BRUSH));
+					ExcludeClipRect(dc.get(), paintRect.left + nonClientMarginSize, paintRect.top + nonClientMarginSize, paintRect.right - nonClientMarginSize, paintRect.bottom - nonClientMarginSize);
+					FillRect(dc.get(), &paintRect, GetStockBrush(BLACK_BRUSH));
 				}
 
-				SetViewportOrgEx(hdc.get(), nonClientMarginSize, nonClientMarginSize, &pt);
-				result = DefSubclassProc(hWnd, WM_PRINTCLIENT, wParam, lParam);
-				SetViewportOrgEx(hdc.get(), pt.x, pt.y, nullptr);
-
-				if (!menuHandler.HandlePopupMenuNCBorderColors(hdc.get(), g_sharedMenuInfo.useDarkMode, windowRect))
+				if (!menuHandler.HandlePopupMenuNCBorderColors(hdc.get(), g_sharedMenuInfo.useDarkMode, paintRect))
 				{
-					Utils::unique_ext_hdc dc{hdc.get()};
-					ExcludeClipRect(dc.get(), windowRect.left + systemOutlineSize, windowRect.top + systemOutlineSize, windowRect.right - systemOutlineSize, windowRect.bottom - systemOutlineSize);
-					result = DefSubclassProc(hWnd, WM_PRINT, wParam, lParam);
+					unique_hrgn windowRegion{CreateRectRgnIndirect(&paintRect)};
+					unique_hrgn windowRegionWithoutOutline{CreateRectRgn(paintRect.left + systemOutlineSize, paintRect.top + systemOutlineSize, paintRect.right - systemOutlineSize, paintRect.bottom - systemOutlineSize)};
+					CombineRgn(windowRegion.get(), windowRegion.get(), windowRegionWithoutOutline.get(), RGN_XOR);
+					unique_hrgn clientRegion{CreateRectRgn(paintRect.left + nonClientMarginSize, paintRect.top + nonClientMarginSize, paintRect.right - nonClientMarginSize, paintRect.bottom - nonClientMarginSize)};
+					CombineRgn(windowRegion.get(), windowRegion.get(), clientRegion.get(), RGN_OR);
+
+					{
+						Utils::unique_ext_hdc dc{hdc.get()};
+						SelectClipRgn(dc.get(), windowRegion.get());
+						result = DefSubclassProc(hWnd, uMsg, wParam, lParam);
+					}
+				}
+				else
+				{
+					SetViewportOrgEx(hdc.get(), nonClientMarginSize, nonClientMarginSize, &pt);
+					result = DefSubclassProc(hWnd, WM_PRINTCLIENT, wParam, lParam);
+					SetViewportOrgEx(hdc.get(), pt.x, pt.y, nullptr);
 				}
 			}
 		}
@@ -536,21 +621,26 @@ LRESULT CALLBACK MenuHandler::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 					SelectClipRgn(hdc.get(), reinterpret_cast<HRGN>(wParam));
 				}
 
-				RECT windowRect{};
-				GetWindowRect(hWnd, &windowRect);
-				OffsetRect(&windowRect, -windowRect.left, -windowRect.top);
+				RECT paintRect{};
+				GetWindowRect(hWnd, &paintRect);
+				OffsetRect(&paintRect, -paintRect.left, -paintRect.top);
 
 				{
 					Utils::unique_ext_hdc dc{hdc.get()};
-					ExcludeClipRect(dc.get(), windowRect.left + nonClientMarginSize, windowRect.top + nonClientMarginSize, windowRect.right - nonClientMarginSize, windowRect.bottom - nonClientMarginSize);
-					FillRect(dc.get(), &windowRect, GetStockBrush(BLACK_BRUSH));
+					ExcludeClipRect(dc.get(), paintRect.left + nonClientMarginSize, paintRect.top + nonClientMarginSize, paintRect.right - nonClientMarginSize, paintRect.bottom - nonClientMarginSize);
+					FillRect(dc.get(), &paintRect, GetStockBrush(BLACK_BRUSH));
 				}
 
-				if (!menuHandler.HandlePopupMenuNCBorderColors(hdc.get(), g_sharedMenuInfo.useDarkMode, windowRect))
+				if (!menuHandler.HandlePopupMenuNCBorderColors(hdc.get(), g_sharedMenuInfo.useDarkMode, paintRect))
 				{
-					Utils::unique_ext_hdc dc{hdc.get()};
-					ExcludeClipRect(dc.get(), windowRect.left + systemOutlineSize, windowRect.top + systemOutlineSize, windowRect.right - systemOutlineSize, windowRect.bottom - systemOutlineSize);
-					DefSubclassProc(hWnd, WM_PRINT, reinterpret_cast<WPARAM>(dc.get()), lParam);
+					RECT windowRect{};
+					GetWindowRect(hWnd, &windowRect);
+
+					unique_hrgn windowRegion{CreateRectRgnIndirect(&windowRect)};
+					unique_hrgn windowRegionWithoutOutline{CreateRectRgn(windowRect.left + systemOutlineSize, windowRect.top + systemOutlineSize, windowRect.right - systemOutlineSize, windowRect.bottom - systemOutlineSize)};
+					CombineRgn(windowRegion.get(), windowRegion.get(), windowRegionWithoutOutline.get(), RGN_XOR);
+					
+					DefSubclassProc(hWnd, WM_NCPAINT, reinterpret_cast<WPARAM>(windowRegion.get()), 0);
 				}
 			}
 		}
