@@ -248,6 +248,10 @@ bool MenuHandler::HandlePopupMenuNCBorderColors(HDC hdc, bool useDarkMode, const
 			LOG_LAST_ERROR_IF(!FrameRect(hdc, &paintRect, brush.get()));
 		}
 	}
+	else
+	{
+		LOG_LAST_ERROR_IF(!FrameRect(hdc, &paintRect, GetStockBrush(BLACK_BRUSH)));
+	}
 
 	return true;
 }

@@ -176,7 +176,6 @@ void CALLBACK MainDLL::HandleWinEvent(
 	auto& mainDLL{GetInstance()};
 
 	if (
-		!IsHookGlobalInstalled() ||
 		idObject != OBJID_WINDOW ||
 		idChild != CHILDID_SELF ||
 		!hWnd || !IsWindow(hWnd)
@@ -187,7 +186,6 @@ void CALLBACK MainDLL::HandleWinEvent(
 
 	if (
 		Utils::IsValidFlyout(hWnd) &&
-		MainDLL::IsHookGlobalInstalled() &&
 		//ThemeHelper::IsThemeAvailable() &&
 		//!ThemeHelper::IsHighContrast() &&
 		!GetSystemMetrics(SM_CLEANBOOT)
