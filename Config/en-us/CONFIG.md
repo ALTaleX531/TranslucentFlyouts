@@ -3,8 +3,8 @@
 > Therefore, we appeal to everyone to improve this documentation together, and any PRs are welcome!
 
 ## Other languages
-[Chinese](../zh-cn/CONFIG.md)
-[Deutsch](../de-de/CONFIG.md)
+[简体中文](../zh-cn/CONFIG.md)   
+[Deutsch](../de-de/CONFIG.md)   
 
 ## Description
 Target version:
