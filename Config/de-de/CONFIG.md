@@ -2,7 +2,8 @@
 > Aufgrund der großen Anzahl konfigurierbarer Funktionen kann es sein, dass diese Seite nicht rechtzeitig aktualisiert wird.
 Deshalb rufen wir alle dazu auf, dieses Dokument gemeinsam zu verbessern, und jede PR ist willkommen!
 ## andere Sprachen
-[Chinese](../zh-cn/CONFIG.md)  
+[English](../en-us/CONFIG.md)  
+[简体中文](../zh-cn/CONFIG.md)  
 ## Guide
 Zielversion:
 - V2.0.0-alpha.4

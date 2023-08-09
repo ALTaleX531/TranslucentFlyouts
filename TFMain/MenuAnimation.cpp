@@ -1039,7 +1039,7 @@ namespace TranslucentFlyouts::MenuAnimation
 			if (uMsg == MenuHandler::MN_SELECTITEM)
 			{
 				auto position{static_cast<int>(wParam)};
-				if (position != -1)
+				if (!((position & 0xFFFF'FFFF'FFFF'FFF0) == 0xFFFF'FFFF'FFFF'FFF0))
 				{
 					if (
 						RegHelper::GetDword(

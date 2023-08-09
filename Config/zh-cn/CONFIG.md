@@ -3,6 +3,7 @@
 因此我们呼吁大家一起完善这份文档，任何PR都是受欢迎的！
 ## 其它语言
 [English](../en-us/CONFIG.md)  
+[Deutsch](../de-de/CONFIG.md)  
 ## 描述
 目标版本：
 - V2.0.0-alpha.4
