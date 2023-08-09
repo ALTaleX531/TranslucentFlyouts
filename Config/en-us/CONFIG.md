@@ -4,6 +4,7 @@
 
 ## Other languages
 [Chinese](../zh-cn/CONFIG.md)
+[Deutsch](../de-de/CONFIG.md)
 
 ## Description
 Target version:
