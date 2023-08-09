@@ -100,6 +100,7 @@ namespace TranslucentFlyouts
 		HRESULT HandleSysBorderColors(std::wstring_view keyName, HWND hWnd, bool useDarkMode, COLORREF color);
 		HRESULT HandleRoundCorners(std::wstring_view keyName, HWND hWnd);
 		bool HandlePopupMenuNCBorderColors(HDC hdc, bool useDarkMode, const RECT& paintRect);
+		MARGINS GetPopupMenuNonClientMargins(HWND hWnd);
 
 		static constexpr DWORD lightMode_GradientColor{0x9EDDDDDD};
 		static constexpr DWORD darkMode_GradientColor{0x412B2B2B};
@@ -140,9 +141,15 @@ namespace TranslucentFlyouts
 		static constexpr UINT MN_BUTTONUP{0x01EF};
 		static constexpr UINT MN_SETTIMERTOOPENHIERARCHY{0x01F0};
 		static constexpr UINT MN_DBLCLK{0x01F1};
-		static constexpr UINT MN_ENDMENU{0x01F2};
+		static constexpr UINT MN_ACTIVEMENU{0x01F2};
 		static constexpr UINT MN_DODRAGDROP{0x01F3};
-		static constexpr UINT MN_ENDMENU2{0x01F4};
+		static constexpr UINT MN_ENDMENU{0x01F4};
+
+		static constexpr UINT DFCS_MENUARROWUP{0x0008};
+		static constexpr UINT DFCS_MENUARROWDOWN{0x0010};
+
+		static constexpr int popupMenuArrowUp{-3};
+		static constexpr int popupMenuArrowDown{-4};
 	private:
 		struct MenuRenderingContext
 		{
@@ -181,7 +188,7 @@ namespace TranslucentFlyouts
 		static constexpr UINT WM_UAHMEASUREMENUITEM{0x0094};	// lParam is UAHMEASUREMENUITEM, return TRUE after handling it
 		static constexpr UINT WM_UAHNCPAINTMENUPOPUP{0x0095};	// lParam is UAHMENU, return TRUE after handling it
 
-		static constexpr int nonClientMarginSize{3};
+		static constexpr int nonClientMarginStandardSize{3};
 		static constexpr int popupMenuSubclassId{0};
 		static constexpr int dropDownSubclassId{0};
 
@@ -189,6 +196,7 @@ namespace TranslucentFlyouts
 		static thread_local MenuRenderingInfo g_sharedMenuInfo;
 
 		static const UINT WM_MHDETACH;
+		static const std::wstring_view BackgroundBrushPropName;
 
 		bool m_internalError{false};
 		std::list<HWND> m_hookedWindowList{};

@@ -15,6 +15,7 @@ using namespace TranslucentFlyouts;
 thread_local decltype(MenuHandler::g_sharedContext) MenuHandler::g_sharedContext{nullptr, nullptr};
 thread_local decltype(MenuHandler::g_sharedMenuInfo) MenuHandler::g_sharedMenuInfo{false, false};
 const UINT MenuHandler::WM_MHDETACH{RegisterWindowMessageW(L"TranslucentFlyouts.MenuHandler.Detach")};
+const wstring_view MenuHandler::BackgroundBrushPropName{L"TranslucentFlyouts.MenuHandler.BackgroundBrush"};
 
 MenuHandler& MenuHandler::GetInstance()
 {
@@ -55,8 +56,11 @@ void MenuHandler::MenuOwnerMsgCallback(HWND hwnd, UINT message, WPARAM wParam, L
 
 				HWND menuWindow{WindowFromDC(drawItemStruct.hDC)};
 
-				GetInstance().HandleSysBorderColors(L"Menu"sv, menuWindow, g_sharedMenuInfo.useDarkMode, g_sharedMenuInfo.borderColor);
-				GetInstance().HandleRoundCorners(L"Menu"sv, menuWindow);
+				if (g_sharedMenuInfo.useUxTheme)
+				{
+					GetInstance().HandleSysBorderColors(L"Menu"sv, menuWindow, g_sharedMenuInfo.useDarkMode, g_sharedMenuInfo.borderColor);
+					GetInstance().HandleRoundCorners(L"Menu"sv, menuWindow);
+				}
 			}
 		}
 	}
@@ -248,6 +252,17 @@ bool MenuHandler::HandlePopupMenuNCBorderColors(HDC hdc, bool useDarkMode, const
 	return true;
 }
 
+MARGINS MenuHandler::GetPopupMenuNonClientMargins(HWND hWnd)
+{
+	RECT windowRect{};
+	GetWindowRect(hWnd, &windowRect);
+
+	MENUBARINFO mbi{sizeof(MENUBARINFO)};
+	GetMenuBarInfo(hWnd, OBJID_CLIENT, 0, &mbi);
+
+	return {mbi.rcBar.left - windowRect.left, windowRect.right - mbi.rcBar.right, mbi.rcBar.top - windowRect.top, windowRect.bottom - mbi.rcBar.bottom};
+}
+
 HRESULT MenuHandler::HandleRoundCorners(std::wstring_view keyName, HWND hWnd)
 {
 	DWORD cornerType
@@ -414,7 +429,10 @@ LRESULT CALLBACK MenuHandler::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 			{
 				// User didn't click on the menu item
 				auto position{static_cast<int>(wParam)};
-				THROW_HR_IF(E_INVALIDARG, position == -1);
+				THROW_HR_IF(
+					E_INVALIDARG,
+					((position & 0xFFFF'FFFF'FFFF'FFF0) == 0xFFFF'FFFF'FFFF'FFF0)
+				);
 
 				int param{0};
 				SystemParametersInfoW(SPI_GETSELECTIONFADE, 0, &param, 0);
@@ -480,6 +498,23 @@ LRESULT CALLBACK MenuHandler::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 				menuHandler.ApplyEffect(L"Menu"sv, hWnd, info.useDarkMode);
 				GetInstance().HandleSysBorderColors(L"Menu"sv, hWnd, info.useDarkMode, info.borderColor);
 				GetInstance().HandleRoundCorners(L"Menu"sv, hWnd);
+
+				try
+				{
+					auto hMenu{reinterpret_cast<HMENU>(DefSubclassProc(hWnd, MN_GETHMENU, 0, 0))};
+					MENUINFO mi{sizeof(mi), MIM_BACKGROUND};
+					THROW_IF_WIN32_BOOL_FALSE(GetMenuInfo(hMenu, &mi));
+					SetPropW(hWnd, BackgroundBrushPropName.data(), mi.hbrBack);
+					mi.hbrBack = GetStockBrush(BLACK_BRUSH);
+					LOG_HR_IF(E_FAIL, !SetMenuInfo(hMenu, &mi));
+				}
+				CATCH_LOG()
+
+				if (GetInstance().GetPopupMenuNonClientMargins(hWnd).cyTopHeight != nonClientMarginStandardSize)
+				{
+					PostMessageW(hWnd, MN_SELECTITEM, popupMenuArrowUp, 0);
+					PostMessageW(hWnd, MN_SELECTITEM, popupMenuArrowDown, 0);
+				}
 			}
 
 			DWORD enableFluentAnimation
@@ -533,8 +568,6 @@ LRESULT CALLBACK MenuHandler::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 			}
 
 			DwmTransitionOwnedWindow(hWnd, DWMTRANSITION_OWNEDWINDOW_REPOSITION);
-			InvalidateRect(hWnd, nullptr, TRUE);
-			UpdateWindow(hWnd);
 		}
 
 		if (uMsg == WM_WINDOWPOSCHANGED)
@@ -575,36 +608,13 @@ LRESULT CALLBACK MenuHandler::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 				POINT pt{};
 				Utils::unique_ext_hdc hdc{reinterpret_cast<HDC>(wParam)};
 
+				MARGINS mr{GetInstance().GetPopupMenuNonClientMargins(hWnd)};
+
 				RECT paintRect{};
 				GetWindowRect(hWnd, &paintRect);
 				OffsetRect(&paintRect, -paintRect.left, -paintRect.top);
 
-				{
-					Utils::unique_ext_hdc dc{hdc.get()};
-					ExcludeClipRect(dc.get(), paintRect.left + nonClientMarginSize, paintRect.top + nonClientMarginSize, paintRect.right - nonClientMarginSize, paintRect.bottom - nonClientMarginSize);
-					FillRect(dc.get(), &paintRect, GetStockBrush(BLACK_BRUSH));
-				}
-
-				if (!menuHandler.HandlePopupMenuNCBorderColors(hdc.get(), g_sharedMenuInfo.useDarkMode, paintRect))
-				{
-					unique_hrgn windowRegion{CreateRectRgnIndirect(&paintRect)};
-					unique_hrgn windowRegionWithoutOutline{CreateRectRgn(paintRect.left + systemOutlineSize, paintRect.top + systemOutlineSize, paintRect.right - systemOutlineSize, paintRect.bottom - systemOutlineSize)};
-					CombineRgn(windowRegion.get(), windowRegion.get(), windowRegionWithoutOutline.get(), RGN_XOR);
-					unique_hrgn clientRegion{CreateRectRgn(paintRect.left + nonClientMarginSize, paintRect.top + nonClientMarginSize, paintRect.right - nonClientMarginSize, paintRect.bottom - nonClientMarginSize)};
-					CombineRgn(windowRegion.get(), windowRegion.get(), clientRegion.get(), RGN_OR);
-
-					{
-						Utils::unique_ext_hdc dc{hdc.get()};
-						SelectClipRgn(dc.get(), windowRegion.get());
-						result = DefSubclassProc(hWnd, uMsg, wParam, lParam);
-					}
-				}
-				else
-				{
-					SetViewportOrgEx(hdc.get(), nonClientMarginSize, nonClientMarginSize, &pt);
-					result = DefSubclassProc(hWnd, WM_PRINTCLIENT, wParam, lParam);
-					SetViewportOrgEx(hdc.get(), pt.x, pt.y, nullptr);
-				}
+				menuHandler.HandlePopupMenuNCBorderColors(hdc.get(), g_sharedMenuInfo.useDarkMode, paintRect);
 			}
 		}
 
@@ -613,6 +623,7 @@ LRESULT CALLBACK MenuHandler::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 			if (IsImmersiveContextMenu(hWnd))
 			{
 				handled = true;
+				result = DefSubclassProc(hWnd, uMsg, wParam, lParam);
 
 				auto hdc{wil::GetWindowDC(hWnd)};
 
@@ -621,50 +632,27 @@ LRESULT CALLBACK MenuHandler::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 					SelectClipRgn(hdc.get(), reinterpret_cast<HRGN>(wParam));
 				}
 
+				MARGINS mr{GetInstance().GetPopupMenuNonClientMargins(hWnd)};
+
 				RECT paintRect{};
 				GetWindowRect(hWnd, &paintRect);
 				OffsetRect(&paintRect, -paintRect.left, -paintRect.top);
 
-				{
-					Utils::unique_ext_hdc dc{hdc.get()};
-					ExcludeClipRect(dc.get(), paintRect.left + nonClientMarginSize, paintRect.top + nonClientMarginSize, paintRect.right - nonClientMarginSize, paintRect.bottom - nonClientMarginSize);
-					FillRect(dc.get(), &paintRect, GetStockBrush(BLACK_BRUSH));
-				}
-
-				if (!menuHandler.HandlePopupMenuNCBorderColors(hdc.get(), g_sharedMenuInfo.useDarkMode, paintRect))
-				{
-					RECT windowRect{};
-					GetWindowRect(hWnd, &windowRect);
-
-					unique_hrgn windowRegion{CreateRectRgnIndirect(&windowRect)};
-					unique_hrgn windowRegionWithoutOutline{CreateRectRgn(windowRect.left + systemOutlineSize, windowRect.top + systemOutlineSize, windowRect.right - systemOutlineSize, windowRect.bottom - systemOutlineSize)};
-					CombineRgn(windowRegion.get(), windowRegion.get(), windowRegionWithoutOutline.get(), RGN_XOR);
-					
-					DefSubclassProc(hWnd, WM_NCPAINT, reinterpret_cast<WPARAM>(windowRegion.get()), 0);
-				}
-			}
-		}
-
-		if (uMsg == WM_ERASEBKGND)
-		{
-			handled = true;
-
-			HDC hdc{reinterpret_cast<HDC>(wParam)};
-
-			g_sharedContext.menuDC = hdc;
-			result = DefSubclassProc(hWnd, uMsg, wParam, lParam);
-			g_sharedContext.menuDC = nullptr;
-
-			if (IsImmersiveContextMenu(hWnd))
-			{
-				RECT clipRect{};
-				GetClipBox(hdc, &clipRect);
-				PatBlt(hdc, clipRect.left, clipRect.top, clipRect.right - clipRect.left, clipRect.bottom - clipRect.top, BLACKNESS);
+				menuHandler.HandlePopupMenuNCBorderColors(hdc.get(), g_sharedMenuInfo.useDarkMode, paintRect);
 			}
 		}
 
 		if (uMsg == WM_NCDESTROY || uMsg == WM_MHDETACH)
 		{
+			auto brush{reinterpret_cast<HBRUSH>(GetPropW(hWnd, BackgroundBrushPropName.data()))};
+			if (brush)
+			{
+				MENUINFO mi{.cbSize{sizeof(mi)}, .fMask{MIM_BACKGROUND}, .hbrBack{brush}};
+				LOG_HR_IF(E_FAIL, !SetMenuInfo(reinterpret_cast<HMENU>(DefSubclassProc(hWnd, MN_GETHMENU, 0, 0)), &mi));
+
+				RemovePropW(hWnd, BackgroundBrushPropName.data());
+			}
+
 			if (uMsg == WM_MHDETACH)
 			{
 				RemovePropW(hWnd, L"IsZachMenuDWMAttributeSet");
