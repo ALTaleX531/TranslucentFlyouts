@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Utils.hpp"
 #include "Hooking.hpp"
 #include "DXHelper.hpp"
 
@@ -246,6 +247,8 @@ void LazyD3D::CreateDeviceResources()
 {
 	try
 	{
+		auto CleanUp{Utils::RoInit()};
+
 		com_ptr<IDXGIDevice3> dxgiDevice{nullptr};
 		com_ptr<ID3D11Device> d3dDevice{nullptr};
 

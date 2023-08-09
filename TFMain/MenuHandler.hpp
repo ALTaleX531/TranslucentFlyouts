@@ -197,6 +197,7 @@ namespace TranslucentFlyouts
 
 		static const UINT WM_MHDETACH;
 		static const std::wstring_view BackgroundBrushPropName;
+		static const std::wstring_view BorderMarkerPropName;
 
 		bool m_internalError{false};
 		std::list<HWND> m_hookedWindowList{};

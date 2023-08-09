@@ -16,6 +16,7 @@ thread_local decltype(MenuHandler::g_sharedContext) MenuHandler::g_sharedContext
 thread_local decltype(MenuHandler::g_sharedMenuInfo) MenuHandler::g_sharedMenuInfo{false, false};
 const UINT MenuHandler::WM_MHDETACH{RegisterWindowMessageW(L"TranslucentFlyouts.MenuHandler.Detach")};
 const wstring_view MenuHandler::BackgroundBrushPropName{L"TranslucentFlyouts.MenuHandler.BackgroundBrush"};
+const wstring_view MenuHandler::BorderMarkerPropName{L"TranslucentFlyouts.MenuHandler.BorderMarker"};
 
 MenuHandler& MenuHandler::GetInstance()
 {
@@ -58,7 +59,18 @@ void MenuHandler::MenuOwnerMsgCallback(HWND hwnd, UINT message, WPARAM wParam, L
 
 				if (g_sharedMenuInfo.useUxTheme)
 				{
-					GetInstance().HandleSysBorderColors(L"Menu"sv, menuWindow, g_sharedMenuInfo.useDarkMode, g_sharedMenuInfo.borderColor);
+					DWORD cornerType
+					{
+						RegHelper::GetDword(
+							L"Menu",
+							L"CornerType",
+							3
+						)
+					};
+					if (cornerType != 1 && SUCCEEDED(GetInstance().HandleSysBorderColors(L"Menu"sv, menuWindow, g_sharedMenuInfo.useDarkMode, g_sharedMenuInfo.borderColor)))
+					{
+						SetPropW(menuWindow, BorderMarkerPropName.data(), reinterpret_cast<HANDLE>(HANDLE_FLAG_INHERIT));
+					}
 					GetInstance().HandleRoundCorners(L"Menu"sv, menuWindow);
 				}
 			}
@@ -420,7 +432,18 @@ LRESULT CALLBACK MenuHandler::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 			result = DefSubclassProc(hWnd, uMsg, wParam, lParam);
 			g_sharedContext.menuDC = nullptr;
 
-			GetInstance().HandleSysBorderColors(L"Menu"sv, hWnd, g_sharedMenuInfo.useDarkMode, g_sharedMenuInfo.borderColor);
+			DWORD cornerType
+			{
+				RegHelper::GetDword(
+					L"Menu",
+					L"CornerType",
+					3
+				)
+			};
+			if (cornerType != 1 && SUCCEEDED(GetInstance().HandleSysBorderColors(L"Menu"sv, hWnd, g_sharedMenuInfo.useDarkMode, g_sharedMenuInfo.borderColor)))
+			{
+				SetPropW(hWnd, BorderMarkerPropName.data(), reinterpret_cast<HANDLE>(HANDLE_FLAG_INHERIT));
+			}
 			GetInstance().HandleRoundCorners(L"Menu"sv, hWnd);
 		}
 
@@ -500,7 +523,18 @@ LRESULT CALLBACK MenuHandler::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 			else
 			{
 				menuHandler.ApplyEffect(L"Menu"sv, hWnd, info.useDarkMode);
-				GetInstance().HandleSysBorderColors(L"Menu"sv, hWnd, info.useDarkMode, info.borderColor);
+				DWORD cornerType
+				{
+					RegHelper::GetDword(
+						L"Menu",
+						L"CornerType",
+						3
+					)
+				};
+				if (cornerType != 1 && SUCCEEDED(GetInstance().HandleSysBorderColors(L"Menu"sv, hWnd, info.useDarkMode, info.borderColor)))
+				{
+					SetPropW(hWnd, BorderMarkerPropName.data(), reinterpret_cast<HANDLE>(HANDLE_FLAG_INHERIT));
+				}
 				GetInstance().HandleRoundCorners(L"Menu"sv, hWnd);
 
 				try
@@ -618,7 +652,14 @@ LRESULT CALLBACK MenuHandler::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 				GetWindowRect(hWnd, &paintRect);
 				OffsetRect(&paintRect, -paintRect.left, -paintRect.top);
 
-				menuHandler.HandlePopupMenuNCBorderColors(hdc.get(), g_sharedMenuInfo.useDarkMode, paintRect);
+				if (!GetPropW(hWnd, BorderMarkerPropName.data()))
+				{
+					menuHandler.HandlePopupMenuNCBorderColors(hdc.get(), g_sharedMenuInfo.useDarkMode, paintRect);
+				}
+				else
+				{
+					LOG_LAST_ERROR_IF(!FrameRect(hdc.get(), &paintRect, GetStockBrush(BLACK_BRUSH)));
+				}
 			}
 		}
 
@@ -642,19 +683,31 @@ LRESULT CALLBACK MenuHandler::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 				GetWindowRect(hWnd, &paintRect);
 				OffsetRect(&paintRect, -paintRect.left, -paintRect.top);
 
-				menuHandler.HandlePopupMenuNCBorderColors(hdc.get(), g_sharedMenuInfo.useDarkMode, paintRect);
+				if (!GetPropW(hWnd, BorderMarkerPropName.data()))
+				{
+					menuHandler.HandlePopupMenuNCBorderColors(hdc.get(), g_sharedMenuInfo.useDarkMode, paintRect);
+				}
+				else
+				{
+					LOG_LAST_ERROR_IF(!FrameRect(hdc.get(), &paintRect, GetStockBrush(BLACK_BRUSH)));
+				}
 			}
 		}
 
 		if (uMsg == WM_NCDESTROY || uMsg == WM_MHDETACH)
 		{
 			auto brush{reinterpret_cast<HBRUSH>(GetPropW(hWnd, BackgroundBrushPropName.data()))};
-			if (brush)
+			if (GetLastError() == ERROR_SUCCESS)
 			{
 				MENUINFO mi{.cbSize{sizeof(mi)}, .fMask{MIM_BACKGROUND}, .hbrBack{brush}};
 				LOG_HR_IF(E_FAIL, !SetMenuInfo(reinterpret_cast<HMENU>(DefSubclassProc(hWnd, MN_GETHMENU, 0, 0)), &mi));
 
 				RemovePropW(hWnd, BackgroundBrushPropName.data());
+			}
+
+			if (GetPropW(hWnd, BorderMarkerPropName.data()))
+			{
+				RemovePropW(hWnd, BorderMarkerPropName.data());
 			}
 
 			if (uMsg == WM_MHDETACH)

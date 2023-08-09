@@ -211,10 +211,9 @@ namespace TranslucentFlyouts::MenuAnimation
 			Attach();
 
 			Utils::CloakWindow(m_menuWindow, TRUE);
-			SetCapture(m_menuWindow);
 
 			window = CreateWindowExW(
-						 WS_EX_NOREDIRECTIONBITMAP | WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_PALETTEWINDOW,
+						 WS_EX_NOREDIRECTIONBITMAP | WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
 						 L"Static",
 						 L"PopupIn Animation",
 						 WS_POPUP,
@@ -315,6 +314,9 @@ namespace TranslucentFlyouts::MenuAnimation
 				EffectHelper::EnableWindowDarkMode(window, info.useDarkMode);
 
 				menuHandler.ApplyEffect(L"Menu"sv, m_backdropWindow, info.useDarkMode);
+				menuHandler.HandleRoundCorners(L"Menu"sv, m_backdropWindow);
+				COLORREF color{DWMWA_COLOR_NONE};
+				DwmSetWindowAttribute(m_backdropWindow, DWMWA_BORDER_COLOR, &color, sizeof(color));
 				EffectHelper::EnableWindowDarkMode(m_backdropWindow, info.useDarkMode);
 			}
 			else
