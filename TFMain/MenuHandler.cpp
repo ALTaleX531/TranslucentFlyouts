@@ -146,26 +146,18 @@ HRESULT MenuHandler::HandleSysBorderColors(std::wstring_view keyName, HWND hWnd,
 	DWORD borderColor{color};
 	if (!noBorderColor)
 	{
-		try
+		DWORD enableThemeColorization
 		{
-			DWORD enableThemeColorization
-			{
-				RegHelper::GetDword(
-					keyName,
-					L"EnableThemeColorization",
-					0
-				)
-			};
+			RegHelper::GetDword(
+				keyName,
+				L"EnableThemeColorization",
+				0
+			)
+		};
 
-			THROW_HR_IF(E_NOTIMPL, !enableThemeColorization);
-			THROW_IF_FAILED(Utils::GetDwmThemeColor(borderColor));
-		}
-		catch (...)
+		if (enableThemeColorization)
 		{
-			if (ResultFromCaughtException() != E_NOTIMPL)
-			{
-				LOG_CAUGHT_EXCEPTION();
-			}
+			LOG_IF_FAILED(Utils::GetDwmThemeColor(borderColor));
 		}
 
 		if (useDarkMode)
@@ -211,26 +203,18 @@ bool MenuHandler::HandlePopupMenuNCBorderColors(HDC hdc, bool useDarkMode, const
 	// Border color is enabled.
 	if (!noBorderColor)
 	{
-		try
+		DWORD enableThemeColorization
 		{
-			DWORD enableThemeColorization
-			{
-				RegHelper::GetDword(
-					L"Menu",
-					L"EnableThemeColorization",
-					0
-				)
-			};
+			RegHelper::GetDword(
+				L"Menu",
+				L"EnableThemeColorization",
+				0
+			)
+		};
 
-			THROW_HR_IF(E_NOTIMPL, !enableThemeColorization);
-			THROW_IF_FAILED(Utils::GetDwmThemeColor(borderColor));
-		}
-		catch (...)
+		if (enableThemeColorization)
 		{
-			if (ResultFromCaughtException() != E_NOTIMPL)
-			{
-				LOG_CAUGHT_EXCEPTION();
-			}
+			LOG_IF_FAILED(Utils::GetDwmThemeColor(borderColor));
 		}
 
 		if (useDarkMode)

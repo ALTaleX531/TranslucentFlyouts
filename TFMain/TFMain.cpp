@@ -15,6 +15,7 @@ const array g_blockList
 	L"spoolsv.exe"sv,
 	L"dllhost.exe"sv,
 	L"svchost.exe"sv,
+	L"searchhost.exe"sv,
 	L"taskhostw.exe"sv,
 	L"searchhost.exe"sv,
 	L"RuntimeBroker.exe"sv,
@@ -26,6 +27,7 @@ const array g_blockList
 	L"ShellExperienceHost.exe"sv,
 	L"StartMenuExperienceHost.exe"sv,
 	L"msedgewebview2.exe"sv,
+	L"Microsoft.SharePoint.exe"sv,
 	// For compatibility issues
 	L"StartAllBackX64.dll"sv
 };

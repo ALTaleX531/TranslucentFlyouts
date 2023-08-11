@@ -812,7 +812,7 @@ namespace TranslucentFlyouts::MenuAnimation
 			if (uMsg == MenuHandler::MN_SELECTITEM)
 			{
 				auto position{static_cast<int>(wParam)};
-				if (!((position & 0xFFFF'FFFF'FFFF'FFF0) == 0xFFFF'FFFF'FFFF'FFF0))
+				if (position != -1)
 				{
 					if (
 						RegHelper::GetDword(
@@ -1110,6 +1110,7 @@ namespace TranslucentFlyouts::MenuAnimation
 
 DWORD WINAPI MenuAnimation::AnimationWorker::ThreadProc(LPVOID lpThreadParameter)
 {
+	auto cleanUp{get_module_reference_for_thread()};
 	auto& animationWorker{*reinterpret_cast<AnimationWorker*>(lpThreadParameter)};
 
 	// We can use it to reuse thread
@@ -1165,7 +1166,6 @@ DWORD WINAPI MenuAnimation::AnimationWorker::ThreadProc(LPVOID lpThreadParameter
 		}
 	}
 
-	FreeLibraryAndExitThread(HINST_THISCOMPONENT, 0);
 	// We will never get here...
 	return 0;
 }
@@ -1178,9 +1178,6 @@ void MenuAnimation::AnimationWorker::Schedule(shared_ptr<AnimationInfo> animatio
 	// We have no animation worker thread, create one
 	if (m_threadId == 0)
 	{
-		// Add ref count of current dll, in case it unloads while animation worker thread is still busy...
-		HMODULE moduleHandle{nullptr};
-		LOG_IF_WIN32_BOOL_FALSE(GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, reinterpret_cast<LPCWSTR>(HINST_THISCOMPONENT), &moduleHandle));
 		unique_handle threadHandle{CreateThread(nullptr, 0, ThreadProc, this, 0, &m_threadId)};
 	}
 }

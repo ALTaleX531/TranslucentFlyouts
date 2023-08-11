@@ -94,11 +94,19 @@ HRESULT WINAPI Install() try
 			WCHAR modulePath[MAX_PATH + 1] {};
 			RETURN_LAST_ERROR_IF(!GetModuleFileName(HINST_THISCOMPONENT, modulePath, MAX_PATH));
 
+#ifdef _WIN64
 			THROW_IF_FAILED(
 				execAction->put_Path(
-					const_cast<BSTR>(L"Rundll32")
+					const_cast<BSTR>(L"C:\\Windows\\System32\\Rundll32.exe")
 				)
 			);
+#else
+			THROW_IF_FAILED(
+				execAction->put_Path(
+					const_cast<BSTR>(L"C:\\Windows\\SysWOW64\\Rundll32.exe")
+				)
+			);
+#endif
 			THROW_IF_FAILED(
 				execAction->put_Arguments(
 					const_cast<BSTR>(
