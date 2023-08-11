@@ -14,9 +14,11 @@ using namespace TranslucentFlyouts;
 
 thread_local decltype(MenuHandler::g_sharedContext) MenuHandler::g_sharedContext{nullptr, nullptr};
 thread_local decltype(MenuHandler::g_sharedMenuInfo) MenuHandler::g_sharedMenuInfo{false, false};
+const UINT MenuHandler::WM_MHATTACH{RegisterWindowMessageW(L"TranslucentFlyouts.MenuHandler.Attach")};
 const UINT MenuHandler::WM_MHDETACH{RegisterWindowMessageW(L"TranslucentFlyouts.MenuHandler.Detach")};
 const wstring_view MenuHandler::BackgroundBrushPropName{L"TranslucentFlyouts.MenuHandler.BackgroundBrush"};
 const wstring_view MenuHandler::BorderMarkerPropName{L"TranslucentFlyouts.MenuHandler.BorderMarker"};
+const wstring_view MenuHandler::InitializationMarkerPropName{L"TranslucentFlyouts.MenuHandler.InitializationMarker"};
 
 MenuHandler& MenuHandler::GetInstance()
 {
@@ -506,11 +508,9 @@ LRESULT CALLBACK MenuHandler::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 			CATCH_LOG()
 		}
 
-		if (uMsg == MN_SIZEWINDOW)
+		if (uMsg == WM_MHATTACH)
 		{
-			handled = true;
-			result = DefSubclassProc(hWnd, uMsg, wParam, lParam);
-
+			SetPropW(hWnd, InitializationMarkerPropName.data(), reinterpret_cast<HANDLE>(HANDLE_FLAG_INHERIT));
 			menuHandler.AttachPopupMenuOwner(hWnd);
 
 			// This menu is using unknown owner drawn technique,
@@ -544,10 +544,12 @@ LRESULT CALLBACK MenuHandler::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 					THROW_IF_WIN32_BOOL_FALSE(GetMenuInfo(hMenu, &mi));
 					SetPropW(hWnd, BackgroundBrushPropName.data(), mi.hbrBack);
 					mi.hbrBack = GetStockBrush(BLACK_BRUSH);
+					// SetMenuInfo has a bug that it fails without setting last error.
 					LOG_HR_IF(E_FAIL, !SetMenuInfo(hMenu, &mi));
 				}
 				CATCH_LOG()
 
+				// We have menu scroll arrows, make it redraw itself.
 				if (GetInstance().GetPopupMenuNonClientMargins(hWnd).cyTopHeight != nonClientMarginStandardSize)
 				{
 					PostMessageW(hWnd, MN_SELECTITEM, popupMenuArrowUp, 0);
@@ -604,7 +606,20 @@ LRESULT CALLBACK MenuHandler::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 					)
 				);
 			}
+		}
 
+		// Some special popup menu will receive this message several times
+		if (uMsg == MN_SIZEWINDOW)
+		{
+			handled = true;
+			result = DefSubclassProc(hWnd, uMsg, wParam, lParam);
+
+			if (!GetPropW(hWnd, InitializationMarkerPropName.data()))
+			{
+				SendMessageW(hWnd, WM_MHATTACH, 0, 0);
+			}
+
+			InvalidateRect(hWnd, nullptr, TRUE);
 			DwmTransitionOwnedWindow(hWnd, DWMTRANSITION_OWNEDWINDOW_REPOSITION);
 		}
 
@@ -668,7 +683,6 @@ LRESULT CALLBACK MenuHandler::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 			if (IsImmersiveContextMenu(hWnd))
 			{
 				handled = true;
-				result = DefSubclassProc(hWnd, uMsg, wParam, lParam);
 
 				auto hdc{wil::GetWindowDC(hWnd)};
 
@@ -683,18 +697,27 @@ LRESULT CALLBACK MenuHandler::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 				GetWindowRect(hWnd, &paintRect);
 				OffsetRect(&paintRect, -paintRect.left, -paintRect.top);
 
-				if (!GetPropW(hWnd, BorderMarkerPropName.data()))
 				{
-					menuHandler.HandlePopupMenuNCBorderColors(hdc.get(), g_sharedMenuInfo.useDarkMode, paintRect);
+					Utils::unique_ext_hdc dc{hdc.get()};
+					ExcludeClipRect(dc.get(), paintRect.left + mr.cxLeftWidth, paintRect.top + mr.cyTopHeight, paintRect.right - mr.cxRightWidth, paintRect.bottom - mr.cyBottomHeight);
+					FillRect(dc.get(), &paintRect, GetStockBrush(BLACK_BRUSH));
 				}
-				else
+
+				if (!GetPropW(hWnd, BorderMarkerPropName.data()) && !menuHandler.HandlePopupMenuNCBorderColors(hdc.get(), g_sharedMenuInfo.useDarkMode, paintRect))
 				{
-					LOG_LAST_ERROR_IF(!FrameRect(hdc.get(), &paintRect, GetStockBrush(BLACK_BRUSH)));
+					RECT windowRect{};
+					GetWindowRect(hWnd, &windowRect);
+
+					unique_hrgn windowRegion{CreateRectRgnIndirect(&windowRect)};
+					unique_hrgn windowRegionWithoutOutline{CreateRectRgn(windowRect.left + systemOutlineSize, windowRect.top + systemOutlineSize, windowRect.right - systemOutlineSize, windowRect.bottom - systemOutlineSize)};
+					CombineRgn(windowRegion.get(), windowRegion.get(), windowRegionWithoutOutline.get(), RGN_XOR);
+
+					DefSubclassProc(hWnd, WM_NCPAINT, reinterpret_cast<WPARAM>(windowRegion.get()), 0);
 				}
 			}
 		}
 
-		if (uMsg == WM_NCDESTROY || uMsg == WM_MHDETACH)
+		if (uMsg == WM_DESTROY || uMsg == WM_MHDETACH)
 		{
 			auto brush{reinterpret_cast<HBRUSH>(GetPropW(hWnd, BackgroundBrushPropName.data()))};
 			if (GetLastError() == ERROR_SUCCESS)
@@ -703,6 +726,11 @@ LRESULT CALLBACK MenuHandler::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 				LOG_HR_IF(E_FAIL, !SetMenuInfo(reinterpret_cast<HMENU>(DefSubclassProc(hWnd, MN_GETHMENU, 0, 0)), &mi));
 
 				RemovePropW(hWnd, BackgroundBrushPropName.data());
+			}
+
+			if (GetPropW(hWnd, InitializationMarkerPropName.data()))
+			{
+				RemovePropW(hWnd, InitializationMarkerPropName.data());
 			}
 
 			if (GetPropW(hWnd, BorderMarkerPropName.data()))
@@ -724,7 +752,7 @@ LRESULT CALLBACK MenuHandler::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 
 	if (uIdSubclass == dropDownSubclassId)
 	{
-		if (uMsg == WM_NCDESTROY || uMsg == WM_MHDETACH)
+		if (uMsg == WM_DESTROY || uMsg == WM_MHDETACH)
 		{
 			if (uMsg == WM_MHDETACH)
 			{
@@ -916,6 +944,10 @@ void MenuHandler::StartupHook()
 
 void MenuHandler::ShutdownHook()
 {
+	g_sharedContext.menuDC = nullptr;
+	g_sharedContext.listviewDC = nullptr;
+	g_sharedMenuInfo.Reset();
+
 	MainDLL::GetInstance().DeleteCallback(WinEventCallback);
 
 	Hooking::MsgHooks::GetInstance().DeleteCallback(MenuOwnerMsgCallback);

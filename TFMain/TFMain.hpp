@@ -42,6 +42,7 @@ namespace TranslucentFlyouts
 		static HWINEVENTHOOK g_hHook;
 
 		bool m_startup{false};
+		bool m_debug{false};
 		std::vector<Callback> m_callbackList{};
 
 		MenuHandler& m_menuHandler{MenuHandler::GetInstance()};

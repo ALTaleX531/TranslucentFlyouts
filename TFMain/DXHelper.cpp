@@ -15,7 +15,7 @@ BOOL WINAPI LazyDX::InternalHook::FreeLibrary(
 	HMODULE hLibModule
 )
 {
-	auto& dxList{g_internalHook.dxList};
+	auto dxList{g_internalHook.dxList};
 	auto actualFreeLibrary{g_internalHook.actualFreeLibrary};
 
 	if (hLibModule == HINST_THISCOMPONENT)
@@ -23,11 +23,11 @@ BOOL WINAPI LazyDX::InternalHook::FreeLibrary(
 		for (auto it = dxList.begin(); it != dxList.end(); it++)
 		{
 			auto& lazyDX{*it};
+
 			lazyDX->DestroyDeviceResources();
 			lazyDX->DestroyDeviceIndependentResources();
 		}
 		dxList.clear();
-		g_internalHook.ShutdownHook();
 
 		auto f = [](PTP_CALLBACK_INSTANCE pci, PVOID)
 		{

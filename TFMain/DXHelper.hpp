@@ -62,7 +62,7 @@ namespace TranslucentFlyouts
 		public:
 			static bool EnsureInitialized();
 			static LazyD3D& GetInstance();
-			~LazyD3D() noexcept;
+			virtual ~LazyD3D() noexcept;
 			LazyD3D(const LazyD3D&) = delete;
 			LazyD3D& operator=(const LazyD3D&) = delete;
 
@@ -85,7 +85,7 @@ namespace TranslucentFlyouts
 		public:
 			static bool EnsureInitialized();
 			static LazyD2D& GetInstance();
-			~LazyD2D() noexcept;
+			virtual ~LazyD2D() noexcept;
 			LazyD2D(const LazyD2D&) = delete;
 			LazyD2D& operator=(const LazyD2D&) = delete;
 
@@ -108,7 +108,7 @@ namespace TranslucentFlyouts
 		public:
 			static bool EnsureInitialized();
 			static LazyDComposition& GetInstance();
-			~LazyDComposition() noexcept;
+			virtual ~LazyDComposition() noexcept;
 			LazyDComposition(const LazyDComposition&) = delete;
 			LazyDComposition& operator=(const LazyDComposition&) = delete;
 

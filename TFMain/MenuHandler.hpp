@@ -190,12 +190,15 @@ namespace TranslucentFlyouts
 
 		static constexpr int nonClientMarginStandardSize{3};
 		static constexpr int popupMenuSubclassId{0};
+		static constexpr int popupMenuBrushManagerSubclassId{1};
 		static constexpr int dropDownSubclassId{0};
 
 		static thread_local MenuRenderingContext g_sharedContext;
 		static thread_local MenuRenderingInfo g_sharedMenuInfo;
 
+		static const UINT WM_MHATTACH;
 		static const UINT WM_MHDETACH;
+		static const std::wstring_view InitializationMarkerPropName;
 		static const std::wstring_view BackgroundBrushPropName;
 		static const std::wstring_view BorderMarkerPropName;
 

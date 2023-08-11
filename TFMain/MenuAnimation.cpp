@@ -31,7 +31,7 @@ namespace TranslucentFlyouts::MenuAnimation
 		}
 		void Restart(chrono::milliseconds animationDuration)
 		{
-			startTimeStamp = GetTickCount64(); 
+			startTimeStamp = GetTickCount64();
 			duration = animationDuration;
 			endTimeStamp = startTimeStamp + duration.count();
 		}
@@ -179,7 +179,7 @@ namespace TranslucentFlyouts::MenuAnimation
 		void Animator(ULONGLONG currentTimeStamp) override;
 	};
 
-	class PopupIn : public AnimationInfo, DXHelper::LazyDX
+	class PopupIn : public AnimationInfo
 	{
 	private:
 		bool							m_reverse{false};
@@ -205,230 +205,6 @@ namespace TranslucentFlyouts::MenuAnimation
 
 		HTHUMBNAIL						m_backdropThumbnail{nullptr};
 		com_ptr<IDCompositionVisual2>	m_backdropThumbnailVisual{nullptr};
-
-		void CreateDeviceIndependentResources() override
-		{
-			Attach();
-
-			Utils::CloakWindow(m_menuWindow, TRUE);
-
-			window = CreateWindowExW(
-						 WS_EX_NOREDIRECTIONBITMAP | WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
-						 L"Static",
-						 L"PopupIn Animation",
-						 WS_POPUP,
-						 -GetSystemMetrics(SM_CXVIRTUALSCREEN),
-						 -GetSystemMetrics(SM_CYVIRTUALSCREEN),
-						 1,
-						 1,
-						 Utils::GetCurrentMenuOwner(),
-						 nullptr,
-						 nullptr,
-						 nullptr
-			);
-			THROW_LAST_ERROR_IF_NULL(window);
-
-			m_backdropWindow = CreateWindowExW(
-						 WS_EX_NOREDIRECTIONBITMAP | WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
-						 L"Static",
-						 L"PopupIn Animation Backdrop",
-						 WS_POPUP,
-						 -GetSystemMetrics(SM_CXVIRTUALSCREEN),
-						 -GetSystemMetrics(SM_CYVIRTUALSCREEN),
-						 0,
-						 0,
-						 Utils::GetCurrentMenuOwner(),
-						 nullptr,
-						 nullptr,
-						 nullptr
-			);
-			THROW_LAST_ERROR_IF_NULL(m_backdropWindow);
-
-			auto& menuHandler{MenuHandler::GetInstance()};
-			auto info{menuHandler.GetMenuRenderingInfo(m_menuWindow)};
-			if (info.useUxTheme)
-			{
-				DWORD cornerType
-				{
-					RegHelper::GetDword(
-						L"Menu",
-						L"CornerType",
-						3
-					)
-				};
-
-				// We are on Windows 10 or the corner is not round
-				if (
-					FAILED(menuHandler.HandleRoundCorners(L"Menu"sv, window)) ||
-					cornerType == 1
-				)
-				{
-					m_cornerRadius = 0.f;
-					
-					DWORD effectType
-					{
-						RegHelper::GetDword(
-							L"Menu",
-							L"EffectType",
-							static_cast<DWORD>(EffectHelper::EffectType::ModernAcrylicBlur)
-						)
-					};
-					if (
-						RegHelper::GetDword(
-							L"Menu",
-							L"EnableDropShadow",
-							0
-						) &&
-						(effectType == 4 || effectType == 5)
-					)
-					{
-						EffectHelper::SetWindowBackdrop(window, TRUE, 0, 4);
-					}
-				}
-				else
-				{
-					switch (cornerType)
-					{
-						case 1:
-						{
-							m_cornerRadius = 0.f;
-							break;
-						}
-						case 2:
-						{
-							m_cornerRadius = 8.f;
-							break;
-						}
-						case 0:
-						case 3:
-						{
-							m_cornerRadius = 4.f;
-							break;
-						}
-						default:
-							break;
-					}
-				}
-
-				menuHandler.HandleSysBorderColors(L"Menu"sv, window, info.useDarkMode, info.borderColor);
-				EffectHelper::EnableWindowDarkMode(window, info.useDarkMode);
-
-				menuHandler.ApplyEffect(L"Menu"sv, m_backdropWindow, info.useDarkMode);
-				menuHandler.HandleRoundCorners(L"Menu"sv, m_backdropWindow);
-				COLORREF color{DWMWA_COLOR_NONE};
-				DwmSetWindowAttribute(m_backdropWindow, DWMWA_BORDER_COLOR, &color, sizeof(color));
-				EffectHelper::EnableWindowDarkMode(m_backdropWindow, info.useDarkMode);
-			}
-			else
-			{
-				m_cornerRadius = 0.f;
-			}
-
-			THROW_IF_WIN32_BOOL_FALSE(SetLayeredWindowAttributes(window, 0, 255, LWA_ALPHA));
-			THROW_IF_WIN32_BOOL_FALSE(SetLayeredWindowAttributes(m_backdropWindow, 0, 0, LWA_ALPHA));
-			Utils::CloakWindow(window, TRUE);
-			THROW_IF_WIN32_BOOL_FALSE(
-				SetWindowPos(m_backdropWindow, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW)
-			);
-
-			THROW_IF_WIN32_BOOL_FALSE(
-				GetCursorPos(&m_cursorPos)
-			);
-		};
-		void CreateDeviceResources() override
-		{
-			auto dcompDevice{DXHelper::LazyDComposition::GetInstance().GetDCompositionDevice()};
-
-			THROW_IF_FAILED(
-				dcompDevice->CreateTargetForHwnd(window, TRUE, &m_dcompTopTarget)
-			);
-			THROW_IF_FAILED(
-				dcompDevice->CreateTargetForHwnd(window, FALSE, &m_dcompBottomTarget)
-			);
-
-			DWM_THUMBNAIL_PROPERTIES thumbnailProperties
-			{
-				DWM_TNP_VISIBLE | DWM_TNP_RECTDESTINATION | DWM_TNP_SOURCECLIENTAREAONLY | DwmThumbnailAPI::DWM_TNP_ENABLE3D,
-				{},
-				{},
-				255,
-				TRUE,
-				TRUE
-			};
-			THROW_IF_FAILED(
-				DwmThumbnailAPI::g_actualDwmpCreateSharedThumbnailVisual(
-					window,
-					m_menuWindow,
-					0,
-					&thumbnailProperties,
-					dcompDevice.get(),
-					m_thumbnailVisual.put_void(),
-					&m_thumbnail
-				)
-			);
-			thumbnailProperties.fSourceClientAreaOnly = FALSE;
-			// Create backdrop thumbnail
-			THROW_IF_FAILED(
-				DwmThumbnailAPI::g_actualDwmpCreateSharedThumbnailVisual(
-					window,
-					m_backdropWindow,
-					0,
-					&thumbnailProperties,
-					dcompDevice.get(),
-					m_backdropThumbnailVisual.put_void(),
-					&m_backdropThumbnail
-				)
-			);
-
-			THROW_IF_FAILED(
-				m_dcompTopTarget->SetRoot(m_thumbnailVisual.get())
-			);
-			THROW_IF_FAILED(
-				m_dcompBottomTarget->SetRoot(m_backdropThumbnailVisual.get())
-			);
-
-			if (m_started)
-			{
-				Start(m_reverse);
-			}
-
-			THROW_IF_FAILED(
-				dcompDevice->Commit()
-			);
-		};
-		void DestroyDeviceIndependentResources() noexcept override
-		{
-			if (m_menuWindow)
-			{
-				// DO NOT USE SendMessage HERE OTHERWISE IT WILL CAUSE DEAD LOCK
-				SendNotifyMessageW(m_menuWindow, WM_MAFINISHED, 0, 0);
-			}
-			if (window)
-			{
-				SendNotifyMessageW(window, WM_CLOSE, 0, 0);
-				window = nullptr;
-			}
-			if (m_backdropWindow)
-			{
-				SendNotifyMessageW(m_backdropWindow, WM_CLOSE, 0, 0);
-				m_backdropWindow = nullptr;
-			}
-			if (m_thumbnail)
-			{
-				DwmUnregisterThumbnail(m_thumbnail);
-				m_thumbnail = nullptr;
-			}
-		};
-		void DestroyDeviceResources() noexcept override
-		{
-			Finish();
-
-			m_backdropThumbnailVisual.reset();
-			m_thumbnailVisual.reset();
-
-			m_dcompTopTarget.reset();
-			m_dcompBottomTarget.reset();
-		};
 
 		void Start(bool reverse) try
 		{
@@ -478,9 +254,9 @@ namespace TranslucentFlyouts::MenuAnimation
 				);
 				DWM_THUMBNAIL_PROPERTIES thumbnailProperties
 				{
-					DWM_TNP_VISIBLE | DWM_TNP_RECTDESTINATION | DWM_TNP_SOURCECLIENTAREAONLY | DwmThumbnailAPI::DWM_TNP_ENABLE3D,
+					DWM_TNP_VISIBLE | DWM_TNP_RECTSOURCE | DWM_TNP_RECTDESTINATION | DWM_TNP_SOURCECLIENTAREAONLY | DwmThumbnailAPI::DWM_TNP_ENABLE3D,
 					{0, 0, size.cx, size.cy},
-					{},
+					{0, 0, size.cx, size.cy},
 					255,
 					TRUE,
 					TRUE
@@ -509,7 +285,7 @@ namespace TranslucentFlyouts::MenuAnimation
 			}
 
 			auto dcompDevice{DXHelper::LazyDComposition::GetInstance().GetDCompositionDevice()};
-			
+
 			auto cleanUp{Utils::RoInit()};
 			{
 				com_ptr<IUIAnimationManager2> manager
@@ -520,8 +296,8 @@ namespace TranslucentFlyouts::MenuAnimation
 				{
 					wil::CoCreateInstance<IUIAnimationTransitionLibrary2>(CLSID_UIAnimationTransitionLibrary2)
 				};
-				
-				// Synchronizing WAM and DirectComposition time such that when WAM Update is called, 
+
+				// Synchronizing WAM and DirectComposition time such that when WAM Update is called,
 				// the value reflects the DirectComposition value at the given time.
 				DCOMPOSITION_FRAME_STATISTICS frameStatistics{};
 				THROW_IF_FAILED(
@@ -563,7 +339,7 @@ namespace TranslucentFlyouts::MenuAnimation
 						return dcompAnimation;
 					}
 
-					return com_ptr<IDCompositionAnimation>{nullptr};
+					return com_ptr<IDCompositionAnimation> {nullptr};
 				};
 
 				float width
@@ -574,7 +350,7 @@ namespace TranslucentFlyouts::MenuAnimation
 				{
 					static_cast<float>(windowRect.bottom - windowRect.top)
 				};
-				
+
 				if (m_animationStyle == 0)
 				{
 					constexpr double endValue{0.};
@@ -616,7 +392,7 @@ namespace TranslucentFlyouts::MenuAnimation
 				{
 					POINT clientPoint{m_cursorPos};
 					THROW_IF_WIN32_BOOL_FALSE(ScreenToClient(m_menuWindow, &clientPoint));
-					
+
 					D2D1_POINT_2F startPoint
 					{
 						static_cast<float>(min(max(0., static_cast<double>(clientPoint.x)), width)),
@@ -857,20 +633,20 @@ namespace TranslucentFlyouts::MenuAnimation
 					com_ptr<IDCompositionAnimation> dcompAnimation
 					{
 						MakeAnimation([&](com_ptr<IUIAnimationVariable2> variable)
-					{
-						com_ptr<IUIAnimationTransition2> transition{nullptr};
-						THROW_IF_FAILED(
-							library->CreateCubicBezierLinearTransition(static_cast<double>(m_popupInDuration.count()) / 1000., 0., 0, 0, 0, 1, &transition)
-						);
-						THROW_IF_FAILED(
-							transition->SetInitialValue(
-								static_cast<double>(-width) * static_cast<double>(m_ratio) +
-								static_cast<double>(startPoint.x)
-							)
-						);
+						{
+							com_ptr<IUIAnimationTransition2> transition{nullptr};
+							THROW_IF_FAILED(
+								library->CreateCubicBezierLinearTransition(static_cast<double>(m_popupInDuration.count()) / 1000., 0., 0, 0, 0, 1, &transition)
+							);
+							THROW_IF_FAILED(
+								transition->SetInitialValue(
+									static_cast<double>(-width) * (1. - static_cast<double>(m_ratio)) +
+									static_cast<double>(startPoint.x)
+								)
+							);
 
-						return transition;
-					})
+							return transition;
+						})
 					};
 
 					THROW_IF_FAILED(m_thumbnailVisual->SetOffsetX(dcompAnimation.get()));
@@ -881,19 +657,19 @@ namespace TranslucentFlyouts::MenuAnimation
 					com_ptr<IDCompositionAnimation> dcompAnimation
 					{
 						MakeAnimation([&](com_ptr<IUIAnimationVariable2> variable)
-					{
-						com_ptr<IUIAnimationTransition2> transition{nullptr};
-						THROW_IF_FAILED(
-							library->CreateCubicBezierLinearTransition(static_cast<double>(m_popupInDuration.count()) / 1000., 1., 0, 0, 0, 1, &transition)
-						);
-						THROW_IF_FAILED(
-							transition->SetInitialValue(
-								0.85
-							)
-						);
+						{
+							com_ptr<IUIAnimationTransition2> transition{nullptr};
+							THROW_IF_FAILED(
+								library->CreateCubicBezierLinearTransition(static_cast<double>(m_popupInDuration.count()) / 1000., 1., 0, 0, 0, 1, &transition)
+							);
+							THROW_IF_FAILED(
+								transition->SetInitialValue(
+									0.85
+								)
+							);
 
-						return transition;
-					})
+							return transition;
+						})
 					};
 
 					com_ptr<IDCompositionScaleTransform3D> transform{nullptr};
@@ -930,7 +706,7 @@ namespace TranslucentFlyouts::MenuAnimation
 							THROW_IF_FAILED(
 								transition->SetInitialValue(0.)
 							);
-	
+
 							return transition;
 						})
 					};
@@ -960,32 +736,24 @@ namespace TranslucentFlyouts::MenuAnimation
 			{
 				SetClassLongPtr(window, GCL_STYLE, GetClassLongPtr(window, GCL_STYLE) & ~CS_DROPSHADOW);
 			}
-			
+
 			Restart(m_totDuration);
 
 			m_started = true;
 		}
 		catch (...)
 		{
-			Abort();
+			Finish();
 			LOG_CAUGHT_EXCEPTION();
 			return;
 		}
 
-		// The animation is still running, but we need to stop it right now!
 		void Finish()
 		{
-			m_started = false;
-
 			Utils::CloakWindow(m_menuWindow, FALSE);
 			Utils::CloakWindow(window, TRUE);
 			// Wait for DWM
 			DwmFlush();
-		}
-		void Abort()
-		{
-			// Interupt the animation
-			SetDuration(0ms);
 		}
 
 		void Attach()
@@ -1009,7 +777,7 @@ namespace TranslucentFlyouts::MenuAnimation
 		static LRESULT CALLBACK SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
 		{
 			PopupIn& popupInAnimation{*reinterpret_cast<PopupIn*>(dwRefData)};
-			
+
 			if (uMsg == WM_WINDOWPOSCHANGED)
 			{
 				const auto& windowPos{*reinterpret_cast<WINDOWPOS*>(lParam)};
@@ -1034,7 +802,10 @@ namespace TranslucentFlyouts::MenuAnimation
 
 				if (windowPos.flags & SWP_HIDEWINDOW)
 				{
-					popupInAnimation.Abort();
+					// If the animation is still running, then we need to stop it right now!
+					// Interupt the running animation
+					popupInAnimation.SetDuration(0ms);
+					popupInAnimation.Detach();
 				}
 			}
 
@@ -1052,14 +823,19 @@ namespace TranslucentFlyouts::MenuAnimation
 						)
 					)
 					{
-						popupInAnimation.Abort();
+						// If the animation is still running, then we need to stop it right now!
+						// Interupt the running animation
+						popupInAnimation.SetDuration(0ms);
 					}
 				}
 			}
 
-			if (uMsg == WM_NCDESTROY)
+			if (uMsg == WM_DESTROY)
 			{
-				popupInAnimation.Abort();
+				// If the animation is still running, then we need to stop it right now!
+				// Interupt the running animation
+				popupInAnimation.SetDuration(0ms);
+				popupInAnimation.Detach();
 			}
 
 			// ~PopupIn() sends WM_MAFINISHED to the SubclassProc
@@ -1073,7 +849,7 @@ namespace TranslucentFlyouts::MenuAnimation
 	public:
 #pragma push_macro("max")
 #undef max
-		PopupIn(HWND hWnd, float startPosRatio, std::chrono::milliseconds popupInDuration, std::chrono::milliseconds fadeInDuration, DWORD animationStyle) try : AnimationInfo{chrono::milliseconds::max()}, m_totDuration{max(popupInDuration, fadeInDuration)}, m_menuWindow{hWnd}, m_fadeInDuration{fadeInDuration}, m_popupInDuration{popupInDuration}, m_ratio{startPosRatio}, m_animationStyle{animationStyle}
+		PopupIn(HWND hWnd, float startPosRatio, std::chrono::milliseconds popupInDuration, std::chrono::milliseconds fadeInDuration, DWORD animationStyle) try : AnimationInfo {chrono::milliseconds::max()}, m_totDuration {max(popupInDuration, fadeInDuration)}, m_menuWindow {hWnd}, m_fadeInDuration {fadeInDuration}, m_popupInDuration {popupInDuration}, m_ratio {startPosRatio}, m_animationStyle {animationStyle}
 #pragma pop_macro("max")
 		{
 			THROW_HR_IF(
@@ -1081,19 +857,251 @@ namespace TranslucentFlyouts::MenuAnimation
 				!DXHelper::LazyDComposition::EnsureInitialized()
 			);
 
-			CreateDeviceIndependentResources();
-			CreateDeviceResources();
+			Attach();
+
+			Utils::CloakWindow(m_menuWindow, TRUE);
+
+			m_backdropWindow = CreateWindowExW(
+				WS_EX_NOREDIRECTIONBITMAP | WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
+				L"Static",
+				L"PopupIn Animation Backdrop",
+				WS_POPUP,
+				-GetSystemMetrics(SM_CXVIRTUALSCREEN),
+				-GetSystemMetrics(SM_CYVIRTUALSCREEN),
+				0,
+				0,
+				Utils::GetCurrentMenuOwner(),
+				nullptr,
+				nullptr,
+				nullptr
+			);
+			THROW_LAST_ERROR_IF_NULL(m_backdropWindow);
+
+			window = CreateWindowExW(
+				WS_EX_NOREDIRECTIONBITMAP | WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
+				L"Static",
+				L"PopupIn Animation",
+				WS_POPUP,
+				-GetSystemMetrics(SM_CXVIRTUALSCREEN),
+				-GetSystemMetrics(SM_CYVIRTUALSCREEN),
+				1,
+				1,
+				Utils::GetCurrentMenuOwner(),
+				nullptr,
+				nullptr,
+				nullptr
+			);
+			THROW_LAST_ERROR_IF_NULL(window);
+
+			auto& menuHandler{MenuHandler::GetInstance()};
+			auto info{menuHandler.GetMenuRenderingInfo(m_menuWindow)};
+			if (info.useUxTheme)
+			{
+				DWORD cornerType
+				{
+					RegHelper::GetDword(
+						L"Menu",
+						L"CornerType",
+						3
+					)
+				};
+
+				// We are on Windows 10 or the corner is not round
+				if (
+					FAILED(menuHandler.HandleRoundCorners(L"Menu"sv, window)) ||
+					cornerType == 1
+				)
+				{
+					m_cornerRadius = 0.f;
+
+					DWORD effectType
+					{
+						RegHelper::GetDword(
+							L"Menu",
+							L"EffectType",
+							static_cast<DWORD>(EffectHelper::EffectType::ModernAcrylicBlur)
+						)
+					};
+					if (
+						RegHelper::GetDword(
+							L"Menu",
+							L"EnableDropShadow",
+							0
+						) &&
+						(effectType == 4 || effectType == 5)
+					)
+					{
+						EffectHelper::SetWindowBackdrop(window, TRUE, 0, 4);
+					}
+				}
+				else
+				{
+					switch (cornerType)
+					{
+						case 1:
+						{
+							m_cornerRadius = 0.f;
+							break;
+						}
+						case 2:
+						{
+							m_cornerRadius = 8.f;
+							break;
+						}
+						case 0:
+						case 3:
+						{
+							m_cornerRadius = 4.f;
+							break;
+						}
+						default:
+							break;
+					}
+				}
+
+				menuHandler.HandleSysBorderColors(L"Menu"sv, window, info.useDarkMode, info.borderColor);
+				EffectHelper::EnableWindowDarkMode(window, info.useDarkMode);
+
+				menuHandler.ApplyEffect(L"Menu"sv, m_backdropWindow, info.useDarkMode);
+				menuHandler.HandleRoundCorners(L"Menu"sv, m_backdropWindow);
+				COLORREF color{DWMWA_COLOR_NONE};
+				DwmSetWindowAttribute(m_backdropWindow, DWMWA_BORDER_COLOR, &color, sizeof(color));
+				EffectHelper::EnableWindowDarkMode(m_backdropWindow, info.useDarkMode);
+			}
+			else
+			{
+				m_cornerRadius = 0.f;
+			}
+
+			THROW_IF_WIN32_BOOL_FALSE(SetLayeredWindowAttributes(window, 0, 255, LWA_ALPHA));
+			THROW_IF_WIN32_BOOL_FALSE(SetLayeredWindowAttributes(m_backdropWindow, 0, 0, LWA_ALPHA));
+			Utils::CloakWindow(window, TRUE);
+			THROW_IF_WIN32_BOOL_FALSE(
+				SetWindowPos(m_backdropWindow, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW)
+			);
+
+			THROW_IF_WIN32_BOOL_FALSE(
+				GetCursorPos(&m_cursorPos)
+			);
+
+			auto dcompDevice{DXHelper::LazyDComposition::GetInstance().GetDCompositionDevice()};
+
+			THROW_IF_FAILED(
+				dcompDevice->CreateTargetForHwnd(window, TRUE, &m_dcompTopTarget)
+			);
+			THROW_IF_FAILED(
+				dcompDevice->CreateTargetForHwnd(window, FALSE, &m_dcompBottomTarget)
+			);
+
+			DWM_THUMBNAIL_PROPERTIES thumbnailProperties
+			{
+				DWM_TNP_VISIBLE | DWM_TNP_RECTDESTINATION | DWM_TNP_SOURCECLIENTAREAONLY | DwmThumbnailAPI::DWM_TNP_ENABLE3D,
+				{},
+				{},
+				255,
+				TRUE,
+				TRUE
+			};
+			THROW_IF_FAILED(
+				DwmThumbnailAPI::g_actualDwmpCreateSharedThumbnailVisual(
+					window,
+					m_menuWindow,
+					0,
+					&thumbnailProperties,
+					dcompDevice.get(),
+					m_thumbnailVisual.put_void(),
+					&m_thumbnail
+				)
+			);
+			thumbnailProperties.fSourceClientAreaOnly = FALSE;
+			// Create backdrop thumbnail
+			THROW_IF_FAILED(
+				DwmThumbnailAPI::g_actualDwmpCreateSharedThumbnailVisual(
+					window,
+					m_backdropWindow,
+					0,
+					&thumbnailProperties,
+					dcompDevice.get(),
+					m_backdropThumbnailVisual.put_void(),
+					&m_backdropThumbnail
+				)
+			);
+
+			THROW_IF_FAILED(
+				m_dcompTopTarget->SetRoot(m_thumbnailVisual.get())
+			);
+			THROW_IF_FAILED(
+				m_dcompBottomTarget->SetRoot(m_backdropThumbnailVisual.get())
+			);
+
+			if (m_started)
+			{
+				Start(m_reverse);
+			}
+
+			THROW_IF_FAILED(
+				dcompDevice->Commit()
+			);
 		}
 		catch (...)
 		{
-			DestroyDeviceResources();
-			DestroyDeviceIndependentResources();
+			Finish();
+			if (m_menuWindow)
+			{
+				// DO NOT USE SendMessage HERE OTHERWISE IT WILL CAUSE DEAD LOCK
+				SendNotifyMessageW(m_menuWindow, WM_MAFINISHED, 0, 0);
+				m_menuWindow = nullptr;
+			}
+			if (window)
+			{
+				SendNotifyMessageW(window, WM_CLOSE, 0, 0);
+				window = nullptr;
+			}
+			if (m_backdropWindow)
+			{
+				SendNotifyMessageW(m_backdropWindow, WM_CLOSE, 0, 0);
+				m_backdropWindow = nullptr;
+			}
+			if (m_thumbnail)
+			{
+				DwmUnregisterThumbnail(m_thumbnail);
+				m_thumbnail = nullptr;
+			}
+			if (m_backdropThumbnail)
+			{
+				DwmUnregisterThumbnail(m_backdropThumbnail);
+				m_backdropThumbnail = nullptr;
+			}
 		}
-
-		~PopupIn() noexcept
+		virtual ~PopupIn() noexcept
 		{
-			DestroyDeviceResources();
-			DestroyDeviceIndependentResources();
+			Finish();
+			if (m_menuWindow)
+			{
+				// DO NOT USE SendMessage HERE OTHERWISE IT WILL CAUSE DEAD LOCK
+				SendNotifyMessageW(m_menuWindow, WM_MAFINISHED, 0, 0);
+				m_menuWindow = nullptr;
+			}
+			if (window)
+			{
+				SendNotifyMessageW(window, WM_CLOSE, 0, 0);
+				window = nullptr;
+			}
+			if (m_backdropWindow)
+			{
+				SendNotifyMessageW(m_backdropWindow, WM_CLOSE, 0, 0);
+				m_backdropWindow = nullptr;
+			}
+			if (m_thumbnail)
+			{
+				DwmUnregisterThumbnail(m_thumbnail);
+				m_thumbnail = nullptr;
+			}
+			if (m_backdropThumbnail)
+			{
+				DwmUnregisterThumbnail(m_backdropThumbnail);
+				m_backdropThumbnail = nullptr;
+			}
 		}
 
 		void Animator(ULONGLONG currentTimeStamp) override;
@@ -1149,7 +1157,6 @@ DWORD WINAPI MenuAnimation::AnimationWorker::ThreadProc(LPVOID lpThreadParameter
 					}
 				}
 			}
-
 		}
 		// We have completed several animation tasks, let's wait for the next batch!
 		if (FAILED(DwmFlush()))
@@ -1212,7 +1219,63 @@ void MenuAnimation::FadeOut::Animator(ULONGLONG currentTimeStamp)
 
 void MenuAnimation::PopupIn::Animator(ULONGLONG currentTimeStamp)
 {
+	if (m_started)
+	{
+		RECT windowRect{};
+		THROW_IF_WIN32_BOOL_FALSE(
+			GetWindowRect(m_menuWindow, &windowRect)
+		);
 
+		SIZE size{};
+		if (m_thumbnail)
+		{
+			THROW_IF_FAILED(
+				DwmThumbnailAPI::g_actualDwmpQueryWindowThumbnailSourceSize(
+					m_menuWindow,
+					FALSE,
+					&size
+				)
+			);
+			DWM_THUMBNAIL_PROPERTIES thumbnailProperties
+			{
+				DWM_TNP_VISIBLE | DWM_TNP_RECTSOURCE | DWM_TNP_RECTDESTINATION | DWM_TNP_SOURCECLIENTAREAONLY | DwmThumbnailAPI::DWM_TNP_ENABLE3D,
+				{0, 0, size.cx, size.cy},
+				{0, 0, size.cx, size.cy},
+				255,
+				TRUE,
+				TRUE
+			};
+			THROW_IF_FAILED(DwmUpdateThumbnailProperties(m_thumbnail, &thumbnailProperties));
+		}
+		if (m_backdropThumbnail)
+		{
+			THROW_IF_WIN32_BOOL_FALSE(
+				SetWindowPos(
+					m_backdropWindow, window,
+					windowRect.left, windowRect.top, size.cx, size.cy,
+					SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_ASYNCWINDOWPOS
+				)
+			);
+			DWM_THUMBNAIL_PROPERTIES thumbnailProperties
+			{
+				DWM_TNP_VISIBLE | DWM_TNP_RECTDESTINATION | DwmThumbnailAPI::DWM_TNP_ENABLE3D,
+				{0, 0, size.cx, size.cy},
+				{},
+				255,
+				TRUE,
+				FALSE
+			};
+			THROW_IF_FAILED(DwmUpdateThumbnailProperties(m_backdropThumbnail, &thumbnailProperties));
+		}
+
+		THROW_IF_WIN32_BOOL_FALSE(
+			SetWindowPos(
+				window, nullptr,
+				windowRect.left, windowRect.top, size.cx, size.cy,
+				SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_ASYNCWINDOWPOS
+			)
+		);
+	}
 }
 
 HRESULT MenuAnimation::CreateFadeOut(
