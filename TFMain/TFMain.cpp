@@ -83,12 +83,12 @@ void CALLBACK TFMain::HandleWinEvent(
 		auto result{ wil::reg::try_get_value_dword(HKEY_CURRENT_USER, L"SOFTWARE\\StartIsBack", L"Disabled") };
 		idObject != OBJID_WINDOW ||
 		idChild != CHILDID_SELF ||
-		!hWnd || !IsWindow(hWnd)/* ||
+		!hWnd || !IsWindow(hWnd) ||
 		(
 			GetModuleHandleW(L"explorer.exe") &&
 			GetModuleHandleW(L"StartAllBackX64.dll") &&
 			result.has_value() && result.value()
-		)*/
+		)
 	)
 	{
 		return;
