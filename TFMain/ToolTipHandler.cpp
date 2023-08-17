@@ -76,7 +76,7 @@ HRESULT WINAPI TranslucentFlyouts::ToolTipHandler::DrawThemeBackground(
 				)
 			};
 			RETURN_HR_IF_EXPECTED(
-				E_NOTIMPL, itemDisabled
+				E_NOTIMPL, (itemDisabled != 0)
 			);
 			
 			g_darkMode = ThemeHelper::DetermineThemeMode(hTheme, L"Explorer"sv, L"Tooltip"sv, 0, 0, TMT_TEXTCOLOR);
@@ -156,7 +156,7 @@ int WINAPI ToolTipHandler::DrawTextW(
 			)
 		};
 		RETURN_HR_IF_EXPECTED(
-			E_NOTIMPL, itemDisabled
+			E_NOTIMPL, (itemDisabled != 0)
 		);
 		HWND hWnd{ WindowFromDC(hdc) };
 		RETURN_LAST_ERROR_IF_NULL_EXPECTED(hWnd);
