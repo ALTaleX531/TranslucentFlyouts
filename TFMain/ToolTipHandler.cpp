@@ -185,6 +185,10 @@ void ToolTipHandler::AttachTooltip(HWND hWnd)
 
 	g_tooltipList.push_back(hWnd);
 	SetWindowSubclass(hWnd, SubclassProc, tooltipSubclassId, 0);
+
+	TFMain::ApplyBackdropEffect(L"Tooltip", hWnd, g_darkMode, TFMain::darkMode_GradientColor, TFMain::lightMode_GradientColor);
+	TFMain::ApplyRoundCorners(L"Tooltip", hWnd);
+	TFMain::ApplySysBorderColors(L"Tooltip", hWnd, g_darkMode, DWMWA_COLOR_NONE, DWMWA_COLOR_NONE);
 }
 void ToolTipHandler::DetachTooltip(HWND hWnd)
 {
@@ -245,9 +249,6 @@ void ToolTipHandler::WinEventCallback(HWND hWnd, DWORD event)
 			if (g_useUxTheme)
 			{
 				AttachTooltip(hWnd);
-				TFMain::ApplyBackdropEffect(L"Tooltip", hWnd, g_darkMode, TFMain::darkMode_GradientColor, TFMain::lightMode_GradientColor);
-				TFMain::ApplyRoundCorners(L"Tooltip", hWnd);
-				TFMain::ApplySysBorderColors(L"Tooltip", hWnd, g_darkMode, DWMWA_COLOR_NONE, DWMWA_COLOR_NONE);
 			}
 		}
 	}
