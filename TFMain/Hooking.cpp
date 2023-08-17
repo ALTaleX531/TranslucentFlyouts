@@ -281,7 +281,7 @@ HRESULT Hooking::Detours::Begin()
 	DetourSetIgnoreTooSmall(TRUE);
 	RETURN_IF_WIN32_ERROR(DetourTransactionBegin());
 	RETURN_IF_WIN32_ERROR(DetourUpdateThread(GetCurrentThread()));
-	return ERROR_SUCCESS;
+	return S_OK;
 }
 
 HRESULT Hooking::Detours::End(bool commit)
@@ -329,6 +329,10 @@ void Hooking::Detours::Attach(PVOID* realFuncAddr, PVOID hookFuncAddr)
 
 void Hooking::Detours::Detach(PVOID* realFuncAddr, PVOID hookFuncAddr)
 {
+	THROW_HR_IF_NULL(E_INVALIDARG, realFuncAddr);
+	THROW_HR_IF_NULL(E_INVALIDARG, *realFuncAddr);
+	THROW_HR_IF_NULL(E_INVALIDARG, hookFuncAddr);
+
 	THROW_IF_WIN32_ERROR(DetourDetach(realFuncAddr, hookFuncAddr));
 }
 
@@ -440,13 +444,18 @@ LRESULT CALLBACK Hooking::MsgHooks::CallWndHookProc(int code, WPARAM wParam, LPA
 	if (code == HC_ACTION)
 	{
 		auto callWndStruct{reinterpret_cast<LPCWPSTRUCT>(lParam)};
-		if (!callbackList.empty())
+
+		const auto windowList{ hookInfo.windowList };
+		for (const auto hWnd : windowList)
 		{
-			for (const auto& callback : callbackList)
+			if (hWnd == callWndStruct->hwnd)
 			{
-				if (callback)
+				for (const auto& callback : callbackList)
 				{
-					callback(callWndStruct->hwnd, callWndStruct->message, callWndStruct->wParam, callWndStruct->lParam, 0, false);
+					if (callback)
+					{
+						callback(callWndStruct->hwnd, callWndStruct->message, callWndStruct->wParam, callWndStruct->lParam, 0, false);
+					}
 				}
 			}
 		}
@@ -462,13 +471,18 @@ LRESULT CALLBACK Hooking::MsgHooks::CallWndRetHookProc(int code, WPARAM wParam, 
 	if (code == HC_ACTION)
 	{
 		auto callWndRetStruct{reinterpret_cast<LPCWPRETSTRUCT>(lParam)};
-		if (!callbackList.empty())
+
+		const auto windowList{ hookInfo.windowList };
+		for (const auto hWnd : windowList)
 		{
-			for (const auto& callback : callbackList)
+			if (hWnd == callWndRetStruct->hwnd)
 			{
-				if (callback)
+				for (const auto& callback : callbackList)
 				{
-					callback(callWndRetStruct->hwnd, callWndRetStruct->message, callWndRetStruct->wParam, callWndRetStruct->lParam, callWndRetStruct->lResult, true);
+					if (callback)
+					{
+						callback(callWndRetStruct->hwnd, callWndRetStruct->message, callWndRetStruct->wParam, callWndRetStruct->lParam, callWndRetStruct->lResult, true);
+					}
 				}
 			}
 		}

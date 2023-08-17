@@ -5,74 +5,85 @@
 #include "MenuRendering.hpp"
 #include "RegHelper.hpp"
 #include "DXHelper.hpp"
+#include "SharedUxTheme.hpp"
 #include "ImmersiveContextMenuPatcher.hpp"
 
 using namespace std;
 using namespace TranslucentFlyouts;
 
-// A list of modules that contain the symbol of C++ class ImmersiveContextMenuHelper,
-// which it means these modules provide methods to create a immersive context menu
-const array g_hookModuleList
+namespace TranslucentFlyouts::ImmersiveContextMenuPatcher
 {
-	L"explorer.exe"sv,
-	L"Narrator.exe"sv,
-	L"MusNotifyIcon.exe"sv,
-	L"ApplicationFrame.dll"sv,
-	L"ExplorerFrame.dll"sv,
-	L"InputSwitch.dll"sv,
-	L"pnidui.dll"sv,
-	L"SecurityHealthSSO.dll"sv,
-	L"shell32.dll"sv,
-	L"SndVolSSO.dll"sv,
-	L"twinui.dll"sv,
-	L"twinui.pcshell.dll"sv,
-	L"bthprops.cpl"sv,
-	// Windows 11
-	L"Taskmgr.exe"sv,
-	L"museuxdocked.dll"sv,
-	L"SecurityHealthSsoUdk.dll"sv,
-	L"Taskbar.dll"sv,
-	L"Windows.UI.FileExplorer.dll"sv,
-	L"Windows.UI.FileExplorer.WASDK.dll"sv,
-	L"stobject.dll"sv,
-	// Third-party apps
-	L"StartIsBack64.dll"sv,
-	L"StartIsBack32.dll"sv
-};
-
-ImmersiveContextMenuPatcher::ImmersiveContextMenuPatcher()
-{
-	try
+	// A list of modules that contain the symbol of C++ class ImmersiveContextMenuHelper,
+	// which it means these modules provide methods to create a immersive context menu
+	const array g_hookModuleList
 	{
-		m_actualDrawTextW = reinterpret_cast<decltype(m_actualDrawTextW)>(DetourFindFunction("user32.dll", "DrawTextW"));
-		THROW_LAST_ERROR_IF_NULL(m_actualDrawTextW);
+		L"explorer.exe"sv,
+		L"Narrator.exe"sv,
+		L"MusNotifyIcon.exe"sv,
+		L"ApplicationFrame.dll"sv,
+		L"ExplorerFrame.dll"sv,
+		L"InputSwitch.dll"sv,
+		L"pnidui.dll"sv,
+		L"SecurityHealthSSO.dll"sv,
+		L"shell32.dll"sv,
+		L"SndVolSSO.dll"sv,
+		L"twinui.dll"sv,
+		L"twinui.pcshell.dll"sv,
+		L"bthprops.cpl"sv,
+		// Windows 11
+		L"Taskmgr.exe"sv,
+		L"museuxdocked.dll"sv,
+		L"SecurityHealthSsoUdk.dll"sv,
+		L"Taskbar.dll"sv,
+		L"Windows.UI.FileExplorer.dll"sv,
+		L"Windows.UI.FileExplorer.WASDK.dll"sv,
+		L"stobject.dll"sv,
+		// Third-party apps
+		L"StartIsBack64.dll"sv,
+		L"StartIsBack32.dll"sv
+	};
+	
+	int WINAPI DrawTextW(
+		HDC     hdc,
+		LPCWSTR lpchText,
+		int     cchText,
+		LPRECT  lprc,
+		UINT    format
+	);
+	BOOL WINAPI BitBlt(
+		HDC   hdc,
+		int   x,
+		int   y,
+		int   cx,
+		int   cy,
+		HDC   hdcSrc,
+		int   x1,
+		int   y1,
+		DWORD rop
+	);
+	BOOL WINAPI StretchBlt(
+		HDC   hdcDest,
+		int   xDest,
+		int   yDest,
+		int   wDest,
+		int   hDest,
+		HDC   hdcSrc,
+		int   xSrc,
+		int   ySrc,
+		int   wSrc,
+		int   hSrc,
+		DWORD rop
+	);
+	void DllNotificationCallback(bool load, Hooking::DllNotifyRoutine::DllInfo info);
 
-		m_actualDrawThemeBackground = reinterpret_cast<decltype(m_actualDrawThemeBackground)>(DetourFindFunction("uxtheme.dll", "DrawThemeBackground"));
-		THROW_LAST_ERROR_IF_NULL(m_actualDrawThemeBackground);
+	void DoIATHook(PVOID moduleBaseAddress);
+	void UndoIATHook(PVOID moduleBaseAddress);
 
-		m_actualBitBlt = reinterpret_cast<decltype(m_actualBitBlt)>(DetourFindFunction("gdi32.dll", "BitBlt"));
-		THROW_LAST_ERROR_IF_NULL(m_actualBitBlt);
+	decltype(DrawTextW)* g_actualDrawTextW{ nullptr };
+	decltype(BitBlt)* g_actualBitBlt{ nullptr };
+	decltype(StretchBlt)* g_actualStretchBlt{ nullptr };
 
-		m_actualStretchBlt = reinterpret_cast<decltype(m_actualStretchBlt)>(DetourFindFunction("gdi32.dll", "StretchBlt"));
-		THROW_LAST_ERROR_IF_NULL(m_actualStretchBlt);
-	}
-	catch (...)
-	{
-		m_internalError = true;
-		LOG_CAUGHT_EXCEPTION();
-	}
-}
-
-ImmersiveContextMenuPatcher::~ImmersiveContextMenuPatcher() noexcept
-{
-	Hooking::DllNotifyRoutine::GetInstance().DeleteCallback(DllNotificationCallback);
-	ShutdownHook();
-}
-
-ImmersiveContextMenuPatcher& ImmersiveContextMenuPatcher::GetInstance()
-{
-	static ImmersiveContextMenuPatcher instance{};
-	return instance;
+	bool g_startup{ false };
 }
 
 HRESULT WINAPI ImmersiveContextMenuPatcher::DrawThemeBackground(
@@ -84,9 +95,10 @@ HRESULT WINAPI ImmersiveContextMenuPatcher::DrawThemeBackground(
 	LPCRECT pClipRect
 )
 {
-	HRESULT hr{S_OK};
+	bool handled{ false };
+	HRESULT hr{ S_OK };
 
-	hr = [&]()
+	hr = [hTheme, hdc, iPartId, iStateId, pRect, pClipRect, &handled]()
 	{
 		RETURN_HR_IF_NULL_EXPECTED(E_INVALIDARG, hTheme);
 		RETURN_HR_IF_NULL_EXPECTED(E_INVALIDARG, hdc);
@@ -100,133 +112,53 @@ HRESULT WINAPI ImmersiveContextMenuPatcher::DrawThemeBackground(
 			MenuHandler::GetCurrentMenuDC() == nullptr		// To make it compatible with StartIsBack...
 		);
 
-		WCHAR themeClassName[MAX_PATH + 1] {};
+		WCHAR themeClassName[MAX_PATH + 1]{};
 		RETURN_IF_FAILED(
 			ThemeHelper::GetThemeClass(hTheme, themeClassName, MAX_PATH)
 		);
 
-		RECT clipRect{*pRect};
-		if (pClipRect != nullptr)
-		{
-			IntersectRect(&clipRect, &clipRect, pClipRect);
-		}
-
-		if (!_wcsicmp(themeClassName, L"ListViewPopup"))
-		{
-			MenuHandler::NotifyUxThemeRendering();
-			MenuHandler::NotifyMenuDarkMode(false);
-
-			RETURN_IF_WIN32_BOOL_FALSE(
-				PatBlt(hdc, clipRect.left, clipRect.top, clipRect.right - clipRect.left, clipRect.bottom - clipRect.top, BLACKNESS)
-			);
-
-			return S_OK;
-		}
-
 		if (!_wcsicmp(themeClassName, L"Menu"))
 		{
-			bool darkMode{ThemeHelper::DetermineThemeMode(hTheme, L"ImmersiveStart", L"Menu", MENU_POPUPBACKGROUND, 0, TMT_FILLCOLOR)};
+			bool darkMode{ ThemeHelper::DetermineThemeMode(hTheme, L"ImmersiveStart", L"Menu", MENU_POPUPBACKGROUND, 0, TMT_FILLCOLOR) };
 
 			MenuHandler::NotifyUxThemeRendering();
 			MenuHandler::NotifyMenuDarkMode(darkMode);
 			MenuHandler::NotifyMenuStyle(true);
 
-			COLORREF color{DWMWA_COLOR_NONE};
+			COLORREF color{ DWMWA_COLOR_NONE };
 			if (SUCCEEDED(GetThemeColor(hTheme, MENU_POPUPBORDERS, 0, TMT_FILLCOLORHINT, &color)))
 			{
 				MenuHandler::NotifyMenuBorderColor(color);
 			}
 
-			auto& menuRendering{MenuRendering::GetInstance()};
-			DWORD customRendering
-			{
-				RegHelper::GetDword(
-					L"Menu",
-					L"EnableCustomRendering",
-					0,
-					false
-				)
-			};
-
-			// Separator
-			if (iPartId == MENU_POPUPSEPARATOR)
-			{
-				if (customRendering)
-				{
-					if (SUCCEEDED(menuRendering.DoCustomThemeRendering(hdc, darkMode, iPartId, iStateId, clipRect, *pRect)))
-					{
-						return S_OK;
-					}
-				}
-			}
-			// Focusing
-			if (iPartId == MENU_POPUPITEMKBFOCUS)
-			{
-				if (customRendering)
-				{
-					if (SUCCEEDED(menuRendering.DoCustomThemeRendering(hdc, darkMode, iPartId, iStateId, clipRect, *pRect)))
-					{
-						return S_OK;
-					}
-				}
-			}
-			if ((iPartId == MENU_POPUPITEM || iPartId == MENU_POPUPITEM_FOCUSABLE))
-			{
-				if (iStateId == MPI_DISABLEDHOT)
-				{
-					if (customRendering)
-					{
-						if (SUCCEEDED(menuRendering.DoCustomThemeRendering(hdc, darkMode, iPartId, iStateId, clipRect, *pRect)))
-						{
-							return S_OK;
-						}
-					}
-				}
-				if (iStateId == MPI_HOT)
-				{
-					if (customRendering)
-					{
-						if (SUCCEEDED(menuRendering.DoCustomThemeRendering(hdc, darkMode, iPartId, iStateId, clipRect, *pRect)))
-						{
-							return S_OK;
-						}
-					}
-
-					// System default
-					return E_NOTIMPL;
-				}
-			}
-
-			{
-				RETURN_HR_IF_EXPECTED(
-					E_NOTIMPL,
-					iPartId != MENU_POPUPBACKGROUND &&
-					iPartId != MENU_POPUPBORDERS &&
-					iPartId != MENU_POPUPGUTTER &&
-					iPartId != MENU_POPUPITEM &&
-					iPartId != MENU_POPUPITEM_FOCUSABLE
-				);
-
-				RETURN_IF_WIN32_BOOL_FALSE(
-					PatBlt(hdc, clipRect.left, clipRect.top, clipRect.right - clipRect.left, clipRect.bottom - clipRect.top, BLACKNESS)
-				);
-			}
-
-			return S_OK;
+			return SharedUxTheme::DrawThemeBackgroundHelper(
+				hTheme,
+				hdc,
+				iPartId,
+				iStateId,
+				pRect,
+				pClipRect,
+				darkMode,
+				handled
+			);
 		}
 
 		return E_NOTIMPL;
 	}();
-	if (FAILED(hr))
+	if (!handled)
 	{
-		hr = GetInstance().m_actualDrawThemeBackground(
-				 hTheme,
-				 hdc,
-				 iPartId,
-				 iStateId,
-				 pRect,
-				 pClipRect
-			 );
+		hr = SharedUxTheme::RealDrawThemeBackground(
+			hTheme,
+			hdc,
+			iPartId,
+			iStateId,
+			pRect,
+			pClipRect
+		);
+	}
+	else
+	{
+		LOG_IF_FAILED(hr);
 	}
 
 	return hr;
@@ -240,10 +172,11 @@ int WINAPI ImmersiveContextMenuPatcher::DrawTextW(
 	UINT    format
 )
 {
+	bool handled{ false };
 	HRESULT hr{S_OK};
 	int result{0};
 
-	hr = [&]()
+	hr = [hdc, lpchText, cchText, lprc, format, &result, &handled]()
 	{
 		RETURN_HR_IF_EXPECTED(
 			E_NOTIMPL,
@@ -252,6 +185,8 @@ int WINAPI ImmersiveContextMenuPatcher::DrawTextW(
 		);
 		RETURN_HR_IF(E_INVALIDARG, Utils::IsBadReadPtr(lprc));
 		RETURN_HR_IF_EXPECTED(E_NOTIMPL, ((format & DT_CALCRECT) || (format & DT_INTERNAL) || (format & DT_NOCLIP)));
+		
+		handled = true;
 		return ThemeHelper::DrawTextWithAlpha(
 				   hdc,
 				   lpchText,
@@ -261,9 +196,13 @@ int WINAPI ImmersiveContextMenuPatcher::DrawTextW(
 				   result
 			   );
 	}();
-	if (FAILED(hr))
+	if (!handled)
 	{
-		result = GetInstance().m_actualDrawTextW(hdc, lpchText, cchText, lprc, format);
+		result = g_actualDrawTextW(hdc, lpchText, cchText, lprc, format);
+	}
+	else
+	{
+		LOG_IF_FAILED(hr);
 	}
 
 	return result;
@@ -281,10 +220,11 @@ BOOL WINAPI ImmersiveContextMenuPatcher::BitBlt(
 	DWORD rop
 )
 {
+	bool handled{ false };
 	HRESULT hr{S_OK};
 	BOOL result{FALSE};
 
-	hr = [&]()
+	hr = [hdc, x, y, cx, cy, hdcSrc, x1, y1, rop, &result, &handled]()
 	{
 		RETURN_HR_IF_EXPECTED(
 			E_NOTIMPL,
@@ -292,18 +232,19 @@ BOOL WINAPI ImmersiveContextMenuPatcher::BitBlt(
 		);
 
 		result = TRUE;
-		return MenuRendering::GetInstance().BltWithAlpha(
-			hdc,
-			x, y,
-			cx, cy,
-			hdcSrc,
-			x1, y1,
-			cx, cy
-		);
+		handled = true;
+		return MenuRendering::BltWithAlpha(
+				   hdc,
+				   x, y,
+				   cx, cy,
+				   hdcSrc,
+				   x1, y1,
+				   cx, cy
+			   );
 	}();
-	if (FAILED(hr))
+	if (!handled)
 	{
-		result = GetInstance().m_actualBitBlt(
+		result = g_actualBitBlt(
 					 hdc,
 					 x, y,
 					 cx, cy,
@@ -311,6 +252,10 @@ BOOL WINAPI ImmersiveContextMenuPatcher::BitBlt(
 					 x1, y1,
 					 rop
 				 );
+	}
+	else
+	{
+		LOG_IF_FAILED(hr);
 	}
 
 	return result;
@@ -330,10 +275,11 @@ BOOL WINAPI ImmersiveContextMenuPatcher::StretchBlt(
 	DWORD rop
 )
 {
+	bool handled{ false };
 	HRESULT hr{S_OK};
 	BOOL result{FALSE};
 
-	hr = [&]()
+	hr = [hdcDest, xDest, yDest, wDest, hDest, hdcSrc, xSrc, ySrc, wSrc, hSrc, rop, &result, &handled]()
 	{
 		RETURN_HR_IF_EXPECTED(
 			E_NOTIMPL,
@@ -341,18 +287,19 @@ BOOL WINAPI ImmersiveContextMenuPatcher::StretchBlt(
 		);
 
 		result = TRUE;
-		return MenuRendering::GetInstance().BltWithAlpha(
-			hdcDest,
-			xDest, yDest,
-			wDest, hDest,
-			hdcSrc,
-			xSrc, ySrc,
-			wSrc, hSrc
-		);
+		handled = true;
+		return MenuRendering::BltWithAlpha(
+				   hdcDest,
+				   xDest, yDest,
+				   wDest, hDest,
+				   hdcSrc,
+				   xSrc, ySrc,
+				   wSrc, hSrc
+			   );
 	}();
-	if (FAILED(hr))
+	if (!handled)
 	{
-		result = GetInstance().m_actualStretchBlt(
+		result = g_actualStretchBlt(
 					 hdcDest,
 					 xDest, yDest,
 					 wDest, hDest,
@@ -362,180 +309,132 @@ BOOL WINAPI ImmersiveContextMenuPatcher::StretchBlt(
 					 rop
 				 );
 	}
+	else
+	{
+		LOG_IF_FAILED(hr);
+	}
 
 	return result;
 }
 
 void ImmersiveContextMenuPatcher::DoIATHook(PVOID moduleBaseAddress)
 {
-	if (m_actualDrawThemeBackground)
+	if (g_actualDrawTextW)
 	{
-		m_hookedFunctions += Hooking::WriteDelayloadIAT(moduleBaseAddress, "uxtheme.dll",
-		{
-			{"DrawThemeBackground", ImmersiveContextMenuPatcher::DrawThemeBackground}
-		});
-		m_hookedFunctions += Hooking::WriteIAT(moduleBaseAddress, "uxtheme.dll",
-		{
-			{"DrawThemeBackground", ImmersiveContextMenuPatcher::DrawThemeBackground}
-		});
-		m_hookedFunctions += Hooking::WriteDelayloadIAT(moduleBaseAddress, "ext-ms-win-uxtheme-themes-l1-1-0.dll",
-		{
-			{"DrawThemeBackground", ImmersiveContextMenuPatcher::DrawThemeBackground}
-		});
-		m_hookedFunctions += Hooking::WriteIAT(moduleBaseAddress, "ext-ms-win-uxtheme-themes-l1-1-0.dll",
-		{
-			{"DrawThemeBackground", ImmersiveContextMenuPatcher::DrawThemeBackground}
-		});
-	}
-	if (m_actualDrawTextW)
-	{
-		m_hookedFunctions += Hooking::WriteDelayloadIAT(moduleBaseAddress, "user32.dll",
+		Hooking::WriteDelayloadIAT(moduleBaseAddress, "user32.dll",
 		{
 			{"DrawTextW", ImmersiveContextMenuPatcher::DrawTextW}
 		});
-		m_hookedFunctions += Hooking::WriteIAT(moduleBaseAddress, "user32.dll",
+		Hooking::WriteIAT(moduleBaseAddress, "user32.dll",
 		{
 			{"DrawTextW", ImmersiveContextMenuPatcher::DrawTextW}
 		});
-		m_hookedFunctions += Hooking::WriteDelayloadIAT(moduleBaseAddress, "ext-ms-win-ntuser-draw-l1-1-0.dll",
+		Hooking::WriteDelayloadIAT(moduleBaseAddress, "ext-ms-win-ntuser-draw-l1-1-0.dll",
 		{
 			{"DrawTextW", ImmersiveContextMenuPatcher::DrawTextW}
 		});
-		m_hookedFunctions += Hooking::WriteIAT(moduleBaseAddress, "ext-ms-win-ntuser-draw-l1-1-0.dll",
+		Hooking::WriteIAT(moduleBaseAddress, "ext-ms-win-ntuser-draw-l1-1-0.dll",
 		{
 			{"DrawTextW", ImmersiveContextMenuPatcher::DrawTextW}
 		});
 	}
-	if (m_actualBitBlt && m_actualStretchBlt)
+	if (g_actualBitBlt && g_actualStretchBlt)
 	{
-		m_hookedFunctions += Hooking::WriteDelayloadIAT(moduleBaseAddress, "gdi32.dll",
+		Hooking::WriteDelayloadIAT(moduleBaseAddress, "gdi32.dll",
 		{
 			{"BitBlt", ImmersiveContextMenuPatcher::BitBlt},
 			{"StretchBlt", ImmersiveContextMenuPatcher::StretchBlt}
 		});
-		m_hookedFunctions += Hooking::WriteIAT(moduleBaseAddress, "gdi32.dll",
+		Hooking::WriteIAT(moduleBaseAddress, "gdi32.dll",
 		{
 			{"BitBlt", ImmersiveContextMenuPatcher::BitBlt},
 			{"StretchBlt", ImmersiveContextMenuPatcher::StretchBlt}
 		});
-		m_hookedFunctions += Hooking::WriteDelayloadIAT(moduleBaseAddress, "ext-ms-win-gdi-desktop-l1-1-0.dll",
+		Hooking::WriteDelayloadIAT(moduleBaseAddress, "ext-ms-win-gdi-desktop-l1-1-0.dll",
 		{
 			{"BitBlt", ImmersiveContextMenuPatcher::BitBlt},
 			{"StretchBlt", ImmersiveContextMenuPatcher::StretchBlt}
 		});
-		m_hookedFunctions += Hooking::WriteIAT(moduleBaseAddress, "ext-ms-win-gdi-desktop-l1-1-0.dll",
+		Hooking::WriteIAT(moduleBaseAddress, "ext-ms-win-gdi-desktop-l1-1-0.dll",
 		{
 			{"BitBlt", ImmersiveContextMenuPatcher::BitBlt},
 			{"StretchBlt", ImmersiveContextMenuPatcher::StretchBlt}
 		});
-	}
-
-	if (m_hookedFunctions != 0)
-	{
-		m_hooked = true;
 	}
 }
 
 void ImmersiveContextMenuPatcher::UndoIATHook(PVOID moduleBaseAddress)
 {
-	if (m_actualDrawThemeBackground)
+	if (g_actualDrawTextW)
 	{
-		m_hookedFunctions -= Hooking::WriteDelayloadIAT(moduleBaseAddress, "uxtheme.dll",
+		Hooking::WriteDelayloadIAT(moduleBaseAddress, "user32.dll",
 		{
-			{"DrawThemeBackground", m_actualDrawThemeBackground}
+			{"DrawTextW", g_actualDrawTextW}
 		});
-		m_hookedFunctions -= Hooking::WriteIAT(moduleBaseAddress, "uxtheme.dll",
+		Hooking::WriteIAT(moduleBaseAddress, "user32.dll",
 		{
-			{"DrawThemeBackground", m_actualDrawThemeBackground}
+			{"DrawTextW", g_actualDrawTextW}
 		});
-		m_hookedFunctions -= Hooking::WriteDelayloadIAT(moduleBaseAddress, "ext-ms-win-uxtheme-themes-l1-1-0.dll",
+		Hooking::WriteDelayloadIAT(moduleBaseAddress, "ext-ms-win-ntuser-draw-l1-1-0.dll",
 		{
-			{"DrawThemeBackground", m_actualDrawThemeBackground}
+			{"DrawTextW", g_actualDrawTextW}
 		});
-		m_hookedFunctions -= Hooking::WriteIAT(moduleBaseAddress, "ext-ms-win-uxtheme-themes-l1-1-0.dll",
+		Hooking::WriteIAT(moduleBaseAddress, "ext-ms-win-ntuser-draw-l1-1-0.dll",
 		{
-			{"DrawThemeBackground", m_actualDrawThemeBackground}
+			{"DrawTextW", g_actualDrawTextW}
 		});
 	}
-	if (m_actualDrawThemeBackground)
+	if (g_actualBitBlt && g_actualStretchBlt)
 	{
-		m_hookedFunctions -= Hooking::WriteDelayloadIAT(moduleBaseAddress, "user32.dll",
+		Hooking::WriteDelayloadIAT(moduleBaseAddress, "gdi32.dll",
 		{
-			{"DrawTextW", m_actualDrawTextW}
+			{"BitBlt", g_actualBitBlt},
+			{"StretchBlt", g_actualStretchBlt}
 		});
-		m_hookedFunctions -= Hooking::WriteIAT(moduleBaseAddress, "user32.dll",
+		Hooking::WriteIAT(moduleBaseAddress, "gdi32.dll",
 		{
-			{"DrawTextW", m_actualDrawTextW}
+			{"BitBlt", g_actualBitBlt},
+			{"StretchBlt", g_actualStretchBlt}
 		});
-		m_hookedFunctions -= Hooking::WriteDelayloadIAT(moduleBaseAddress, "ext-ms-win-ntuser-draw-l1-1-0.dll",
+		Hooking::WriteDelayloadIAT(moduleBaseAddress, "ext-ms-win-gdi-desktop-l1-1-0.dll",
 		{
-			{"DrawTextW", m_actualDrawTextW}
+			{"BitBlt", g_actualBitBlt},
+			{"StretchBlt", g_actualStretchBlt}
 		});
-		m_hookedFunctions -= Hooking::WriteIAT(moduleBaseAddress, "ext-ms-win-ntuser-draw-l1-1-0.dll",
+		Hooking::WriteIAT(moduleBaseAddress, "ext-ms-win-gdi-desktop-l1-1-0.dll",
 		{
-			{"DrawTextW", m_actualDrawTextW}
+			{"BitBlt", g_actualBitBlt},
+			{"StretchBlt", g_actualStretchBlt}
 		});
-	}
-	if (m_actualBitBlt && m_actualStretchBlt)
-	{
-		m_hookedFunctions -= Hooking::WriteDelayloadIAT(moduleBaseAddress, "gdi32.dll",
-		{
-			{"BitBlt", m_actualBitBlt},
-			{"StretchBlt", m_actualStretchBlt}
-		});
-		m_hookedFunctions -= Hooking::WriteIAT(moduleBaseAddress, "gdi32.dll",
-		{
-			{"BitBlt", m_actualBitBlt},
-			{"StretchBlt", m_actualStretchBlt}
-		});
-		m_hookedFunctions -= Hooking::WriteDelayloadIAT(moduleBaseAddress, "ext-ms-win-gdi-desktop-l1-1-0.dll",
-		{
-			{"BitBlt", m_actualBitBlt},
-			{"StretchBlt", m_actualStretchBlt}
-		});
-		m_hookedFunctions -= Hooking::WriteIAT(moduleBaseAddress, "ext-ms-win-gdi-desktop-l1-1-0.dll",
-		{
-			{"BitBlt", m_actualBitBlt},
-			{"StretchBlt", m_actualStretchBlt}
-		});
-	}
-
-	if (m_hookedFunctions == 0)
-	{
-		m_hooked = false;
 	}
 }
 
 void ImmersiveContextMenuPatcher::DllNotificationCallback(bool load, Hooking::DllNotifyRoutine::DllInfo info)
 {
-	auto& immersiveContextMenuPatcher{GetInstance()};
 	if (load)
 	{
 		for (auto moduleName : g_hookModuleList)
 		{
 			if (!_wcsicmp(moduleName.data(), info.BaseDllName->Buffer))
 			{
-				immersiveContextMenuPatcher.DoIATHook(info.DllBase);
+				DoIATHook(info.DllBase);
 			}
 		}
 	}
 }
 
-void ImmersiveContextMenuPatcher::StartupHook()
+void ImmersiveContextMenuPatcher::Startup() try
 {
-	if (m_startup)
-	{
-		return;
-	}
-	if (m_internalError)
-	{
-		return;
-	}
+	THROW_HR_IF(E_ILLEGAL_METHOD_CALL, g_startup);
 
-	if (m_hooked)
-	{
-		return;
-	}
+	g_actualDrawTextW = reinterpret_cast<decltype(g_actualDrawTextW)>(DetourFindFunction("user32.dll", "DrawTextW"));
+	THROW_LAST_ERROR_IF_NULL(g_actualDrawTextW);
+
+	g_actualBitBlt = reinterpret_cast<decltype(g_actualBitBlt)>(DetourFindFunction("gdi32.dll", "BitBlt"));
+	THROW_LAST_ERROR_IF_NULL(g_actualBitBlt);
+
+	g_actualStretchBlt = reinterpret_cast<decltype(g_actualStretchBlt)>(DetourFindFunction("gdi32.dll", "StretchBlt"));
+	THROW_LAST_ERROR_IF_NULL(g_actualStretchBlt);
 
 	for (auto moduleName : g_hookModuleList)
 	{
@@ -548,24 +447,15 @@ void ImmersiveContextMenuPatcher::StartupHook()
 
 	Hooking::DllNotifyRoutine::GetInstance().AddCallback(DllNotificationCallback);
 
-	m_startup = true;
+	g_startup = true;
 }
+CATCH_LOG_RETURN()
 
-void ImmersiveContextMenuPatcher::ShutdownHook()
+void ImmersiveContextMenuPatcher::Shutdown() try
 {
-	if (!m_startup)
-	{
-		return;
-	}
-	if (m_internalError)
-	{
-		return;
-	}
+	THROW_HR_IF(E_ILLEGAL_METHOD_CALL, !g_startup);
 
-	if (!m_hooked)
-	{
-		return;
-	}
+	Hooking::DllNotifyRoutine::GetInstance().DeleteCallback(DllNotificationCallback);
 
 	for (auto moduleName : g_hookModuleList)
 	{
@@ -576,5 +466,6 @@ void ImmersiveContextMenuPatcher::ShutdownHook()
 		}
 	}
 
-	m_startup = false;
+	g_startup = false;
 }
+CATCH_LOG_RETURN()

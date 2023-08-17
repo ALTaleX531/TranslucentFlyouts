@@ -75,6 +75,12 @@
     <ClInclude Include="TFMain.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="ToolTipHandler.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SharedUxTheme.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -111,6 +117,12 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="TFMain.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ToolTipHandler.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SharedUxTheme.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "TFMain.hpp"
 #include "DXHelper.hpp"
 #include "ThemeHelper.hpp"
 #include "MenuHandler.hpp"
@@ -893,8 +894,7 @@ namespace TranslucentFlyouts::MenuAnimation
 			);
 			THROW_LAST_ERROR_IF_NULL(window);
 
-			auto& menuHandler{MenuHandler::GetInstance()};
-			auto info{menuHandler.GetMenuRenderingInfo(m_menuWindow)};
+			auto info{MenuHandler::GetMenuRenderingInfo(m_menuWindow)};
 			if (info.useUxTheme)
 			{
 				DWORD cornerType
@@ -908,7 +908,7 @@ namespace TranslucentFlyouts::MenuAnimation
 
 				// We are on Windows 10 or the corner is not round
 				if (
-					FAILED(menuHandler.HandleRoundCorners(L"Menu"sv, window)) ||
+					FAILED(TFMain::ApplyRoundCorners(L"Menu"sv, window)) ||
 					cornerType == 1
 				)
 				{
@@ -959,11 +959,11 @@ namespace TranslucentFlyouts::MenuAnimation
 					}
 				}
 
-				menuHandler.HandleSysBorderColors(L"Menu"sv, window, info.useDarkMode, info.borderColor);
+				TFMain::ApplySysBorderColors(L"Menu"sv, window, info.useDarkMode, info.borderColor, info.borderColor);
 				EffectHelper::EnableWindowDarkMode(window, info.useDarkMode);
 
-				menuHandler.ApplyEffect(L"Menu"sv, m_backdropWindow, info.useDarkMode);
-				menuHandler.HandleRoundCorners(L"Menu"sv, m_backdropWindow);
+				TFMain::ApplyBackdropEffect(L"Menu"sv, m_backdropWindow, info.useDarkMode, TFMain::darkMode_GradientColor, TFMain::lightMode_GradientColor);
+				TFMain::ApplyRoundCorners(L"Menu"sv, m_backdropWindow);
 				COLORREF color{DWMWA_COLOR_NONE};
 				DwmSetWindowAttribute(m_backdropWindow, DWMWA_BORDER_COLOR, &color, sizeof(color));
 				EffectHelper::EnableWindowDarkMode(m_backdropWindow, info.useDarkMode);
@@ -1214,10 +1214,17 @@ void MenuAnimation::FadeOut::Animator(ULONGLONG currentTimeStamp)
 	);
 }
 
-void MenuAnimation::PopupIn::Animator(ULONGLONG currentTimeStamp)
+void MenuAnimation::PopupIn::Animator(ULONGLONG currentTimeStamp) try
 {
 	if (m_started)
 	{
+		THROW_HR_IF(E_INVALIDARG, !IsWindow(window));
+		THROW_HR_IF(E_INVALIDARG, !IsWindow(m_menuWindow));
+		THROW_HR_IF(E_INVALIDARG, !IsWindow(m_backdropWindow));
+		THROW_HR_IF_NULL(E_INVALIDARG, window);
+		THROW_HR_IF_NULL(E_INVALIDARG, m_menuWindow);
+		THROW_HR_IF_NULL(E_INVALIDARG, m_backdropWindow);
+
 		RECT windowRect{};
 		THROW_IF_WIN32_BOOL_FALSE(
 			GetWindowRect(m_menuWindow, &windowRect)
@@ -1274,6 +1281,7 @@ void MenuAnimation::PopupIn::Animator(ULONGLONG currentTimeStamp)
 		);
 	}
 }
+CATCH_LOG_RETURN()
 
 HRESULT MenuAnimation::CreateFadeOut(
 	HWND hWnd,

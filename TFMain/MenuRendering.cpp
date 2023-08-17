@@ -9,12 +9,6 @@ using namespace std;
 using namespace wil;
 using namespace TranslucentFlyouts;
 
-MenuRendering& MenuRendering::GetInstance()
-{
-	static MenuRendering instance{};
-	return instance;
-}
-
 HRESULT MenuRendering::DoCustomThemeRendering(HDC hdc, bool darkMode, int partId, int stateId, const RECT& clipRect, const RECT& paintRect)
 {
 	RETURN_HR_IF(E_FAIL, !DXHelper::LazyD2D::EnsureInitialized());

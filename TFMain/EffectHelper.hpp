@@ -116,8 +116,6 @@ namespace TranslucentFlyouts
 
 		static void EnableWindowNCRendering(HWND hwnd, BOOL ncRendering)
 		{
-			auto disabled = TRUE;
-			DwmSetWindowAttribute(hwnd, DWMWA_TRANSITIONS_FORCEDISABLED, &disabled, sizeof(disabled));
 			// NOTICE WINDOWS THAT WE HAVE ACTIVATED THE WINDOW
 			DefWindowProcW(hwnd, WM_NCACTIVATE, TRUE, 0);
 			SetWindowPos(hwnd, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_DRAWFRAME | SWP_NOACTIVATE);

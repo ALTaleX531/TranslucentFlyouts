@@ -58,6 +58,19 @@ namespace TranslucentFlyouts
 			return std::wstring{filePath};
 		}
 
+		static inline std::wstring get_module_base_file_name(HMODULE moduleHandle)
+		{
+			WCHAR filePath[MAX_PATH + 1]{L""};
+			[&]()
+			{
+				RETURN_LAST_ERROR_IF(GetModuleFileNameW(moduleHandle, filePath, _countof(filePath)) == 0);
+				PathStripPathW(filePath);
+				return S_OK;
+			} ();
+
+			return std::wstring{filePath};
+		}
+
 		static inline std::optional<wil::unique_rouninitialize_call> RoInit(HRESULT* hresult = nullptr)
 		{
 			HRESULT hr{::RoInitialize(RO_INIT_SINGLETHREADED)};
@@ -141,7 +154,8 @@ namespace TranslucentFlyouts
 			return
 				IsWin32PopupMenu(hWnd) ||
 				IsWindowClass(hWnd, L"DropDown") ||
-				IsWindowClass(hWnd, L"Listviewpopup");
+				IsWindowClass(hWnd, L"Listviewpopup") ||
+				IsWindowClass(hWnd, TOOLTIPS_CLASSW);
 		}
 
 		static inline HWND GetCurrentMenuOwner()

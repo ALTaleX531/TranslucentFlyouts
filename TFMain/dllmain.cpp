@@ -1,5 +1,59 @@
 #include "pch.h"
+#include "resource.h"
+#include "Utils.hpp"
 #include "TFMain.hpp"
+#include "UxThemePatcher.hpp"
+
+using namespace std;
+using namespace TranslucentFlyouts;
+
+namespace MainDLL
+{
+	// TranslucentFlyouts won't be loaded into one of these process
+	// These processes are quite annoying because TranslucentFlyouts will not be automatically unloaded by them
+	// Some of them even have no chance to show flyouts and other UI elements
+	const array g_blockList
+	{
+		L"sihost.exe"sv,
+		L"WSHost.exe"sv,
+		L"spoolsv.exe"sv,
+		L"dllhost.exe"sv,
+		L"svchost.exe"sv,
+		L"searchhost.exe"sv,
+		L"taskhostw.exe"sv,
+		L"searchhost.exe"sv,
+		L"RuntimeBroker.exe"sv,
+		L"smartscreen.exe"sv,
+		L"Widgets.exe"sv,
+		L"WidgetService.exe"sv,
+		L"GameBar.exe"sv,
+		L"GameBarFTServer.exe"sv,
+		L"ShellExperienceHost.exe"sv,
+		L"StartMenuExperienceHost.exe"sv,
+		L"msedgewebview2.exe"sv,
+		L"Microsoft.SharePoint.exe"sv
+	};
+
+#pragma data_seg(".shared")
+	HWND g_serviceWindow{ nullptr };
+	HWINEVENTHOOK g_hHook{ nullptr };
+#pragma data_seg()
+#pragma comment(linker,"/SECTION:.shared,RWS")
+	static const UINT WM_TFSTOP{ RegisterWindowMessageW(L"TranslucentFlyouts.Stop") };
+
+	// Installer.
+	HRESULT WINAPI Install();
+	HRESULT WINAPI Uninstall();
+	// Global hook.
+	HRESULT InstallHook();
+	HRESULT UninstallHook();
+
+	bool IsCurrentProcessInBlockList();
+	inline bool IsHookGlobalInstalled();
+	// Host.
+	HRESULT WINAPI StopService();
+	HRESULT WINAPI StartService();
+}
 
 BOOL APIENTRY DllMain(
 	HMODULE hModule,
@@ -25,7 +79,7 @@ BOOL APIENTRY DllMain(
 
 		case DLL_PROCESS_DETACH:
 		{
-			MainDLL::GetInstance().Shutdown();
+			TFMain::Shutdown();
 
 			break;
 		}
@@ -36,7 +90,257 @@ BOOL APIENTRY DllMain(
 	return bResult;
 }
 
-HRESULT WINAPI Install() try
+int WINAPI Main(
+	HWND hWnd,
+	HINSTANCE hInstance,
+	LPCSTR    lpCmdLine,
+	int       nCmdShow
+)
+{
+	using namespace TranslucentFlyouts;
+
+	// Until now, We only support Chinese and English...
+	if (GetUserDefaultUILanguage() != MAKELANGID(LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED))
+	{
+		SetThreadUILanguage(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US));
+	}
+
+	HRESULT hr{S_OK};
+
+	if (!_stricmp(lpCmdLine, "/stop"))
+	{
+		hr = MainDLL::StopService();
+
+		ShellMessageBoxW(
+			hInstance,
+			nullptr,
+			Utils::MakeHRErrStr(hr).c_str(),
+			nullptr,
+			FAILED(hr) ? MB_ICONERROR : MB_ICONINFORMATION
+		);
+
+		return hr;
+	}
+
+	if (!_stricmp(lpCmdLine, "/install"))
+	{
+		hr = MainDLL::Install();
+
+		ShellMessageBoxW(
+			hInstance,
+			nullptr,
+			Utils::MakeHRErrStr(hr).c_str(),
+			nullptr,
+			FAILED(hr) ? MB_ICONERROR : MB_ICONINFORMATION
+		);
+
+		hr = MainDLL::StartService();
+
+		if (FAILED(hr))
+		{
+			ShellMessageBoxW(
+				hInstance,
+				nullptr,
+				Utils::MakeHRErrStr(hr).c_str(),
+				nullptr,
+				MB_ICONINFORMATION
+			);
+		}
+
+		return hr;
+	}
+
+	if (!_stricmp(lpCmdLine, "/uninstall"))
+	{
+		hr = []()
+		{
+			if (MainDLL::g_serviceWindow)
+			{
+				RETURN_IF_FAILED(MainDLL::StopService());
+			}
+			RETURN_IF_FAILED(MainDLL::Uninstall());
+
+			return S_OK;
+		}();
+
+		ShellMessageBoxW(
+			hInstance,
+			nullptr,
+			Utils::MakeHRErrStr(hr).c_str(),
+			nullptr,
+			FAILED(hr) ? MB_ICONERROR : MB_ICONINFORMATION
+		);
+
+		return hr;
+	}
+
+	if (!_stricmp(lpCmdLine, "/start"))
+	{
+		hr = MainDLL::StartService();
+
+		if (FAILED(hr))
+		{
+			ShellMessageBoxW(
+				hInstance,
+				nullptr,
+				Utils::MakeHRErrStr(hr).c_str(),
+				nullptr,
+				MB_ICONERROR
+			);
+		}
+
+		return hr;
+	}
+
+	ShellMessageBoxW(
+		hInstance,
+		nullptr,
+		Utils::MakeHRErrStr(HRESULT_FROM_WIN32(ERROR_BAD_COMMAND)).c_str(),
+		nullptr,
+		MB_ICONERROR
+	);
+	return HRESULT_FROM_WIN32(ERROR_BAD_COMMAND);
+}
+
+HRESULT WINAPI MainDLL::StartService()
+{
+	RETURN_IF_FAILED(MainDLL::InstallHook());
+
+#ifdef _DEBUG
+	Utils::StartupConsole();
+	{
+		printf("Input 'Q' or 'q' to exit...\n");
+
+		char input{};
+		do
+		{
+			input = getchar();
+		}
+		while (input != 'q' && input != 'Q');
+
+		Utils::ShutdownConsole();
+	}
+#else
+	g_serviceWindow = CreateWindowExW(
+						  WS_EX_NOREDIRECTIONBITMAP | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW,
+						  L"Static",
+						  nullptr,
+						  WS_POPUP,
+						  0, 0, 0, 0,
+						  nullptr, nullptr, HINST_THISCOMPONENT, nullptr
+					  );
+	RETURN_LAST_ERROR_IF_NULL(g_serviceWindow);
+	RETURN_IF_WIN32_BOOL_FALSE(ChangeWindowMessageFilterEx(g_serviceWindow, WM_TFSTOP, MSGFLT_ALLOW, nullptr));
+
+	auto callback = [](HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData) -> LRESULT
+	{
+		if (uMsg == WM_ENDSESSION || uMsg == WM_TFSTOP)
+		{
+			DestroyWindow(hWnd);
+		}
+		if (uMsg == WM_DESTROY)
+		{
+			PostQuitMessage(0);
+		}
+		return DefSubclassProc(hWnd, uMsg, wParam, lParam);
+	};
+	RETURN_IF_WIN32_BOOL_FALSE(SetWindowSubclass(g_serviceWindow, callback, 0, 0));
+	RETURN_IF_WIN32_BOOL_FALSE(SetProcessShutdownParameters(0, 0));
+
+	MSG msg{};
+	while (GetMessageW(&msg, nullptr, 0, 0))
+	{
+		DispatchMessage(&msg);
+	}
+#endif // _DEBUG
+
+	g_serviceWindow = nullptr;
+
+	return MainDLL::UninstallHook();
+}
+
+HRESULT MainDLL::InstallHook()
+{
+	RETURN_HR_IF(HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS), IsHookGlobalInstalled());
+
+	UxThemePatcher::PrepareUxTheme();
+	{
+		if (GetConsoleWindow())
+		{
+			Utils::OutputModuleString(IDS_STRING104);
+			system("pause>nul");
+
+			Utils::ShutdownConsole();
+		}
+	}
+	g_hHook = SetWinEventHook(
+		EVENT_MIN, EVENT_MAX,
+		HINST_THISCOMPONENT,
+		TFMain::HandleWinEvent,
+		0, 0,
+		WINEVENT_INCONTEXT
+	);
+	RETURN_LAST_ERROR_IF_NULL(g_hHook);
+
+	return S_OK;
+}
+
+HRESULT MainDLL::UninstallHook()
+{
+	RETURN_HR_IF(HRESULT_FROM_WIN32(ERROR_HOOK_NOT_INSTALLED), !IsHookGlobalInstalled());
+	RETURN_IF_WIN32_BOOL_FALSE(UnhookWinEvent(g_hHook));
+	g_hHook = nullptr;
+
+	BroadcastSystemMessageW(
+		BSF_FORCEIFHUNG | BSF_FLUSHDISK | BSF_POSTMESSAGE,
+		nullptr,
+		RegisterWindowMessageW(L"ShellFileOpened"),
+		0,
+		0
+	);
+
+	return S_OK;
+}
+
+bool MainDLL::IsCurrentProcessInBlockList()
+{
+	for (auto processName : g_blockList)
+	{
+		if (GetModuleHandleW(processName.data()))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool MainDLL::IsHookGlobalInstalled()
+{
+	return g_hHook != nullptr;
+}
+
+HRESULT WINAPI MainDLL::StopService()
+{
+	RETURN_HR_IF_EXPECTED(HRESULT_FROM_WIN32(ERROR_SERVICE_NOT_ACTIVE), !g_serviceWindow);
+	RETURN_HR_IF(HRESULT_FROM_WIN32(ERROR_INVALID_WINDOW_HANDLE), !IsWindow(g_serviceWindow));
+	RETURN_LAST_ERROR_IF(!SendNotifyMessageW(g_serviceWindow, WM_TFSTOP, 0, 0));
+
+	UINT frameCount{0};
+	constexpr UINT maxWaitFrameCount{1500};
+	while (g_serviceWindow && frameCount < maxWaitFrameCount)
+	{
+		DwmFlush();
+		if ((++frameCount) == maxWaitFrameCount)
+		{
+			RETURN_HR(HRESULT_FROM_WIN32(ERROR_TIMEOUT));
+		}
+	}
+
+	return S_OK;
+}
+
+HRESULT WINAPI MainDLL::Install() try
 {
 	using namespace wil;
 	using namespace TranslucentFlyouts;
@@ -110,7 +414,7 @@ HRESULT WINAPI Install() try
 			THROW_IF_FAILED(
 				execAction->put_Arguments(
 					const_cast<BSTR>(
-						std::format(L"\"{}\",Main", modulePath).c_str()
+						std::format(L"\"{}\",Main /startup", modulePath).c_str()
 					)
 				)
 			);
@@ -149,7 +453,7 @@ HRESULT WINAPI Install() try
 }
 CATCH_LOG_RETURN_HR(wil::ResultFromCaughtException())
 
-HRESULT WINAPI Uninstall() try
+HRESULT WINAPI MainDLL::Uninstall() try
 {
 	using namespace wil;
 	using namespace TranslucentFlyouts;
@@ -183,136 +487,3 @@ HRESULT WINAPI Uninstall() try
 	return S_OK;
 }
 CATCH_LOG_RETURN_HR(wil::ResultFromCaughtException())
-
-int WINAPI Main(
-	HWND hWnd,
-	HINSTANCE hInstance,
-	LPCSTR    lpCmdLine,
-	int       nCmdShow
-)
-{
-	using namespace TranslucentFlyouts;
-
-	// Until now, We only support Chinese and English...
-	if (GetUserDefaultUILanguage() != MAKELANGID(LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED))
-	{
-		SetThreadUILanguage(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US));
-	}
-
-	SHELLEXECUTEINFOA sei
-	{
-		sizeof(SHELLEXECUTEINFO), SEE_MASK_FLAG_NO_UI | SEE_MASK_NOASYNC,
-		nullptr,
-		"runas",
-		"rundll32",
-		lpCmdLine,
-		nullptr,
-		SW_HIDE
-	};
-
-	HRESULT hr{S_OK};
-	if (!_stricmp(lpCmdLine, "/install"))
-	{
-		hr = Install();
-		if (SUCCEEDED(hr))
-		{
-			RestartDialog(nullptr, nullptr, EWX_LOGOFF);
-		}
-		else
-		{
-			ShellMessageBoxW(
-				hInstance,
-				nullptr,
-				Utils::MakeHRErrStr(hr).c_str(),
-				nullptr,
-				MB_ICONERROR
-			);
-		}
-
-		return hr;
-	}
-
-	if (!_stricmp(lpCmdLine, "/uninstall"))
-	{
-		hr = Uninstall();
-		if (SUCCEEDED(hr))
-		{
-			RestartDialog(nullptr, nullptr, EWX_LOGOFF);
-		}
-		else
-		{
-			ShellMessageBoxW(
-				hInstance,
-				nullptr,
-				Utils::MakeHRErrStr(hr).c_str(),
-				nullptr,
-				MB_ICONERROR
-			);
-		}
-
-		return hr;
-	}
-
-	hr = MainDLL::InstallHook();
-	if (FAILED(hr))
-	{
-		ShellMessageBoxW(
-				hInstance,
-				nullptr,
-				Utils::MakeHRErrStr(hr).c_str(),
-				nullptr,
-				MB_ICONERROR
-		);
-		return hr;
-	}
-
-#ifdef _DEBUG
-	Utils::StartupConsole();
-	{
-		printf("Input 'Q' or 'q' to exit...\n");
-
-		char input{};
-		do
-		{
-			input = getchar();
-		}
-		while (input != 'q' && input != 'Q');
-
-		Utils::ShutdownConsole();
-	}
-#else
-	SetProcessShutdownParameters(0, 0);
-	HWND window
-	{
-		CreateWindowExW(
-			WS_EX_NOREDIRECTIONBITMAP | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW,
-			L"#32770",
-			nullptr,
-			WS_POPUP,
-			0, 0, 0, 0,
-			nullptr, nullptr, HINST_THISCOMPONENT, nullptr
-		)
-	};
-	RETURN_LAST_ERROR_IF_NULL(window);
-	auto callback = [](HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData) -> LRESULT
-	{
-		if (uMsg == WM_ENDSESSION)
-		{
-			DestroyWindow(hWnd);
-		}
-		if (uMsg == WM_DESTROY)
-		{
-			PostQuitMessage(0);
-		}
-		return DefSubclassProc(hWnd, uMsg, wParam, lParam);
-	};
-	RETURN_IF_WIN32_BOOL_FALSE(SetWindowSubclass(window, callback, 0, 0));
-	MSG msg{};
-	while (GetMessageW(&msg, nullptr, 0, 0))
-	{
-		DispatchMessage(&msg);
-	}
-#endif // _DEBUG
-
-	return MainDLL::UninstallHook();
-}

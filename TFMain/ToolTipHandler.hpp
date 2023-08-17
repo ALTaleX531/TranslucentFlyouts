@@ -3,8 +3,7 @@
 
 namespace TranslucentFlyouts
 {
-	// Tweak the appearance of immersive context menu
-	namespace ImmersiveContextMenuPatcher
+	namespace ToolTipHandler
 	{
 		HRESULT WINAPI DrawThemeBackground(
 			HTHEME  hTheme,

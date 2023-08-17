@@ -7,7 +7,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommandArguments>$(SolutionDir)Build\$(PlatformShortName)\$(Configuration)\$(ProjectName)$(PlatformArchitecture).dll,Main /debug</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>$(SolutionDir)Build\$(PlatformShortName)\$(Configuration)\$(ProjectName)$(PlatformArchitecture).dll,Main /start</LocalDebuggerCommandArguments>
     <LocalDebuggerCommand>C:\WINDOWS\sysWow64\Rundll32.exe</LocalDebuggerCommand>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -17,7 +17,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommandArguments>$(SolutionDir)Build\$(PlatformShortName)\$(Configuration)\$(ProjectName)$(PlatformArchitecture).dll,Main /debug</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>$(SolutionDir)Build\$(PlatformShortName)\$(Configuration)\$(ProjectName)$(PlatformArchitecture).dll,Main /start</LocalDebuggerCommandArguments>
     <LocalDebuggerCommand>C:\WINDOWS\system32\Rundll32.exe</LocalDebuggerCommand>
   </PropertyGroup>
 </Project>

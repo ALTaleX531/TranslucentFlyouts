@@ -12,28 +12,122 @@ using namespace std;
 using namespace wil;
 using namespace TranslucentFlyouts;
 
-thread_local decltype(MenuHandler::g_sharedContext) MenuHandler::g_sharedContext{nullptr, nullptr};
-thread_local decltype(MenuHandler::g_sharedMenuInfo) MenuHandler::g_sharedMenuInfo{false, false};
-const UINT MenuHandler::WM_MHATTACH{RegisterWindowMessageW(L"TranslucentFlyouts.MenuHandler.Attach")};
-const UINT MenuHandler::WM_MHDETACH{RegisterWindowMessageW(L"TranslucentFlyouts.MenuHandler.Detach")};
-const wstring_view MenuHandler::BackgroundBrushPropName{L"TranslucentFlyouts.MenuHandler.BackgroundBrush"};
-const wstring_view MenuHandler::BorderMarkerPropName{L"TranslucentFlyouts.MenuHandler.BorderMarker"};
-const wstring_view MenuHandler::InitializationMarkerPropName{L"TranslucentFlyouts.MenuHandler.InitializationMarker"};
-
-MenuHandler& MenuHandler::GetInstance()
+namespace TranslucentFlyouts::MenuHandler
 {
-	static MenuHandler instance{};
-	return instance;
-}
+	// describes the sizes of the menu bar or menu item
+	union UAHMENUITEMMETRICS
+	{
+		struct
+		{
+			DWORD cx;
+			DWORD cy;
+		} rgsizeBar[2];
+		struct
+		{
+			DWORD cx;
+			DWORD cy;
+		} rgsizePopup[4];
+	};
 
-MenuHandler::MenuHandler()
-{
+	// not really used in our case but part of the other structures
+	struct UAHMENUPOPUPMETRICS
+	{
+		DWORD rgcx[4];
+		DWORD fUpdateMaxWidths : 2; // from kernel symbols, padded to full dword
+	};
 
-}
+	// hmenu is the main window menu; hdc is the context to draw in
+	struct UAHMENU
+	{
+		HMENU hMenu;
+		HDC hdc;
+		DWORD dwFlags; // no idea what these mean, in my testing it's either 0x00000a00 or sometimes 0x00000a10
+	};
 
-MenuHandler::~MenuHandler() noexcept
-{
-	ShutdownHook();
+	// menu items are always referred to by iPosition here
+	struct UAHMENUITEM
+	{
+		int iPosition; // 0-based position of menu item in menubar
+		UAHMENUITEMMETRICS umim;
+		UAHMENUPOPUPMETRICS umpm;
+	};
+
+	// the DRAWITEMSTRUCT contains the states of the menu items, as well as
+	// the position index of the item in the menu, which is duplicated in
+	// the UAHMENUITEM's iPosition as well
+	struct UAHDRAWMENUITEM
+	{
+		DRAWITEMSTRUCT dis; // itemID looks uninitialized
+		UAHMENU um;
+		UAHMENUITEM umi;
+	};
+
+	// the MEASUREITEMSTRUCT is intended to be filled with the size of the item
+	// height appears to be ignored, but width can be modified
+	struct UAHMEASUREMENUITEM
+	{
+		MEASUREITEMSTRUCT mis;
+		UAHMENU um;
+		UAHMENUITEM umi;
+	};
+
+	constexpr UINT WM_UAHDESTROYWINDOW{ 0x0090 };
+	constexpr UINT WM_UAHDRAWMENU{ 0x0091 };			// lParam is UAHMENU, return TRUE after handling it
+	constexpr UINT WM_UAHDRAWMENUITEM{ 0x0092 };		// lParam is UAHDRAWMENUITEM, return TRUE after handling it
+	constexpr UINT WM_UAHINITMENU{ 0x0093 };
+	constexpr UINT WM_UAHMEASUREMENUITEM{ 0x0094 };	// lParam is UAHMEASUREMENUITEM, return TRUE after handling it
+	constexpr UINT WM_UAHNCPAINTMENUPOPUP{ 0x0095 };	// lParam is UAHMENU, return TRUE after handling it
+
+	constexpr UINT DFCS_MENUARROWUP{ 0x0008 };
+	constexpr UINT DFCS_MENUARROWDOWN{ 0x0010 };
+
+	constexpr int popupMenuArrowUp{ -3 };
+	constexpr int popupMenuArrowDown{ -4 };
+
+	struct MenuRenderingContext
+	{
+		HDC menuDC{ nullptr };
+		HDC listviewDC{ nullptr };
+	};
+
+	constexpr int popupMenuSubclassId{ 0 };
+	constexpr int popupMenuBrushManagerSubclassId{ 1 };
+	constexpr int dropDownSubclassId{ 2 };
+
+	thread_local MenuRenderingContext g_sharedContext{ nullptr, nullptr };
+	thread_local MenuRenderingInfo g_sharedMenuInfo{ false, false };
+
+	const UINT WM_MHATTACH{ RegisterWindowMessageW(L"TranslucentFlyouts.MenuHandler.Attach") };
+	const UINT WM_MHDETACH{ RegisterWindowMessageW(L"TranslucentFlyouts.MenuHandler.Detach") };
+	const wstring_view InitializationMarkerPropName{ L"TranslucentFlyouts.MenuHandler.InitializationMarker" };
+	const wstring_view BorderMarkerPropName{ L"TranslucentFlyouts.MenuHandler.BorderMarker" };
+
+	list<HWND> g_hookedWindowList{};
+	list<HWND> g_menuList{};
+
+	void WinEventCallback(HWND hWnd, DWORD event);
+	// In certain situations, using SetWindowSubclass can't receive WM_DRAWITEM (eg. Windows 11 Taskmgr),
+	// so here we use hooks instead
+	void MenuOwnerMsgCallback(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam, LRESULT lResult, bool returnResultValid);
+	void ListviewpopupMsgCallback(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam, LRESULT lResult, bool returnResultValid);
+
+	LRESULT CALLBACK SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
+	bool IsImmersiveContextMenu(HWND hWnd);
+
+	void AttachDropDown(HWND hWnd);
+	void DetachDropDown(HWND hWnd);
+
+	void AttachPopupMenuOwner(HWND hWnd);
+	void DetachPopupMenuOwner(HWND hWnd);
+
+	void AttachPopupMenu(HWND hWnd);
+	void DetachPopupMenu(HWND hWnd);
+
+	void AttachListViewPopup(HWND hWnd);
+	void DetachListViewPopup(HWND hWnd);
+
+	bool IsMenuPartlyOwnerDrawn(HMENU hMenu);
+	MARGINS GetPopupMenuNonClientMargins(HWND hWnd);
 }
 
 void MenuHandler::MenuOwnerMsgCallback(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam, LRESULT lResult, bool returnResultValid)
@@ -69,11 +163,11 @@ void MenuHandler::MenuOwnerMsgCallback(HWND hwnd, UINT message, WPARAM wParam, L
 							3
 						)
 					};
-					if (cornerType != 1 && SUCCEEDED(GetInstance().HandleSysBorderColors(L"Menu"sv, menuWindow, g_sharedMenuInfo.useDarkMode, g_sharedMenuInfo.borderColor)))
+					if (cornerType != 1 && SUCCEEDED(TFMain::ApplySysBorderColors(L"Menu"sv, menuWindow, g_sharedMenuInfo.useDarkMode, g_sharedMenuInfo.borderColor, g_sharedMenuInfo.borderColor)))
 					{
 						SetPropW(menuWindow, BorderMarkerPropName.data(), reinterpret_cast<HANDLE>(HANDLE_FLAG_INHERIT));
 					}
-					GetInstance().HandleRoundCorners(L"Menu"sv, menuWindow);
+					TFMain::ApplyRoundCorners(L"Menu"sv, menuWindow);
 				}
 			}
 		}
@@ -130,61 +224,6 @@ void MenuHandler::ListviewpopupMsgCallback(HWND hwnd, UINT message, WPARAM wPara
 			}
 		}
 	}
-}
-
-HRESULT MenuHandler::HandleSysBorderColors(std::wstring_view keyName, HWND hWnd, bool useDarkMode, COLORREF color)
-{
-	DWORD noBorderColor
-	{
-		RegHelper::GetDword(
-			keyName,
-			L"NoBorderColor",
-			0
-		)
-	};
-
-	DWORD borderColor{color};
-	if (!noBorderColor)
-	{
-		DWORD enableThemeColorization
-		{
-			RegHelper::GetDword(
-				keyName,
-				L"EnableThemeColorization",
-				0
-			)
-		};
-
-		if (enableThemeColorization)
-		{
-			LOG_IF_FAILED(Utils::GetDwmThemeColor(borderColor));
-		}
-
-		if (useDarkMode)
-		{
-			borderColor = RegHelper::GetDword(
-					keyName,
-					L"DarkMode_BorderColor",
-					borderColor
-			);
-		}
-		else
-		{
-			borderColor = RegHelper::GetDword(
-					keyName,
-					L"LightMode_BorderColor",
-					borderColor
-			);
-		}
-
-		borderColor = Utils::MakeCOLORREF(borderColor);
-	}
-	else
-	{
-		borderColor = DWMWA_COLOR_NONE;
-	}
-
-	return DwmSetWindowAttribute(hWnd, DWMWA_BORDER_COLOR, &borderColor, sizeof(borderColor));
 }
 
 bool MenuHandler::HandlePopupMenuNCBorderColors(HDC hdc, bool useDarkMode, const RECT& paintRect)
@@ -265,65 +304,6 @@ MARGINS MenuHandler::GetPopupMenuNonClientMargins(HWND hWnd)
 	return {mbi.rcBar.left - windowRect.left, windowRect.right - mbi.rcBar.right, mbi.rcBar.top - windowRect.top, windowRect.bottom - mbi.rcBar.bottom};
 }
 
-HRESULT MenuHandler::HandleRoundCorners(std::wstring_view keyName, HWND hWnd)
-{
-	DWORD cornerType
-	{
-		RegHelper::GetDword(
-			keyName,
-			L"CornerType",
-			3
-		)
-	};
-	if (cornerType != 0)
-	{
-		return DwmSetWindowAttribute(hWnd, DWMWA_WINDOW_CORNER_PREFERENCE, &cornerType, sizeof(DWM_WINDOW_CORNER_PREFERENCE));
-	}
-	return S_OK;
-}
-
-void MenuHandler::ApplyEffect(std::wstring_view keyName, HWND hWnd, bool darkMode)
-{
-	DWORD effectType
-	{
-		RegHelper::GetDword(
-			keyName,
-			L"EffectType",
-			static_cast<DWORD>(EffectHelper::EffectType::ModernAcrylicBlur)
-		)
-	};
-	DWORD enableDropShadow
-	{
-		RegHelper::GetDword(
-			keyName,
-			L"EnableDropShadow",
-			0
-		)
-	};
-	// Set effect for the popup menu
-	DWORD gradientColor{0};
-	if (darkMode)
-	{
-		gradientColor = RegHelper::GetDword(
-							keyName,
-							L"DarkMode_GradientColor",
-							darkMode_GradientColor
-						);
-
-		EffectHelper::EnableWindowDarkMode(hWnd, TRUE);
-	}
-	else
-	{
-		gradientColor = RegHelper::GetDword(
-							keyName,
-							L"LightMode_GradientColor",
-							lightMode_GradientColor
-						);
-
-	}
-	EffectHelper::SetWindowBackdrop(hWnd, enableDropShadow, gradientColor, effectType);
-	DwmTransitionOwnedWindow(hWnd, DWMTRANSITION_OWNEDWINDOW_REPOSITION);
-}
 
 bool MenuHandler::IsMenuPartlyOwnerDrawn(HMENU hMenu)
 {
@@ -368,7 +348,6 @@ LRESULT CALLBACK MenuHandler::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 {
 	bool handled{false};
 	LRESULT result{0};
-	MenuHandler& menuHandler{GetInstance()};
 
 	// Popup menu
 	if (uIdSubclass == popupMenuSubclassId)
@@ -376,7 +355,7 @@ LRESULT CALLBACK MenuHandler::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 		// If we can handle WM_UAHDRAWMENU, WM_UAHDRAWMENUITEM, WM_UAHNCPAINTMENUPOPUP properly, (like StartAllBack)
 		// then we don't need UxThemePatcher anymore!!!
 		// However, this method may break the vanilla behaviour of popup menu
-		
+
 		// If this menu is a immersive context menu, then it won't receive following 4 messages...
 		if (uMsg == WM_UAHDRAWMENU)
 		{
@@ -426,11 +405,11 @@ LRESULT CALLBACK MenuHandler::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 					3
 				)
 			};
-			if (cornerType != 1 && SUCCEEDED(GetInstance().HandleSysBorderColors(L"Menu"sv, hWnd, g_sharedMenuInfo.useDarkMode, g_sharedMenuInfo.borderColor)))
+			if (cornerType != 1 && SUCCEEDED(TFMain::ApplySysBorderColors(L"Menu"sv, hWnd, g_sharedMenuInfo.useDarkMode, g_sharedMenuInfo.borderColor, g_sharedMenuInfo.borderColor)))
 			{
 				SetPropW(hWnd, BorderMarkerPropName.data(), reinterpret_cast<HANDLE>(HANDLE_FLAG_INHERIT));
 			}
-			GetInstance().HandleRoundCorners(L"Menu"sv, hWnd);
+			TFMain::ApplyRoundCorners(L"Menu"sv, hWnd);
 		}
 
 		// We need to fix the menu selection fade animation...
@@ -473,14 +452,15 @@ LRESULT CALLBACK MenuHandler::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 				THROW_IF_FAILED(
 					MenuAnimation::CreateFadeOut(
 						hWnd, mbi,
-						std::chrono::milliseconds{
-							RegHelper::GetDword(
-								L"Menu\\Animation",
-								L"FadeOutTime",
-								static_cast<DWORD>(MenuAnimation::standardFadeoutDuration.count()),
-								false
-							)
-						}
+						chrono::milliseconds
+				{
+					RegHelper::GetDword(
+						L"Menu\\Animation",
+						L"FadeOutTime",
+						static_cast<DWORD>(MenuAnimation::standardFadeoutDuration.count()),
+						false
+					)
+				}
 					)
 				);
 
@@ -494,19 +474,21 @@ LRESULT CALLBACK MenuHandler::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 
 		if (uMsg == WM_MHATTACH)
 		{
+			handled = true;
+
 			SetPropW(hWnd, InitializationMarkerPropName.data(), reinterpret_cast<HANDLE>(HANDLE_FLAG_INHERIT));
-			menuHandler.AttachPopupMenuOwner(hWnd);
+			AttachPopupMenuOwner(hWnd);
 
 			// This menu is using unknown owner drawn technique,
 			// in order to prevent broken visual content, we need to detach and remove menu backdrop
-			auto info{menuHandler.GetMenuRenderingInfo(hWnd)};
-			if (!info.useUxTheme || menuHandler.IsMenuPartlyOwnerDrawn(reinterpret_cast<HMENU>(DefSubclassProc(hWnd, MN_GETHMENU, 0, 0))))
+			auto info{GetMenuRenderingInfo(hWnd)};
+			if (!info.useUxTheme || IsMenuPartlyOwnerDrawn(reinterpret_cast<HMENU>(DefSubclassProc(hWnd, MN_GETHMENU, 0, 0))))
 			{
 				SendNotifyMessage(hWnd, WM_MHDETACH, 0, 0);
 			}
 			else
 			{
-				menuHandler.ApplyEffect(L"Menu"sv, hWnd, info.useDarkMode);
+				TFMain::ApplyBackdropEffect(L"Menu"sv, hWnd, info.useDarkMode, TFMain::darkMode_GradientColor, TFMain::lightMode_GradientColor);
 				DWORD cornerType
 				{
 					RegHelper::GetDword(
@@ -515,18 +497,18 @@ LRESULT CALLBACK MenuHandler::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 						3
 					)
 				};
-				if (cornerType != 1 && SUCCEEDED(GetInstance().HandleSysBorderColors(L"Menu"sv, hWnd, info.useDarkMode, info.borderColor)))
+				if (cornerType != 1 && SUCCEEDED(TFMain::ApplySysBorderColors(L"Menu"sv, hWnd, info.useDarkMode, info.borderColor, info.borderColor)))
 				{
 					SetPropW(hWnd, BorderMarkerPropName.data(), reinterpret_cast<HANDLE>(HANDLE_FLAG_INHERIT));
 				}
-				GetInstance().HandleRoundCorners(L"Menu"sv, hWnd);
+				TFMain::ApplyRoundCorners(L"Menu"sv, hWnd);
 
 				try
 				{
 					auto hMenu{reinterpret_cast<HMENU>(DefSubclassProc(hWnd, MN_GETHMENU, 0, 0))};
 					MENUINFO mi{sizeof(mi), MIM_BACKGROUND};
 					THROW_IF_WIN32_BOOL_FALSE(GetMenuInfo(hMenu, &mi));
-					SetPropW(hWnd, BackgroundBrushPropName.data(), mi.hbrBack);
+					THROW_IF_WIN32_BOOL_FALSE(SetWindowSubclass(hWnd, SubclassProc, popupMenuBrushManagerSubclassId, reinterpret_cast<DWORD_PTR>(mi.hbrBack)));
 					mi.hbrBack = GetStockBrush(BLACK_BRUSH);
 					// SetMenuInfo has a bug that it fails without setting last error.
 					LOG_HR_IF(E_FAIL, !SetMenuInfo(hMenu, &mi));
@@ -534,7 +516,7 @@ LRESULT CALLBACK MenuHandler::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 				CATCH_LOG()
 
 				// We have menu scroll arrows, make it redraw itself.
-				if (GetInstance().GetPopupMenuNonClientMargins(hWnd).cyTopHeight != nonClientMarginStandardSize)
+				if (GetPopupMenuNonClientMargins(hWnd).cyTopHeight != nonClientMarginStandardSize)
 				{
 					PostMessageW(hWnd, MN_SELECTITEM, popupMenuArrowUp, 0);
 					PostMessageW(hWnd, MN_SELECTITEM, popupMenuArrowDown, 0);
@@ -566,28 +548,30 @@ LRESULT CALLBACK MenuHandler::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 				MenuAnimation::CreatePopupIn(
 					hWnd,
 					ratio,
-					std::chrono::milliseconds{
-						RegHelper::GetDword(
-							L"Menu\\Animation",
-							L"PopInTime",
-							static_cast<DWORD>(MenuAnimation::standardPopupInDuration.count()),
-							false
-						)
-					},
-					std::chrono::milliseconds{
-						RegHelper::GetDword(
-							L"Menu\\Animation",
-							L"FadeInTime",
-							static_cast<DWORD>(MenuAnimation::standardFadeInDuration.count()),
-							false
-						)
-					},
+					chrono::milliseconds
+				{
 					RegHelper::GetDword(
 						L"Menu\\Animation",
-						L"PopInStyle",
-						0,
+						L"PopInTime",
+						static_cast<DWORD>(MenuAnimation::standardPopupInDuration.count()),
 						false
 					)
+				},
+				chrono::milliseconds
+				{
+					RegHelper::GetDword(
+						L"Menu\\Animation",
+						L"FadeInTime",
+						static_cast<DWORD>(MenuAnimation::standardFadeInDuration.count()),
+						false
+					)
+				},
+				RegHelper::GetDword(
+					L"Menu\\Animation",
+					L"PopInStyle",
+					0,
+					false
+				)
 				);
 			}
 		}
@@ -645,7 +629,7 @@ LRESULT CALLBACK MenuHandler::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 				POINT pt{};
 				Utils::unique_ext_hdc hdc{reinterpret_cast<HDC>(wParam)};
 
-				MARGINS mr{GetInstance().GetPopupMenuNonClientMargins(hWnd)};
+				MARGINS mr{GetPopupMenuNonClientMargins(hWnd)};
 
 				RECT paintRect{};
 				GetWindowRect(hWnd, &paintRect);
@@ -653,7 +637,7 @@ LRESULT CALLBACK MenuHandler::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 
 				if (!GetPropW(hWnd, BorderMarkerPropName.data()))
 				{
-					menuHandler.HandlePopupMenuNCBorderColors(hdc.get(), g_sharedMenuInfo.useDarkMode, paintRect);
+					HandlePopupMenuNCBorderColors(hdc.get(), g_sharedMenuInfo.useDarkMode, paintRect);
 				}
 				else
 				{
@@ -675,7 +659,7 @@ LRESULT CALLBACK MenuHandler::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 					SelectClipRgn(hdc.get(), reinterpret_cast<HRGN>(wParam));
 				}
 
-				MARGINS mr{GetInstance().GetPopupMenuNonClientMargins(hWnd)};
+				MARGINS mr{GetPopupMenuNonClientMargins(hWnd)};
 
 				RECT paintRect{};
 				GetWindowRect(hWnd, &paintRect);
@@ -687,7 +671,7 @@ LRESULT CALLBACK MenuHandler::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 					FillRect(dc.get(), &paintRect, GetStockBrush(BLACK_BRUSH));
 				}
 
-				if (!GetPropW(hWnd, BorderMarkerPropName.data()) && !menuHandler.HandlePopupMenuNCBorderColors(hdc.get(), g_sharedMenuInfo.useDarkMode, paintRect))
+				if (!GetPropW(hWnd, BorderMarkerPropName.data()) && !HandlePopupMenuNCBorderColors(hdc.get(), g_sharedMenuInfo.useDarkMode, paintRect))
 				{
 					RECT windowRect{};
 					GetWindowRect(hWnd, &windowRect);
@@ -703,15 +687,6 @@ LRESULT CALLBACK MenuHandler::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 
 		if (uMsg == WM_DESTROY || uMsg == WM_MHDETACH)
 		{
-			auto brush{reinterpret_cast<HBRUSH>(GetPropW(hWnd, BackgroundBrushPropName.data()))};
-			if (GetLastError() == ERROR_SUCCESS)
-			{
-				MENUINFO mi{.cbSize{sizeof(mi)}, .fMask{MIM_BACKGROUND}, .hbrBack{brush}};
-				LOG_HR_IF(E_FAIL, !SetMenuInfo(reinterpret_cast<HMENU>(DefSubclassProc(hWnd, MN_GETHMENU, 0, 0)), &mi));
-
-				RemovePropW(hWnd, BackgroundBrushPropName.data());
-			}
-
 			if (GetPropW(hWnd, InitializationMarkerPropName.data()))
 			{
 				RemovePropW(hWnd, InitializationMarkerPropName.data());
@@ -729,21 +704,65 @@ LRESULT CALLBACK MenuHandler::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 				InvalidateRect(hWnd, nullptr, TRUE);
 			}
 
-			menuHandler.DetachPopupMenuOwner(hWnd);
-			menuHandler.DetachPopupMenu(hWnd);
+			DetachPopupMenuOwner(hWnd);
+			DetachPopupMenu(hWnd);
+		}
+	}
+
+	if (uIdSubclass == popupMenuBrushManagerSubclassId)
+	{
+		if (uMsg == WM_DESTROY || uMsg == WM_MHDETACH)
+		{
+			HBRUSH brush{nullptr};
+
+			if (GetWindowSubclass(hWnd, SubclassProc, popupMenuBrushManagerSubclassId, reinterpret_cast<DWORD_PTR*>(&brush)))
+			{
+				MENUINFO mi{ .cbSize{sizeof(mi)}, .fMask{MIM_BACKGROUND}, .hbrBack{brush} };
+				LOG_HR_IF(E_FAIL, !SetMenuInfo(reinterpret_cast<HMENU>(DefSubclassProc(hWnd, MN_GETHMENU, 0, 0)), &mi));
+			}
 		}
 	}
 
 	if (uIdSubclass == dropDownSubclassId)
 	{
+		if (uMsg == WM_MHATTACH)
+		{
+			handled = true;
+
+			HWND listviewpopup{ FindWindowExW(hWnd, nullptr, L"ListViewPopup", nullptr) };
+
+			auto info{ GetMenuRenderingInfo(hWnd) };
+			if (info.useUxTheme)
+			{
+				TFMain::ApplyBackdropEffect(L"DropDown"sv, hWnd, info.useDarkMode, TFMain::darkMode_GradientColor, TFMain::lightMode_GradientColor);
+				TFMain::ApplySysBorderColors(L"DropDown"sv, hWnd, info.useDarkMode, DWMWA_COLOR_NONE, DWMWA_COLOR_NONE);
+				TFMain::ApplyRoundCorners(L"DropDown"sv, hWnd);
+
+				HWND toolbar{ FindWindowExW(listviewpopup, nullptr, L"ToolbarWindow32", nullptr) };
+				if (toolbar)
+				{
+					DetachListViewPopup(listviewpopup);
+					SendMessageW(hWnd, WM_MHDETACH, 0, 0);
+
+					InvalidateRect(toolbar, nullptr, TRUE);
+				}
+			}
+			else
+			{
+				DetachListViewPopup(listviewpopup);
+				SendMessageW(hWnd, WM_MHDETACH, 0, 0);
+			}
+		}
+
 		if (uMsg == WM_DESTROY || uMsg == WM_MHDETACH)
 		{
+			DetachDropDown(hWnd);
 			if (uMsg == WM_MHDETACH)
 			{
+				handled = true;
 				EffectHelper::SetWindowBackdrop(hWnd, FALSE, 0, static_cast<DWORD>(EffectHelper::EffectType::None));
 				InvalidateRect(hWnd, nullptr, TRUE);
 			}
-			menuHandler.DetachDropDown(hWnd);
 		}
 	}
 
@@ -770,31 +789,29 @@ void MenuHandler::AttachPopupMenu(HWND hWnd)
 	{
 		return;
 	}
-	m_menuList.push_back(hWnd);
+
+	g_menuList.push_back(hWnd);
 	SetWindowSubclass(hWnd, SubclassProc, popupMenuSubclassId, 0);
 }
 
 void MenuHandler::DetachPopupMenu(HWND hWnd)
 {
 	RemoveWindowSubclass(hWnd, SubclassProc, popupMenuSubclassId);
-	m_menuList.remove(hWnd);
+	g_menuList.remove(hWnd);
 }
 
 void MenuHandler::AttachDropDown(HWND hWnd)
 {
-	auto info{GetMenuRenderingInfo(hWnd)};
-	ApplyEffect(L"DropDown"sv, hWnd, info.useDarkMode);
-	GetInstance().HandleSysBorderColors(L"DropDown"sv, hWnd, info.useDarkMode, DWMWA_COLOR_NONE);
-	GetInstance().HandleRoundCorners(L"DropDown"sv, hWnd);
-
-	m_menuList.push_back(hWnd);
+	g_menuList.push_back(hWnd);
 	SetWindowSubclass(hWnd, SubclassProc, dropDownSubclassId, 0);
+
+	PostMessageW(hWnd, WM_MHATTACH, 0, 0);
 }
 
 void MenuHandler::DetachDropDown(HWND hWnd)
 {
 	RemoveWindowSubclass(hWnd, SubclassProc, dropDownSubclassId);
-	m_menuList.remove(hWnd);
+	g_menuList.remove(hWnd);
 }
 
 void MenuHandler::AttachPopupMenuOwner(HWND hWnd)
@@ -805,7 +822,7 @@ void MenuHandler::AttachPopupMenuOwner(HWND hWnd)
 	{
 		SetWindowSubclass(hWnd, SubclassProc, popupMenuSubclassId, reinterpret_cast<DWORD_PTR>(menuOwner));
 		Hooking::MsgHooks::GetInstance().Install(menuOwner);
-		m_hookedWindowList.push_back(menuOwner);
+		g_hookedWindowList.push_back(menuOwner);
 	}
 }
 
@@ -816,7 +833,7 @@ void MenuHandler::DetachPopupMenuOwner(HWND hWnd)
 	if (GetWindowSubclass(hWnd, SubclassProc, popupMenuSubclassId, reinterpret_cast<DWORD_PTR*>(&menuOwner)) && menuOwner)
 	{
 		Hooking::MsgHooks::GetInstance().Uninstall(menuOwner);
-		m_hookedWindowList.remove(menuOwner);
+		g_hookedWindowList.remove(menuOwner);
 	}
 }
 
@@ -837,7 +854,7 @@ void MenuHandler::AttachListViewPopup(HWND hWnd)
 	}
 
 	Hooking::MsgHooks::GetInstance().Install(hWnd);
-	m_hookedWindowList.push_back(hWnd);
+	g_hookedWindowList.push_back(hWnd);
 
 	HWND dropDown{GetAncestor(hWnd, GA_ROOT)};
 	AttachDropDown(dropDown);
@@ -845,11 +862,8 @@ void MenuHandler::AttachListViewPopup(HWND hWnd)
 
 void MenuHandler::DetachListViewPopup(HWND hWnd)
 {
-	HWND dropDown{GetAncestor(hWnd, GA_ROOT)};
-	DetachDropDown(dropDown);
-
 	Hooking::MsgHooks::GetInstance().Uninstall(hWnd);
-	m_hookedWindowList.remove(hWnd);
+	g_hookedWindowList.remove(hWnd);
 }
 
 HDC MenuHandler::GetCurrentMenuDC()
@@ -901,59 +915,57 @@ bool MenuHandler::IsImmersiveContextMenu(HWND hWnd)
 
 void MenuHandler::WinEventCallback(HWND hWnd, DWORD event)
 {
-	auto& menuHandler{GetInstance()};
-
 	if (event == EVENT_OBJECT_CREATE)
 	{
 		if (Utils::IsWin32PopupMenu(hWnd))
 		{
-			menuHandler.AttachPopupMenu(hWnd);
+			AttachPopupMenu(hWnd);
 		}
 
 		HWND parentWindow{GetParent(hWnd)};
 		if (Utils::IsWindowClass(hWnd, L"Listviewpopup") && Utils::IsWindowClass(parentWindow, L"DropDown"))
 		{
-			menuHandler.AttachListViewPopup(hWnd);
+			AttachListViewPopup(hWnd);
 		}
 	}
 }
 
-void MenuHandler::StartupHook()
+void MenuHandler::Startup()
 {
 	Hooking::MsgHooks::GetInstance().AddCallback(MenuOwnerMsgCallback);
 	Hooking::MsgHooks::GetInstance().AddCallback(ListviewpopupMsgCallback);
 
-	MainDLL::GetInstance().AddCallback(WinEventCallback);
+	TFMain::AddCallback(WinEventCallback);
 }
 
-void MenuHandler::ShutdownHook()
+void MenuHandler::Shutdown()
 {
 	g_sharedContext.menuDC = nullptr;
 	g_sharedContext.listviewDC = nullptr;
 	g_sharedMenuInfo.Reset();
 
-	MainDLL::GetInstance().DeleteCallback(WinEventCallback);
+	TFMain::DeleteCallback(WinEventCallback);
 
 	Hooking::MsgHooks::GetInstance().DeleteCallback(MenuOwnerMsgCallback);
 	Hooking::MsgHooks::GetInstance().DeleteCallback(ListviewpopupMsgCallback);
 	// Remove all the hooks
-	if (!m_hookedWindowList.empty())
+	if (!g_hookedWindowList.empty())
 	{
-		auto hookedList{m_hookedWindowList};
+		auto hookedList{g_hookedWindowList};
 		for (auto hookedWindow : hookedList)
 		{
 			Hooking::MsgHooks::GetInstance().Uninstall(hookedWindow);
 		}
-		m_hookedWindowList.clear();
+		g_hookedWindowList.clear();
 	}
 	// Remove subclass for all existing popup menu
-	if (!m_menuList.empty())
+	if (!g_menuList.empty())
 	{
-		auto menuList{m_menuList};
+		auto menuList{g_menuList};
 		for (auto menuWindow : menuList)
 		{
 			SendMessage(menuWindow, WM_MHDETACH, 0, 0);
 		}
-		m_menuList.clear();
+		g_menuList.clear();
 	}
 }
