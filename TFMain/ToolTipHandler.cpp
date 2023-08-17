@@ -67,6 +67,18 @@ HRESULT WINAPI TranslucentFlyouts::ToolTipHandler::DrawThemeBackground(
 
 		if (!_wcsicmp(themeClassName, L"Tooltip"))
 		{
+			DWORD itemDisabled
+			{
+				RegHelper::GetDword(
+					L"Tooltip",
+					L"Disabled",
+					0
+				)
+			};
+			RETURN_HR_IF_EXPECTED(
+				E_NOTIMPL, itemDisabled
+			);
+			
 			g_darkMode = ThemeHelper::DetermineThemeMode(hTheme, L"Explorer"sv, L"Tooltip"sv, 0, 0, TMT_TEXTCOLOR);
 			
 			HWND hWnd{WindowFromDC(hdc)};
@@ -135,6 +147,17 @@ int WINAPI ToolTipHandler::DrawTextW(
 		RETURN_HR_IF_EXPECTED(
 			E_NOTIMPL, !g_useUxTheme
 		);
+		DWORD itemDisabled
+		{
+			RegHelper::GetDword(
+				L"Tooltip",
+				L"Disabled",
+				0
+			)
+		};
+		RETURN_HR_IF_EXPECTED(
+			E_NOTIMPL, itemDisabled
+		);
 		HWND hWnd{ WindowFromDC(hdc) };
 		RETURN_LAST_ERROR_IF_NULL_EXPECTED(hWnd);
 		RETURN_HR_IF_EXPECTED(
@@ -185,6 +208,10 @@ void ToolTipHandler::AttachTooltip(HWND hWnd)
 
 	g_tooltipList.push_back(hWnd);
 	SetWindowSubclass(hWnd, SubclassProc, tooltipSubclassId, 0);
+
+	TFMain::ApplyBackdropEffect(L"Tooltip", hWnd, g_darkMode, TFMain::darkMode_GradientColor, TFMain::lightMode_GradientColor);
+	TFMain::ApplyRoundCorners(L"Tooltip", hWnd);
+	TFMain::ApplySysBorderColors(L"Tooltip", hWnd, g_darkMode, DWMWA_COLOR_NONE, DWMWA_COLOR_NONE);
 }
 void ToolTipHandler::DetachTooltip(HWND hWnd)
 {
@@ -245,9 +272,6 @@ void ToolTipHandler::WinEventCallback(HWND hWnd, DWORD event)
 			if (g_useUxTheme)
 			{
 				AttachTooltip(hWnd);
-				TFMain::ApplyBackdropEffect(L"Tooltip", hWnd, g_darkMode, TFMain::darkMode_GradientColor, TFMain::lightMode_GradientColor);
-				TFMain::ApplyRoundCorners(L"Tooltip", hWnd);
-				TFMain::ApplySysBorderColors(L"Tooltip", hWnd, g_darkMode, DWMWA_COLOR_NONE, DWMWA_COLOR_NONE);
 			}
 		}
 	}
