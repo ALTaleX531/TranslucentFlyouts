@@ -414,7 +414,7 @@ HRESULT WINAPI MainDLL::Install() try
 			THROW_IF_FAILED(
 				execAction->put_Arguments(
 					const_cast<BSTR>(
-						std::format(L"\"{}\",Main /startup", modulePath).c_str()
+						std::format(L"\"{}\",Main /start", modulePath).c_str()
 					)
 				)
 			);
