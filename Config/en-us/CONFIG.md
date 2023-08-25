@@ -9,6 +9,7 @@
 ## Description
 Target version:
 - V2.0.0-alpha.4
+- V2.0.0
 > Note:   
 > Earlier versions are not supported, and the content displayed on this page and its subpages may be outdated for updated versions.
 
@@ -19,6 +20,7 @@ The values here are used to define the common appearance of pop-up menus and dro
 Related child items can be found at:
 - [Menu](./Menu/CONFIG.md)
 - [DropDown](./DropDown/CONFIG.md)
+- [Tooltip](./Tooltip/CONFIG.md)
 
 ## Values
 Type: <b>DWORD</b>

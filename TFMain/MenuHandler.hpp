@@ -1,5 +1,6 @@
-#pragma once
+﻿#pragma once
 #include "pch.h"
+#include "TFMain.hpp"
 
 namespace TranslucentFlyouts
 {
@@ -7,9 +8,9 @@ namespace TranslucentFlyouts
 	{
 		constexpr UINT MN_SETHMENU{ 0x01E0 };
 #ifndef MN_GETHMENU
-		constexpr UINT MN_GETHMENU{ 0x01E1 };
+		constexpr UINT MN_GETHMENU { 0x01E1 };
 #endif // !MN_GETHMENU
-		constexpr UINT MN_SIZEWINDOW{ 0x01E2 };
+		constexpr UINT MN_SIZEWINDOW { 0x01E2 };
 		constexpr UINT MN_OPENHIERARCHY{ 0x01E3 };
 		constexpr UINT MN_CLOSEHIERARCHY{ 0x01E4 };
 		constexpr UINT MN_SELECTITEM{ 0x01E5 };
@@ -53,7 +54,13 @@ namespace TranslucentFlyouts
 			bool immersive{ false };
 			COLORREF borderColor{ DWMWA_COLOR_NONE };
 
-			inline void Reset() { useUxTheme = false; useDarkMode = false; immersive = false; borderColor = DWMWA_COLOR_NONE; }
+			inline void Reset()
+			{
+				useUxTheme = false;
+				useDarkMode = false;
+				immersive = false;
+				borderColor = DWMWA_COLOR_NONE;
+			}
 		};
 		MenuRenderingInfo GetMenuRenderingInfo(HWND hWnd);
 
@@ -73,5 +80,7 @@ namespace TranslucentFlyouts
 
 		void Startup();
 		void Shutdown();
+
+		void Prepare(const TFMain::InteractiveIO& io);
 	}
 }

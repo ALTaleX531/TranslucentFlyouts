@@ -52,13 +52,13 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_STRING101           "符号已经解析完毕，符号文件已经缓存到本地磁盘，下一次无需下载"
-    IDS_STRING102           "我们尝试从微软服务器下载合适的符号文件，但是不幸失败了！\n没有符号文件，TranslucentFlyouts的某些功能可能不可用或受限，你想现在重试吗？(Y/N)"
+    IDS_STRING101           "符号已经解析完毕，符号文件已经缓存到本地磁盘，下一次无需下载。"
+    IDS_STRING102           "我们尝试从微软服务器下载合适的符号文件，但是不幸失败了！\n没有符号文件，TranslucentFlyouts的某些功能可能不可用或受限，你想现在重试吗？(Y/N) "
     IDS_STRING103           "在解析符号的过程中抛出了一个异常，部分功能将不可用！"
-    IDS_STRING104           "完成！按下任意键关闭窗口，正常情况下你之后都不会看到该窗口的出现"
-    IDS_STRING105           "占位符消息"
+    IDS_STRING104           "完成！按下任意键关闭窗口，正常情况下你之后都不会看到该窗口的出现。"
+    IDS_STRING105           "无"
     IDS_STRING106           "正在从本地或微软符号服务器加载符号文件，请确保你的网络连接正常..."
-    IDS_STRING107           "你似乎是在一个不受支持的Windows系统上运行TranslucentFlyouts！符号文件已成功加载但解析未完成，你想现在重试吗？(Y/N)"
+    IDS_STRING107           "你似乎是在一个不受支持的Windows系统上运行TranslucentFlyouts！符号文件已成功加载但未解析出必要的信息，请将你的系统版本报告给开发者！"
 END
 
 #endif    // 中文(简体，中国) resources
@@ -66,7 +66,7 @@ END
 
 
 /////////////////////////////////////////////////////////////////////////////
-// 英语 resources
+// 英语(中性) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
 LANGUAGE LANG_ENGLISH, SUBLANG_NEUTRAL
@@ -80,15 +80,15 @@ LANGUAGE LANG_ENGLISH, SUBLANG_NEUTRAL
 STRINGTABLE
 BEGIN
     IDS_STRING101           "The symbol file has been successfully resolved, and cached to the local disk so that you don't need to download it next time!"
-    IDS_STRING102           "We tried to download appropriate symbols package from Microsoft server but it failed.\nWithout symbol files, some features of TranslucentFlyouts may be limited or unavailable, do you want to retry it now? (Y/N)"
-    IDS_STRING103           "An exception thrown while resolving symbol files, some features of TranslucentFlyouts will be limited or unavailable!"
+    IDS_STRING102           "We tried to download appropriate symbols package from Microsoft server but it failed.\nWithout symbol files, some features of TranslucentFlyouts may be limited or unavailable, do you want to retry it now? (Y/N) "
+    IDS_STRING103           "An exception thrown while resolving symbol files, some features of TranslucentFlyouts will be limited or unavailable! "
     IDS_STRING104           "Done! Press any key to close this window, normally you will not see this console window again!"
-    IDS_STRING105           "PLACEHOLDER MSG"
+    IDS_STRING105           "None"
     IDS_STRING106           "Loading symbol files from local disk or Microsoft symbol servers, please make sure your network connection is alright..."
-    IDS_STRING107           "It appears that you are running TranslucentFlyouts on an UNSUPPORTED Windows system! The symbol file was loaded successfully but resolved failed, do you want to retry it now? (Y/N)"
+    IDS_STRING107           "It appears that you are running TranslucentFlyouts on an UNSUPPORTED Windows system! The symbol file was loaded successfully but resolved failed, please report your OS information to developer!"
 END
 
-#endif    // 英语 resources
+#endif    // 英语(中性) resources
 /////////////////////////////////////////////////////////////////////////////
 
 

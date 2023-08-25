@@ -93,6 +93,67 @@
 </td>
 </tr>
 
+<tr>
+<td width="10%">
+<dl>
+<dt><b>NoModernAppBackgroundColor</b></dt>
+<dt>默认值: 0</dt>
+</dl>
+</td>
+<td width="20%">
+<dl>
+<dt>禁用: 0</dt>
+<dt>启用: 1</dt>
+</dl>
+</td>
+<td width="30%">
+<dt>移除UWP (如照片、画图、截图工具、商店) 图标的背景颜色。</dt>
+<br>
+<b>v2.0.0起可用</b>
+</td>
+</tr>
+
+<tr>
+<td width="10%">
+<dl>
+<dt><b>ColorTreatAsTransparent</b></dt>
+<dt></dt>
+</dl>
+</td>
+<td width="20%">
+<dl>
+<dt></dt>
+</dl>
+</td>
+<td width="30%">
+<dt>当该项存在时，移除某些图标特定的背景颜色 (0xAARRGGBB)。</dt>
+<dt>移除进程会从图标的四个角开始向中心扩展，直至无法移除。</dt>
+<br>
+<b>v2.0.0起可用</b>
+</td>
+</tr>
+
+<tr>
+<td width="10%">
+<dl>
+<dt><b>ColorTreatAsTransparentThreshold</b></dt>
+<dt>默认值: 50</dt>
+</dl>
+</td>
+<td width="20%">
+<dl>
+<dt>0-510</dt>
+</dl>
+</td>
+<td width="30%">
+<dt>与要移除背景颜色之间的色差阈值。当像素之间的色差小于该色差阈值时，该像素点会被置为透明。</dt>
+<br>
+<dt>色差公式: √[(a1 - a2) ^ 2 + (r1 - r2) ^ 2 + (g1 - g2) ^ 2 + (b1 - b2) ^ 2]</dt>
+<br>
+<b>v2.0.0起可用</b>
+</td>
+</tr>
+
 </table>
 
 ## 读取顺序

@@ -287,11 +287,15 @@ void TranslucentFlyouts::ToolTipHandler::Startup() try
 	g_actualDrawThemeBackground = reinterpret_cast<decltype(g_actualDrawThemeBackground)>(DetourFindFunction("uxtheme.dll", "DrawThemeBackground"));
 	THROW_LAST_ERROR_IF_NULL(g_actualDrawThemeBackground);
 
-	Hooking::WriteDelayloadIAT(GetModuleHandleW(L"comctl32.dll"), "uxtheme.dll", {{"DrawThemeBackground", ToolTipHandler::DrawThemeBackground}});
-	Hooking::WriteIAT(GetModuleHandleW(L"comctl32.dll"), "uxtheme.dll", {{"DrawThemeBackground", ToolTipHandler::DrawThemeBackground}});
-	Hooking::WriteDelayloadIAT(GetModuleHandleW(L"comctl32.dll"), "user32.dll", { {"DrawTextW", ToolTipHandler::DrawTextW} });
-	Hooking::WriteIAT(GetModuleHandleW(L"comctl32.dll"), "user32.dll", { {"DrawTextW", ToolTipHandler::DrawTextW} });
-
+	HMODULE moduleHandle{ GetModuleHandleW(L"comctl32.dll") };
+	if (moduleHandle)
+	{
+		Hooking::WriteDelayloadIAT(moduleHandle, "uxtheme.dll", { {"DrawThemeBackground", ToolTipHandler::DrawThemeBackground} });
+		Hooking::WriteIAT(moduleHandle, "uxtheme.dll", { {"DrawThemeBackground", ToolTipHandler::DrawThemeBackground} });
+		Hooking::WriteDelayloadIAT(moduleHandle, "user32.dll", { {"DrawTextW", ToolTipHandler::DrawTextW} });
+		Hooking::WriteIAT(moduleHandle, "user32.dll", { {"DrawTextW", ToolTipHandler::DrawTextW} });
+	}
+	
 	TFMain::AddCallback(WinEventCallback);
 
 	g_startup = true;

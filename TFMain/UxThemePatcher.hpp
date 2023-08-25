@@ -1,5 +1,6 @@
-#pragma once
+﻿#pragma once
 #include "pch.h"
+#include "TFMain.hpp"
 
 namespace TranslucentFlyouts
 {
@@ -7,9 +8,7 @@ namespace TranslucentFlyouts
 
 	namespace UxThemePatcher
 	{
-		void PrepareUxTheme();
-		bool IsUxThemeAPIOffsetReady();
-		void InitUxThemeOffset();
+		void Prepare(const TFMain::InteractiveIO& io);
 
 		void Startup();
 		void Shutdown();

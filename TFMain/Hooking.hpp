@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "pch.h"
 
 namespace TranslucentFlyouts
@@ -142,5 +142,7 @@ namespace TranslucentFlyouts
 			std::byte* m_current{nullptr}, * m_end{nullptr};
 			std::unordered_map<LONG*, LONG> m_hookedMap{};
 		};
+
+		PVOID SearchData(PVOID address, BYTE opCode[], size_t len);
 	}
 }

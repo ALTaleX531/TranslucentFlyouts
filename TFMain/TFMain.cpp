@@ -1,4 +1,5 @@
-#include "pch.h"
+﻿#include "pch.h"
+#include "resource.h"
 #include "RegHelper.hpp"
 #include "Utils.hpp"
 #include "Hooking.hpp"
@@ -19,6 +20,113 @@ namespace TranslucentFlyouts::TFMain
 	bool g_debug{ false };
 	bool g_startup{ false };
 	vector<Callback> g_callbackList{};
+}
+
+TFMain::InteractiveIO::~InteractiveIO()
+{
+	Shutdown();
+}
+
+bool TFMain::InteractiveIO::OutputString(
+	StringType strType,
+	WaitType waitType,
+	UINT strResourceId,
+	std::wstring_view prefixStr,
+	std::wstring_view additionalStr,
+	bool requireConsole
+) const
+{
+	if (!requireConsole)
+	{
+		Startup();
+	}
+	else if (!GetConsoleWindow())
+	{
+		return false;
+	}
+
+	WCHAR str[MAX_PATH + 1] {};
+	LoadStringW(HINST_THISCOMPONENT, strResourceId, str, MAX_PATH);
+
+	switch (strType)
+	{
+		case StringType::Notification:
+		{
+			SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_GREEN | FOREGROUND_INTENSITY);
+			break;
+		}
+		case StringType::Warning:
+		{
+			SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY);
+			break;
+		}
+		case StringType::Error:
+		{
+			SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED | FOREGROUND_INTENSITY);
+			break;
+		}
+		default:
+			break;
+	}
+	wcout << prefixStr << str << additionalStr;
+
+	SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_INTENSITY);
+
+	switch (waitType)
+	{
+		case WaitType::NoWait:
+		{
+			break;
+		}
+		case WaitType::WaitYN:
+		{
+			char input{ };
+			do
+			{
+				input = getchar();
+				if (input == 'Y' || input == 'y')
+				{
+					return true;
+				}
+				if (input == 'N' || input == 'n')
+				{
+					return false;
+				}
+			}
+			while (true);
+			break;
+		}
+		case WaitType::WaitAnyKey:
+		{
+			system("pause>nul");
+			break;
+		}
+		default:
+			break;
+	}
+
+	return true;
+}
+
+void TFMain::InteractiveIO::Startup()
+{
+	if (GetConsoleWindow() || AttachConsole(ATTACH_PARENT_PROCESS) || AllocConsole())
+	{
+		FILE* fpstdin{ stdin }, * fpstdout{ stdout }, * fpstderr{ stderr };
+		freopen_s(&fpstdin, "CONIN$", "r", stdin);
+		freopen_s(&fpstdout, "CONOUT$", "w", stdout);
+		freopen_s(&fpstderr, "CONOUT$", "w", stderr);
+		_wsetlocale(LC_ALL, L"chs");
+	}
+}
+
+void TFMain::InteractiveIO::Shutdown()
+{
+	fclose(stdin);
+	fclose(stdout);
+	fclose(stderr);
+
+	FreeConsole();
 }
 
 void TFMain::Startup()
@@ -73,6 +181,23 @@ void TFMain::Shutdown()
 	g_startup = false;
 }
 
+void TFMain::Prepare()
+{
+	TFMain::InteractiveIO io{};
+
+	UxThemePatcher::Prepare(io);
+	MenuHandler::Prepare(io);
+
+	io.OutputString(
+		TFMain::InteractiveIO::StringType::Notification,
+		TFMain::InteractiveIO::WaitType::WaitAnyKey,
+		IDS_STRING104,
+		L"\n"sv,
+		L"\n"sv,
+		true
+	);
+}
+
 void CALLBACK TFMain::HandleWinEvent(
 	HWINEVENTHOOK hWinEventHook, DWORD dwEvent, HWND hWnd,
 	LONG idObject, LONG idChild,
@@ -87,7 +212,7 @@ void CALLBACK TFMain::HandleWinEvent(
 		(
 			GetModuleHandleW(L"explorer.exe") &&
 			GetModuleHandleW(L"StartAllBackX64.dll") &&
-			result.has_value() && result.value()
+			(!result.has_value() || !result.value())
 		)
 	)
 	{

@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "RegHelper.hpp"
 #include "resource.h"
 #include "Utils.hpp"
@@ -41,13 +41,14 @@ namespace TranslucentFlyouts::UxThemePatcher
 		void __thiscall DrawItemBitmap2(HWND hWnd, HDC hdc, HBITMAP hBitmap, bool fromPopupMenu, bool noStretch, int iStateId, const RECT* lprc);	// Windows 11
 	};
 
-	void CalcUxApiAddress();
+	void CalcAPIAddress();
+	bool IsAPIOffsetReady();
 
 #pragma data_seg(".shared")
-	static int g_uxthemeVersion {-1};
+	static int g_uxthemeVersion { -1 };
 	static DWORD64 g_CThemeMenuPopup_DrawItem_Offset{ 0 };
 	static DWORD64 g_CThemeMenuPopup_DrawItemCheck_Offset{ 0 };
-	static DWORD64 g_CThemeMenuPopup_DrawClientArea_Offset{ 0};
+	static DWORD64 g_CThemeMenuPopup_DrawClientArea_Offset{ 0 };
 	static DWORD64 g_CThemeMenuPopup_DrawNonClientArea_Offset{ 0 };
 	static DWORD64 g_CThemeMenu_DrawItemBitmap_Offset{ 0 };
 #pragma data_seg()
@@ -80,7 +81,7 @@ HRESULT WINAPI UxThemePatcher::DrawThemeBackground(
 	bool handled{ false };
 	HRESULT hr{S_OK};
 
-	hr = [hTheme, hdc, iPartId, iStateId, pRect, pClipRect, &handled]()
+	hr = [hTheme, hdc, iPartId, iStateId, pRect, pClipRect, & handled]()
 	{
 		RETURN_HR_IF_NULL_EXPECTED(E_INVALIDARG, hTheme);
 		RETURN_HR_IF_NULL_EXPECTED(E_INVALIDARG, hdc);
@@ -169,13 +170,13 @@ HRESULT WINAPI UxThemePatcher::DrawThemeBackground(
 
 				handled = true;
 				return ::DrawThemeBackground(
-					themeHandle.get(),
-					hdc,
-					iPartId,
-					iStateId,
-					pRect,
-					pClipRect
-				);
+						   themeHandle.get(),
+						   hdc,
+						   iPartId,
+						   iStateId,
+						   pRect,
+						   pClipRect
+					   );
 			}
 		}
 
@@ -217,7 +218,8 @@ HRESULT WINAPI UxThemePatcher::DrawThemeBackground(
 				   darkMode,
 				   handled
 			   );
-	}();
+	}
+	();
 	if (!handled)
 	{
 		hr = g_actualDrawThemeBackground(
@@ -250,7 +252,7 @@ HRESULT WINAPI UxThemePatcher::DrawThemeText(
 {
 	bool handled{ false };
 	HRESULT hr{S_OK};
-	hr = [hTheme, hdc, iPartId, iStateId, pszText, cchText, dwTextFlags, pRect, &handled]()
+	hr = [hTheme, hdc, iPartId, iStateId, pszText, cchText, dwTextFlags, pRect, & handled]()
 	{
 		RETURN_HR_IF_NULL_EXPECTED(E_INVALIDARG, hTheme);
 		RETURN_HR_IF_NULL_EXPECTED(E_INVALIDARG, hdc);
@@ -286,7 +288,8 @@ HRESULT WINAPI UxThemePatcher::DrawThemeText(
 
 		handled = true;
 		return S_OK;
-	}();
+	}
+	();
 	if (!handled)
 	{
 		hr = g_actualDrawThemeText(
@@ -323,7 +326,7 @@ void __thiscall UxThemePatcher::CThemeMenu::DrawItemBitmap(HWND hWnd, HDC hdc, H
 #endif
 	};
 
-	hr = [this, hWnd, hdc, hBitmap, fromPopupMenu,iStateId, lprc, ptr, &handled]()
+	hr = [this, hWnd, hdc, hBitmap, fromPopupMenu, iStateId, lprc, ptr, & handled]()
 	{
 		RETURN_HR_IF_NULL_EXPECTED(E_INVALIDARG, lprc);
 		RETURN_HR_IF_EXPECTED(E_INVALIDARG, Utils::IsBadReadPtr(lprc));
@@ -355,17 +358,31 @@ void __thiscall UxThemePatcher::CThemeMenu::DrawItemBitmap(HWND hWnd, HDC hdc, H
 			OffsetRect(const_cast<LPRECT>(lprc), clipRect.left + immersiveContextMenuSeparatorPadding - lprc->left, 0);
 		}
 
-		auto bitmap{MenuRendering::PromiseAlpha(hBitmap)};
-		RETURN_LAST_ERROR_IF(bitmap && !bitmap.value().get());
+		unique_hbitmap bitmap{ Utils::Promise32BPP(hBitmap) };
+		RETURN_LAST_ERROR_IF_NULL(bitmap);
+		auto color{ RegHelper::TryGetDword(L"Menu", L"ColorTreatAsTransparent", false) };
+		if (color && !Utils::IsBitmapSupportAlpha(hBitmap))
+		{
+			Utils::BitmapApplyEffect(
+				bitmap.get(),
+				{
+					std::make_shared<Utils::SpriteEffect>(
+						color.value(),
+						RegHelper::GetDword(L"Menu", L"ColorTreatAsTransparentThreshold", 50, false)
+					)
+				}
+			);
+		}
 
 #ifdef _WIN64
-		ptr(this, hWnd, hdc, bitmap ? bitmap.value().get() : hBitmap, fromPopupMenu, lprc, lprc);
+		ptr(this, hWnd, hdc, bitmap.get(), fromPopupMenu, lprc, lprc);
 #else
-		ptr(this, nullptr, hWnd, hdc, bitmap ? bitmap.value().get() : hBitmap, fromPopupMenu, lprc, lprc);
+		ptr(this, nullptr, hWnd, hdc, bitmap.get(), fromPopupMenu, lprc, lprc);
 #endif
 		handled = true;
 		return S_OK;
-	}();
+	}
+	();
 	if (!handled)
 	{
 #ifdef _WIN64
@@ -395,7 +412,7 @@ void __thiscall UxThemePatcher::CThemeMenu::DrawItemBitmap2(HWND hWnd, HDC hdc, 
 #endif
 	};
 
-	hr = [this, hWnd, hdc, hBitmap, fromPopupMenu, noStretch, iStateId, lprc, ptr, &handled]()
+	hr = [this, hWnd, hdc, hBitmap, fromPopupMenu, noStretch, iStateId, lprc, ptr, & handled]()
 	{
 		RETURN_HR_IF_NULL_EXPECTED(E_INVALIDARG, lprc);
 		RETURN_HR_IF_EXPECTED(E_INVALIDARG, Utils::IsBadReadPtr(lprc));
@@ -410,18 +427,32 @@ void __thiscall UxThemePatcher::CThemeMenu::DrawItemBitmap2(HWND hWnd, HDC hdc, 
 			ThemeHelper::IsOemBitmap(hBitmap)
 		);
 
-		auto bitmap{MenuRendering::PromiseAlpha(hBitmap)};
-		RETURN_LAST_ERROR_IF(bitmap && !bitmap.value().get());
+		unique_hbitmap bitmap{ Utils::Promise32BPP(hBitmap) };
+		RETURN_LAST_ERROR_IF_NULL(bitmap);
+		auto color{ RegHelper::TryGetDword(L"Menu", L"ColorTreatAsTransparent", false) };
+		if (color && !Utils::IsBitmapSupportAlpha(hBitmap))
+		{
+			Utils::BitmapApplyEffect(
+				bitmap.get(),
+				{
+					std::make_shared<Utils::SpriteEffect>(
+						color.value(),
+						RegHelper::GetDword(L"Menu", L"ColorTreatAsTransparentThreshold", 50, false)
+					)
+				}
+			);
+		}
 
 #ifdef _WIN64
-		ptr(this, hWnd, hdc, bitmap ? bitmap.value().get() : hBitmap, fromPopupMenu, noStretch, lprc, lprc);
+		ptr(this, hWnd, hdc, bitmap.get(), fromPopupMenu, noStretch, lprc, lprc);
 #else
-		ptr(this, nullptr, hWnd, hdc, bitmap ? bitmap.value().get() : hBitmap, fromPopupMenu, noStretch, lprc, lprc);
+		ptr(this, nullptr, hWnd, hdc, bitmap.get(), fromPopupMenu, noStretch, lprc, lprc);
 #endif
 
 		handled = true;
 		return S_OK;
-	}();
+	}
+	();
 	if (!handled)
 	{
 #ifdef _WIN64
@@ -438,7 +469,7 @@ void __thiscall UxThemePatcher::CThemeMenu::DrawItemBitmap2(HWND hWnd, HDC hdc, 
 	return;
 }
 
-bool UxThemePatcher::IsUxThemeAPIOffsetReady()
+bool UxThemePatcher::IsAPIOffsetReady()
 {
 	if (
 		g_CThemeMenuPopup_DrawItem_Offset &&
@@ -454,18 +485,19 @@ bool UxThemePatcher::IsUxThemeAPIOffsetReady()
 	return false;
 }
 
-void UxThemePatcher::InitUxThemeOffset()
+void UxThemePatcher::Prepare(const TFMain::InteractiveIO& io)
 {
+	using TFMain::InteractiveIO;
 	// TO-DO
 	// Cache the offset information into the registry so that we don't need to calculate them every time
 
-	while (!IsUxThemeAPIOffsetReady())
+	while (!IsAPIOffsetReady())
 	{
-		HRESULT hr{S_OK};
-		SymbolResolver symbolResolver{};
+		HRESULT hr{ S_OK };
+		SymbolResolver symbolResolver{L"UxThemePatcher", io};
 		hr = symbolResolver.Walk(L"uxtheme.dll"sv, "*!*", [](PSYMBOL_INFO symInfo, ULONG symbolSize) -> bool
 		{
-			auto functionName{reinterpret_cast<const CHAR*>(symInfo->Name)};
+			auto functionName{ reinterpret_cast<const CHAR*>(symInfo->Name) };
 			CHAR unDecoratedFunctionName[MAX_PATH + 1]{};
 			UnDecorateSymbolName(
 				functionName, unDecoratedFunctionName, MAX_PATH,
@@ -476,7 +508,7 @@ void UxThemePatcher::InitUxThemeOffset()
 				functionName, fullyUnDecoratedFunctionName, MAX_PATH,
 				UNDNAME_NAME_ONLY
 			);
-			auto functionOffset{symInfo->Address - symInfo->ModBase};
+			auto functionOffset{ symInfo->Address - symInfo->ModBase };
 
 			if (!strcmp(fullyUnDecoratedFunctionName, "CThemeMenuPopup::DrawItem"))
 			{
@@ -528,42 +560,60 @@ void UxThemePatcher::InitUxThemeOffset()
 			}
 #endif // _WIN64
 
-			if (IsUxThemeAPIOffsetReady())
+			if (IsAPIOffsetReady())
 			{
 				return false;
 			}
 
 			return true;
 		});
-		THROW_IF_FAILED(hr);
-
-		if (IsUxThemeAPIOffsetReady())
+		if (FAILED(hr))
 		{
-			if (symbolResolver.GetLastSymbolSource())
+			io.OutputString(
+				InteractiveIO::StringType::Error,
+				InteractiveIO::WaitType::NoWait,
+				IDS_STRING103,
+				std::format(L"[UxThemePatcher] "),
+				std::format(L"(hresult: {:#08x})\n", static_cast<ULONG>(hr))
+			);
+		}
+
+		if (IsAPIOffsetReady())
+		{
+			if (symbolResolver.GetSymbolStatus() && symbolResolver.GetSymbolSource())
 			{
-				Utils::OutputModuleString(IDS_STRING101);
+				io.OutputString(
+					InteractiveIO::StringType::Notification,
+					InteractiveIO::WaitType::NoWait,
+					IDS_STRING101,
+					std::format(L"[UxThemePatcher] "),
+					L"\n"sv
+				);
 			}
 		}
 		else if (GetConsoleWindow())
 		{
-			if (symbolResolver.GetLastSymbolSource())
+			if (symbolResolver.GetSymbolStatus())
 			{
-				Utils::OutputModuleString(IDS_STRING107);
-
-				if (Utils::ConsoleGetConfirmation())
-				{
-					continue;
-				}
-				else
-				{
-					break;
-				}
+				io.OutputString(
+					InteractiveIO::StringType::Error,
+					InteractiveIO::WaitType::NoWait,
+					IDS_STRING107,
+					std::format(L"[UxThemePatcher] "),
+					L"\n"sv
+				);
 			}
 			else
 			{
-				Utils::OutputModuleString(IDS_STRING102);
-
-				if (Utils::ConsoleGetConfirmation())
+				if (
+					io.OutputString(
+						InteractiveIO::StringType::Warning,
+						InteractiveIO::WaitType::WaitYN,
+						IDS_STRING102,
+						std::format(L"[UxThemePatcher] "),
+						L"\n"sv
+					)
+				)
 				{
 					continue;
 				}
@@ -575,36 +625,28 @@ void UxThemePatcher::InitUxThemeOffset()
 		}
 		else
 		{
-			Utils::StartupConsole();
-			Utils::OutputModuleString(IDS_STRING107);
-
-			if (Utils::ConsoleGetConfirmation())
-			{
-				continue;
-			}
-			else
-			{
-				break;
-			}
+			io.OutputString(
+				InteractiveIO::StringType::Error,
+				InteractiveIO::WaitType::NoWait,
+				IDS_STRING107,
+				std::format(L"[UxThemePatcher] "),
+				L"\n"sv
+			);
+			break;
 		}
 	}
+
+	io.OutputString(
+		TFMain::InteractiveIO::StringType::Notification,
+		TFMain::InteractiveIO::WaitType::NoWait,
+		0,
+		std::format(L"[UxThemePatcher] "),
+		std::format(L"Done. \n"),
+		true
+	);
 }
 
-void UxThemePatcher::PrepareUxTheme() try
-{
-	InitUxThemeOffset();
-}
-catch (...)
-{
-	Utils::StartupConsole();
-	wprintf_s(L"exception caught: 0x%x!\n", ResultFromCaughtException());
-	Utils::OutputModuleString(IDS_STRING103);
-
-	LOG_CAUGHT_EXCEPTION();
-	return;
-}
-
-void UxThemePatcher::CalcUxApiAddress() try
+void UxThemePatcher::CalcAPIAddress() try
 {
 	PVOID uxthemeBase{ reinterpret_cast<PVOID>(GetModuleHandleW(L"uxtheme.dll")) };
 	THROW_LAST_ERROR_IF_NULL(uxthemeBase);
@@ -634,7 +676,7 @@ void UxThemePatcher::Startup()
 		return;
 	}
 
-	CalcUxApiAddress();
+	CalcAPIAddress();
 
 	LOG_HR_IF(
 		E_FAIL,

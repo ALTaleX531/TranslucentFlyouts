@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Utils.hpp"
 #include "resource.h"
 #include "SymbolResolver.hpp"
@@ -18,22 +18,33 @@ BOOL CALLBACK SymbolResolver::SymCallback(
 	{
 		if (UserContext)
 		{
+			using TranslucentFlyouts::TFMain::InteractiveIO;
 			auto& symbolResolver{*reinterpret_cast<SymbolResolver*>(UserContext)};
 			auto event{reinterpret_cast<PIMAGEHLP_CBA_EVENTW>(CallbackData)};
 
 			if (wcsstr(event->desc, L"from http://"))
 			{
-				Utils::StartupConsole();
 				symbolResolver.m_printInfo = true;
 			}
 			if (wcsstr(event->desc, L"SYMSRV:  HTTPGET: /download/symbols/index2.txt"))
 			{
-				Utils::StartupConsole();
-				Utils::OutputModuleString(IDS_STRING106);
+				symbolResolver.m_io.OutputString(
+					InteractiveIO::StringType::Notification,
+					InteractiveIO::WaitType::NoWait,
+					IDS_STRING106,
+					std::format(L"[{}] ", symbolResolver.m_sessionName),
+					L"\n"sv
+				);
 			}
 			if (symbolResolver.m_printInfo)
 			{
-				wprintf_s(L"%s", event->desc);
+				symbolResolver.m_io.OutputString(
+					InteractiveIO::StringType::Notification,
+					InteractiveIO::WaitType::NoWait,
+					0,
+					L""sv,
+					std::format(L"{}", event->desc)
+				);
 			}
 			if (wcsstr(event->desc, L"copied"))
 			{
@@ -46,7 +57,7 @@ BOOL CALLBACK SymbolResolver::SymCallback(
 	return FALSE;
 }
 
-SymbolResolver::SymbolResolver()
+SymbolResolver::SymbolResolver(std::wstring_view sessionName, const TFMain::InteractiveIO& io) : m_sessionName{ sessionName }, m_io{io}
 {
 	try
 	{
@@ -98,6 +109,7 @@ HRESULT SymbolResolver::Walk(std::wstring_view dllName, string_view mask, functi
 	
 	if (SymGetSymbolFileW(GetCurrentProcess(), nullptr, filePath, sfPdb, symFile, MAX_PATH, symFile, MAX_PATH) == FALSE)
 	{
+		m_requireInternet = true;
 		DWORD lastError{GetLastError()};
 		THROW_WIN32_IF(lastError, lastError != ERROR_FILE_NOT_FOUND);
 
@@ -127,9 +139,14 @@ HRESULT SymbolResolver::Walk(std::wstring_view dllName, string_view mask, functi
 }
 CATCH_LOG_RETURN_HR(ResultFromCaughtException())
 
-bool SymbolResolver::GetLastSymbolSource()
+bool SymbolResolver::GetSymbolStatus()
 {
 	return m_symbolsOK;
+}
+
+bool SymbolResolver::GetSymbolSource()
+{
+	return m_requireInternet;
 }
 
 BOOL SymbolResolver::EnumSymbolsCallback(PSYMBOL_INFO pSymInfo, ULONG SymbolSize, PVOID UserContext)

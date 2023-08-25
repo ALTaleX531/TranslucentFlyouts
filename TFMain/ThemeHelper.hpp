@@ -235,50 +235,6 @@ namespace TranslucentFlyouts
 			return S_OK;
 		}
 
-		static HBITMAP ConvertTo32BPP(HBITMAP bitmap) try
-		{
-			THROW_HR_IF_NULL(E_INVALIDARG, bitmap);
-			THROW_HR_IF(E_INVALIDARG, GetObjectType(bitmap) != OBJ_BITMAP);
-
-			BITMAPINFO bitmapInfo{sizeof(bitmapInfo.bmiHeader)};
-			auto hdc{wil::GetDC(nullptr)};
-			THROW_LAST_ERROR_IF_NULL(hdc);
-			THROW_LAST_ERROR_IF(GetDIBits(hdc.get(), bitmap, 0, 0, nullptr, &bitmapInfo, DIB_RGB_COLORS) == 0);
-			bitmapInfo.bmiHeader.biCompression = BI_RGB;
-			auto pixelBits{std::make_unique<std::byte[]>(bitmapInfo.bmiHeader.biSizeImage)};
-			THROW_LAST_ERROR_IF(GetDIBits(hdc.get(), bitmap, 0, bitmapInfo.bmiHeader.biHeight, pixelBits.get(), &bitmapInfo, DIB_RGB_COLORS) == 0);
-
-			std::byte* pixelBitsWithAlpha{nullptr};
-			BITMAPINFO bitmapWithAlphaInfo{{sizeof(bitmapInfo.bmiHeader), bitmapInfo.bmiHeader.biWidth, -abs(bitmapInfo.bmiHeader.biHeight), 1, 32, BI_RGB}};
-			wil::unique_hbitmap bitmapWithAlpha{CreateDIBSection(nullptr, &bitmapWithAlphaInfo, DIB_RGB_COLORS, (void**)&pixelBitsWithAlpha, nullptr, 0)};
-			THROW_LAST_ERROR_IF_NULL(bitmapWithAlpha);
-			wil::unique_hdc memoryDC{CreateCompatibleDC(hdc.get())};
-			THROW_LAST_ERROR_IF_NULL(memoryDC);
-
-			size_t bitmapSize{static_cast<size_t>(bitmapInfo.bmiHeader.biWidth) * static_cast<size_t>(bitmapInfo.bmiHeader.biHeight) * 4ull};
-			for (size_t i = 0; i < bitmapSize; i += 4)
-			{
-				pixelBitsWithAlpha[i + 3] = std::byte{255};	//Alpha
-			}
-
-			{
-				auto selectedObject{wil::SelectObject(memoryDC.get(), bitmapWithAlpha.get())};
-				StretchDIBits(
-					memoryDC.get(),
-					0, 0, bitmapInfo.bmiHeader.biWidth, bitmapInfo.bmiHeader.biHeight,
-					0, 0, bitmapInfo.bmiHeader.biWidth, bitmapInfo.bmiHeader.biHeight,
-					pixelBits.get(), &bitmapInfo, DIB_RGB_COLORS, SRCPAINT
-				);
-			}
-
-			return bitmapWithAlpha.release();
-		}
-		catch (...)
-		{
-			LOG_CAUGHT_EXCEPTION();
-			return nullptr;
-		}
-
 		static inline bool IsOemBitmap(HBITMAP bitmap)
 		{
 			bool result{false};

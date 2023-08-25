@@ -11,7 +11,7 @@ Zugehörige Unterpunkte finden Sie unter:
 ## Wert
 Geben Sie ein: <b>DWORD</b>
 > Von [TranslucentFlyouts](..\CONFIG.md) geerbt, verwenden Sie auch den Wert
-<Tabelle>
+<table>
 <tr>
 <th>Name</th>
 <th>Akzeptierte Werte</th>
@@ -90,6 +90,67 @@ Geben Sie ein: <b>DWORD</b>
 </td>
 <td width="30%">
 <dt> Ermöglicht moderne flüssige Popup-Animationen für Popup-Menüs. </dt>
+</td>
+</tr>
+
+<tr>
+<td width="10%">
+<dl>
+<dt><b>NoModernAppBackgroundColor</b></dt>
+<dt>Standard: 0</dt>
+</dl>
+</td>
+<td width="20%">
+<dl>
+<dt>deaktiviert: 0</dt>
+<dt>Aktiviert: 1</dt>
+</dl>
+</td>
+<td width="30%">
+<dt>Entfernen Sie die Hintergrundfarbe von UWP-Symbolen (z. B. Fotos, Paint, Snipping Tools, Store).</dt>
+<br>
+<b>Erfordert v2.0.0</b>
+</td>
+</tr>
+
+<tr>
+<td width="10%">
+<dl>
+<dt><b>ColorTreatAsTransparent</b></dt>
+<dt></dt>
+</dl>
+</td>
+<td width="20%">
+<dl>
+<dt></dt>
+</dl>
+</td>
+<td width="30%">
+<dt>Entfernt bestimmte Hintergrundfarben (0xAARRGGBB) von bestimmten Symbolen, wenn dieses Element vorhanden ist.</dt>
+<dt>Der Entfernungsprozess dehnt sich von den vier Ecken des Symbols zur Mitte hin aus, bis die Entfernung nicht mehr fortgesetzt werden kann.</dt>
+<br>
+<b>Erfordert v2.0.0</b>
+</td>
+</tr>
+
+<tr>
+<td width="10%">
+<dl>
+<dt><b>ColorTreatAsTransparentThreshold</b></dt>
+<dt>Standard: 50</dt>
+</dl>
+</td>
+<td width="20%">
+<dl>
+<dt>0-510</dt>
+</dl>
+</td>
+<td width="30%">
+<dt>Der Schwellenwert für den Farbunterschied zwischen dem Pixel und der Hintergrundfarbe, die entfernt werden soll. Wenn der Farbunterschied zwischen den Pixeln kleiner als dieser Schwellenwert ist, wird das Pixel transparent gemacht.</dt>
+<br>
+<dt>Formeln: √[(a1 - a2) ^ 2 + (r1 - r2) ^ 2 + (g1 - g2) ^ 2 + (b1 - b2) ^ 2]</dt>
+<br>
+<b>Erfordert v2.0.0</b>
 </td>
 </tr>
 

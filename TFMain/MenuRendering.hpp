@@ -6,7 +6,6 @@ namespace TranslucentFlyouts
 	namespace MenuRendering
 	{
 		HRESULT DoCustomThemeRendering(HDC hdc, bool darkMode, int partId, int stateId, const RECT& clipRect, const RECT& paintRect);
-		std::optional<wil::shared_hbitmap> PromiseAlpha(HBITMAP bitmap);
 		HRESULT BltWithAlpha(
 			HDC   hdcDest,
 			int   xDest,

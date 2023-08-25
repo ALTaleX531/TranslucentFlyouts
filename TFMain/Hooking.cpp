@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Utils.hpp"
 #include "Hooking.hpp"
 
@@ -681,7 +681,7 @@ int Hooking::FunctionCallHook::Attach(PVOID functionThunkAddress, PVOID detourAd
 
 void Hooking::FunctionCallHook::Detach()
 {
-	for (const auto [offsetAddress, offset] : m_hookedMap)
+	for (auto [offsetAddress, offset] : m_hookedMap)
 	{
 		WriteMemory(offsetAddress, [&]()
 		{
@@ -692,4 +692,23 @@ void Hooking::FunctionCallHook::Detach()
 	m_current = m_jumpRegion.get();
 	m_end = m_current + m_size;
 	SecureZeroMemory(m_current, m_size);
+}
+
+PVOID Hooking::SearchData(PVOID address, BYTE opCode[], size_t len)
+{
+	if (!address)
+	{
+		return nullptr;
+	}
+
+	auto functionBytes{ reinterpret_cast<std::byte*>(address) };
+	for (int i = 0; i < 65535; i++)
+	{
+		if (!memcmp(&functionBytes[i], opCode, len))
+		{
+			return &functionBytes[i];
+		}
+	}
+
+	return nullptr;
 }

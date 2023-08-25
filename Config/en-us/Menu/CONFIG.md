@@ -96,6 +96,67 @@ Type: **DWORD**
 </td>
 </tr>
 
+<tr>
+<td width="10%">
+<dl>
+<dt><b>NoModernAppBackgroundColor</b></dt>
+<dt>Default Value: 0</dt>
+</dl>
+</td>
+<td width="20%">
+<dl>
+<dt>Disable: 0</dt>
+<dt>Enable: 1</dt>
+</dl>
+</td>
+<td width="30%">
+<dt>Remove the background color of UWP icons (such as Photos, Paint, Snipping Tools, Store).</dt>
+<br>
+<b>Require v2.0.0</b>
+</td>
+</tr>
+
+<tr>
+<td width="10%">
+<dl>
+<dt><b>ColorTreatAsTransparent</b></dt>
+<dt></dt>
+</dl>
+</td>
+<td width="20%">
+<dl>
+<dt></dt>
+</dl>
+</td>
+<td width="30%">
+<dt>Removes specific background colors (0xAARRGGBB) of certain icons when this item exists.</dt>
+<dt>The removal process expands from the four corners of the icon towards the center until the removal cannot be continued.</dt>
+<br>
+<b>Require v2.0.0</b>
+</td>
+</tr>
+
+<tr>
+<td width="10%">
+<dl>
+<dt><b>ColorTreatAsTransparentThreshold</b></dt>
+<dt>Default Value: 50</dt>
+</dl>
+</td>
+<td width="20%">
+<dl>
+<dt>0-510</dt>
+</dl>
+</td>
+<td width="30%">
+<dt>The color difference threshold between the pixel and the background color to be removed. When the color difference between pixels is less than this color difference threshold, the pixel will be made transparent.</dt>
+<br>
+<dt>Equation: √[(a1 - a2) ^ 2 + (r1 - r2) ^ 2 + (g1 - g2) ^ 2 + (b1 - b2) ^ 2]</dt>
+<br>
+<b>Require v2.0.0</b>
+</td>
+</tr>
+
 </table>
 
 ## Reading Order

@@ -1,5 +1,4 @@
-#include "pch.h"
-#include "resource.h"
+﻿#include "pch.h"
 #include "Utils.hpp"
 #include "TFMain.hpp"
 #include "UxThemePatcher.hpp"
@@ -9,50 +8,40 @@ using namespace TranslucentFlyouts;
 
 namespace MainDLL
 {
-	// TranslucentFlyouts won't be loaded into one of these process
-	// These processes are quite annoying because TranslucentFlyouts will not be automatically unloaded by them
-	// Some of them even have no chance to show flyouts and other UI elements
-	const array g_blockList
+	struct ServiceInfo
 	{
-		L"sihost.exe"sv,
-		L"WSHost.exe"sv,
-		L"spoolsv.exe"sv,
-		L"dllhost.exe"sv,
-		L"svchost.exe"sv,
-		L"searchhost.exe"sv,
-		L"taskhostw.exe"sv,
-		L"searchhost.exe"sv,
-		L"RuntimeBroker.exe"sv,
-		L"smartscreen.exe"sv,
-		L"Widgets.exe"sv,
-		L"WidgetService.exe"sv,
-		L"GameBar.exe"sv,
-		L"GameBarFTServer.exe"sv,
-		L"ShellExperienceHost.exe"sv,
-		L"StartMenuExperienceHost.exe"sv,
-		L"msedgewebview2.exe"sv,
-		L"Microsoft.SharePoint.exe"sv
+		HWND hostWindow{ nullptr };
+		HWINEVENTHOOK hook{ nullptr };
 	};
+	using unique_service_info = unique_ptr < ServiceInfo, decltype([](ServiceInfo* ptr)
+	{
+		if (ptr)
+		{
+			UnmapViewOfFile(ptr);
+		}
+	}) > ;
 
-#pragma data_seg(".shared")
-	HWND g_serviceWindow{ nullptr };
-	HWINEVENTHOOK g_hHook{ nullptr };
-#pragma data_seg()
-#pragma comment(linker,"/SECTION:.shared,RWS")
+#ifdef _WIN64
+	static const wstring_view fileMappingName {L"Local\\TranslucentFlyouts"sv};
+#else
+	static const wstring_view fileMappingName { L"Local\\TranslucentFlyouts(x86)"sv };
+#endif
+
 	static const UINT WM_TFSTOP{ RegisterWindowMessageW(L"TranslucentFlyouts.Stop") };
 
 	// Installer.
-	HRESULT WINAPI Install();
-	HRESULT WINAPI Uninstall();
+	HRESULT Install();
+	HRESULT Uninstall();
 	// Global hook.
 	HRESULT InstallHook();
 	HRESULT UninstallHook();
-
-	bool IsCurrentProcessInBlockList();
-	inline bool IsHookGlobalInstalled();
 	// Host.
-	HRESULT WINAPI StopService();
-	HRESULT WINAPI StartService();
+	HRESULT StopService();
+	HRESULT StartService();
+
+	inline bool IsCurrentProcessInBlockList();
+	inline bool IsServiceRunning();
+	inline unique_service_info GetServiceInfo();
 }
 
 BOOL APIENTRY DllMain(
@@ -154,14 +143,15 @@ int WINAPI Main(
 	{
 		hr = []()
 		{
-			if (MainDLL::g_serviceWindow)
+			if (MainDLL::IsServiceRunning())
 			{
 				RETURN_IF_FAILED(MainDLL::StopService());
 			}
 			RETURN_IF_FAILED(MainDLL::Uninstall());
 
 			return S_OK;
-		}();
+		}
+		();
 
 		ShellMessageBoxW(
 			hInstance,
@@ -204,6 +194,14 @@ int WINAPI Main(
 
 HRESULT WINAPI MainDLL::StartService()
 {
+	wil::unique_handle fileMapping{ nullptr };
+	unique_service_info serviceInfo{nullptr};
+
+	RETURN_HR_IF(HRESULT_FROM_WIN32(ERROR_SERVICE_ALREADY_RUNNING), IsServiceRunning());
+	fileMapping.reset(CreateFileMappingW(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, sizeof(ServiceInfo), fileMappingName.data()));
+	RETURN_LAST_ERROR_IF_NULL(fileMapping);
+	serviceInfo.reset(reinterpret_cast<ServiceInfo*>(MapViewOfFile(fileMapping.get(), FILE_MAP_ALL_ACCESS, 0, 0, 0)));
+	RETURN_LAST_ERROR_IF_NULL(serviceInfo);
 	RETURN_IF_FAILED(MainDLL::InstallHook());
 
 #ifdef _DEBUG
@@ -221,16 +219,16 @@ HRESULT WINAPI MainDLL::StartService()
 		Utils::ShutdownConsole();
 	}
 #else
-	g_serviceWindow = CreateWindowExW(
-						  WS_EX_NOREDIRECTIONBITMAP | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW,
-						  L"Static",
-						  nullptr,
-						  WS_POPUP,
-						  0, 0, 0, 0,
-						  nullptr, nullptr, HINST_THISCOMPONENT, nullptr
-					  );
-	RETURN_LAST_ERROR_IF_NULL(g_serviceWindow);
-	RETURN_IF_WIN32_BOOL_FALSE(ChangeWindowMessageFilterEx(g_serviceWindow, WM_TFSTOP, MSGFLT_ALLOW, nullptr));
+	serviceInfo->hostWindow = CreateWindowExW(
+								  WS_EX_NOREDIRECTIONBITMAP | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW,
+								  L"Static",
+								  nullptr,
+								  WS_POPUP,
+								  0, 0, 0, 0,
+								  nullptr, nullptr, HINST_THISCOMPONENT, nullptr
+							  );
+	RETURN_LAST_ERROR_IF_NULL(serviceInfo->hostWindow);
+	RETURN_IF_WIN32_BOOL_FALSE(ChangeWindowMessageFilterEx(serviceInfo->hostWindow, WM_TFSTOP, MSGFLT_ALLOW, nullptr));
 
 	auto callback = [](HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData) -> LRESULT
 	{
@@ -244,7 +242,7 @@ HRESULT WINAPI MainDLL::StartService()
 		}
 		return DefSubclassProc(hWnd, uMsg, wParam, lParam);
 	};
-	RETURN_IF_WIN32_BOOL_FALSE(SetWindowSubclass(g_serviceWindow, callback, 0, 0));
+	RETURN_HR_IF(E_FAIL, !SetWindowSubclass(serviceInfo->hostWindow, callback, 0, 0));
 	RETURN_IF_WIN32_BOOL_FALSE(SetProcessShutdownParameters(0, 0));
 
 	MSG msg{};
@@ -254,42 +252,40 @@ HRESULT WINAPI MainDLL::StartService()
 	}
 #endif // _DEBUG
 
-	g_serviceWindow = nullptr;
+	serviceInfo->hostWindow = nullptr;
 
 	return MainDLL::UninstallHook();
 }
 
 HRESULT MainDLL::InstallHook()
 {
-	RETURN_HR_IF(HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS), IsHookGlobalInstalled());
+	RETURN_HR_IF(HRESULT_FROM_WIN32(ERROR_SERVICE_NOT_ACTIVE), !IsServiceRunning());
+	auto serviceInfo{ GetServiceInfo() };
+	RETURN_LAST_ERROR_IF_NULL(serviceInfo);
+	RETURN_HR_IF(HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS), serviceInfo->hook != nullptr);
 
-	UxThemePatcher::PrepareUxTheme();
-	{
-		if (GetConsoleWindow())
-		{
-			Utils::OutputModuleString(IDS_STRING104);
-			system("pause>nul");
+	TFMain::Prepare();
 
-			Utils::ShutdownConsole();
-		}
-	}
-	g_hHook = SetWinEventHook(
-		EVENT_MIN, EVENT_MAX,
-		HINST_THISCOMPONENT,
-		TFMain::HandleWinEvent,
-		0, 0,
-		WINEVENT_INCONTEXT
-	);
-	RETURN_LAST_ERROR_IF_NULL(g_hHook);
+	serviceInfo->hook = SetWinEventHook(
+							EVENT_MIN, EVENT_MAX,
+							HINST_THISCOMPONENT,
+							TFMain::HandleWinEvent,
+							0, 0,
+							WINEVENT_INCONTEXT
+						);
+	RETURN_LAST_ERROR_IF_NULL(serviceInfo->hook);
 
 	return S_OK;
 }
 
 HRESULT MainDLL::UninstallHook()
 {
-	RETURN_HR_IF(HRESULT_FROM_WIN32(ERROR_HOOK_NOT_INSTALLED), !IsHookGlobalInstalled());
-	RETURN_IF_WIN32_BOOL_FALSE(UnhookWinEvent(g_hHook));
-	g_hHook = nullptr;
+	RETURN_HR_IF(HRESULT_FROM_WIN32(ERROR_SERVICE_NOT_ACTIVE), !IsServiceRunning());
+	auto serviceInfo{ GetServiceInfo() };
+	RETURN_LAST_ERROR_IF_NULL(serviceInfo);
+	RETURN_HR_IF_NULL(HRESULT_FROM_WIN32(ERROR_HOOK_NOT_INSTALLED), serviceInfo->hook);
+	RETURN_IF_WIN32_BOOL_FALSE(UnhookWinEvent(serviceInfo->hook));
+	serviceInfo->hook = nullptr;
 
 	BroadcastSystemMessageW(
 		BSF_FORCEIFHUNG | BSF_FLUSHDISK | BSF_POSTMESSAGE,
@@ -304,36 +300,75 @@ HRESULT MainDLL::UninstallHook()
 
 bool MainDLL::IsCurrentProcessInBlockList()
 {
-	for (auto processName : g_blockList)
+	// TranslucentFlyouts won't be loaded into one of these process
+	// These processes are quite annoying because TranslucentFlyouts will not be automatically unloaded by them
+	// Some of them even have no chance to show flyouts and other UI elements
+	static const array blockList
 	{
-		if (GetModuleHandleW(processName.data()))
+		L"sihost.exe"sv,
+		L"WSHost.exe"sv,
+		L"spoolsv.exe"sv,
+		L"dllhost.exe"sv,
+		L"svchost.exe"sv,
+		L"taskhostw.exe"sv,
+		L"searchhost.exe"sv,
+		L"backgroundTaskHost.exe"sv,
+		L"RuntimeBroker.exe"sv,
+		L"smartscreen.exe"sv,
+		L"Widgets.exe"sv,
+		L"WidgetService.exe"sv,
+		L"GameBar.exe"sv,
+		L"GameBarFTServer.exe"sv,
+		L"ShellExperienceHost.exe"sv,
+		L"StartMenuExperienceHost.exe"sv,
+		L"WindowsPackageManagerServer.exe"sv,
+		L"msedgewebview2.exe"sv,
+		L"Microsoft.SharePoint.exe"sv
+	};
+	auto is_in_list = [](const auto list)
+	{
+		for (auto item : list)
 		{
-			return true;
+			if (GetModuleHandleW(item.data()))
+			{
+				return true;
+			}
 		}
-	}
 
-	return false;
+		return false;
+	};
+
+	return is_in_list(blockList);
 }
 
-bool MainDLL::IsHookGlobalInstalled()
+bool MainDLL::IsServiceRunning()
 {
-	return g_hHook != nullptr;
+	return wil::unique_handle{ OpenFileMappingW(FILE_MAP_ALL_ACCESS, FALSE, fileMappingName.data()) }.get() != nullptr;
+}
+
+MainDLL::unique_service_info MainDLL::GetServiceInfo()
+{
+	wil::unique_handle fileMapping{ OpenFileMappingW(FILE_MAP_ALL_ACCESS, FALSE, fileMappingName.data()) };
+	return unique_service_info{ reinterpret_cast<ServiceInfo*>(MapViewOfFile(fileMapping.get(), FILE_MAP_ALL_ACCESS, 0, 0, 0)) };
 }
 
 HRESULT WINAPI MainDLL::StopService()
 {
-	RETURN_HR_IF_EXPECTED(HRESULT_FROM_WIN32(ERROR_SERVICE_NOT_ACTIVE), !g_serviceWindow);
-	RETURN_HR_IF(HRESULT_FROM_WIN32(ERROR_INVALID_WINDOW_HANDLE), !IsWindow(g_serviceWindow));
-	RETURN_LAST_ERROR_IF(!SendNotifyMessageW(g_serviceWindow, WM_TFSTOP, 0, 0));
+	RETURN_HR_IF(HRESULT_FROM_WIN32(ERROR_SERVICE_NOT_ACTIVE), !IsServiceRunning());
+	auto serviceInfo{ GetServiceInfo() };
+	RETURN_LAST_ERROR_IF_NULL(serviceInfo);
+	RETURN_HR_IF_NULL(HRESULT_FROM_WIN32(ERROR_SERVICE_START_HANG), serviceInfo->hostWindow);
+	RETURN_HR_IF(HRESULT_FROM_WIN32(ERROR_INVALID_WINDOW_HANDLE), !IsWindow(serviceInfo->hostWindow));
+	RETURN_LAST_ERROR_IF(!SendNotifyMessageW(serviceInfo->hostWindow, WM_TFSTOP, 0, 0));
 
 	UINT frameCount{0};
 	constexpr UINT maxWaitFrameCount{1500};
-	while (g_serviceWindow && frameCount < maxWaitFrameCount)
+	while (serviceInfo->hostWindow && frameCount < maxWaitFrameCount)
 	{
 		DwmFlush();
 		if ((++frameCount) == maxWaitFrameCount)
 		{
-			RETURN_HR(HRESULT_FROM_WIN32(ERROR_TIMEOUT));
+			RETURN_HR(HRESULT_FROM_WIN32(ERROR_SERVICE_REQUEST_TIMEOUT));
 		}
 	}
 
@@ -362,7 +397,7 @@ HRESULT WINAPI MainDLL::Install() try
 		com_ptr<IRegistrationInfo> regInfo{nullptr};
 		THROW_IF_FAILED(taskDefinition->get_RegistrationInfo(&regInfo));
 		THROW_IF_FAILED(regInfo->put_Author(const_cast<BSTR>(L"ALTaleX")));
-		THROW_IF_FAILED(regInfo->put_Description(const_cast<BSTR>(L"This task ensures most of the flyout translucent all the time.")));
+		THROW_IF_FAILED(regInfo->put_Description(const_cast<BSTR>(L"This task provide translucent support for specific flyouts.")));
 
 		{
 			com_ptr<IPrincipal> principal{nullptr};
@@ -398,19 +433,12 @@ HRESULT WINAPI MainDLL::Install() try
 			WCHAR modulePath[MAX_PATH + 1] {};
 			RETURN_LAST_ERROR_IF(!GetModuleFileName(HINST_THISCOMPONENT, modulePath, MAX_PATH));
 
-#ifdef _WIN64
 			THROW_IF_FAILED(
 				execAction->put_Path(
-					const_cast<BSTR>(L"C:\\Windows\\System32\\Rundll32.exe")
+					const_cast<BSTR>(L"Rundll32")
 				)
 			);
-#else
-			THROW_IF_FAILED(
-				execAction->put_Path(
-					const_cast<BSTR>(L"C:\\Windows\\SysWOW64\\Rundll32.exe")
-				)
-			);
-#endif
+
 			THROW_IF_FAILED(
 				execAction->put_Arguments(
 					const_cast<BSTR>(
