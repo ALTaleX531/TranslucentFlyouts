@@ -602,6 +602,7 @@ void UxThemePatcher::Prepare(const TFMain::InteractiveIO& io)
 					std::format(L"[UxThemePatcher] "),
 					L"\n"sv
 				);
+				break;
 			}
 			else
 			{

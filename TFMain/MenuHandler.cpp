@@ -1117,7 +1117,7 @@ void MenuHandler::Prepare(const TFMain::InteractiveIO& io)
 			{
 				g_GetBackgroundColorForAppUserModelId_Offset = functionOffset;
 			}
-			if (!strcmp(fullyUnDecoratedFunctionName, "CreateStoreIcon"))
+			if (!strcmp(fullyUnDecoratedFunctionName, "CreateStoreIcon") || !strcmp(fullyUnDecoratedFunctionName, "_CreateStoreIcon@12"))
 			{
 				g_CreateStoreIcon_Offset = functionOffset;
 			}
@@ -1164,6 +1164,7 @@ void MenuHandler::Prepare(const TFMain::InteractiveIO& io)
 					std::format(L"[MenuHandler] "),
 					L"\n"sv
 				);
+				break;
 			}
 			else
 			{
