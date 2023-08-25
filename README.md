@@ -46,10 +46,8 @@ Windows 11
 <details><summary><b>Fluent Animations</b></summary>
 
 ![Sample 1](./Images/FluentAnimations/Sample1.gif)   
-[Download Preset](./Preset/Sample1.reg)   
 
 ![Sample 2](./Images/FluentAnimations/Sample2.gif)   
-[Download Preset](./Preset/Sample2.reg)   
 
 </details>
 
@@ -59,15 +57,13 @@ Windows 11
 1. Download the compiled program archive from the [Release](https://github.com/ALTaleX531/TranslucentFlyouts/releases/latest) page.
 2. Unzip it to a location such as "`C:\Program Files`".
 3. Run "`install.cmd`" as administrator.
-4. Logoff to take effect.  
 
 > [Note!]:   
 > **Downloading symbol files from Microsoft server is required at the first time or after a windows update, otherwise some functionalities will be unavailable!**  
 
 ### Uninstall
 1. Run "`uninstall.cmd`" as administrator.
-2. Logoff to take effect.  
-3. Delete the remaining files.
+2. Delete the remaining files. (It is recommended to logoff before doing it)
 
 ## Limitations and Compatibility
 ### Here are some situations that TranslucentFlyouts will always be automatically disabled.

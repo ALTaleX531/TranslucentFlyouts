@@ -54,10 +54,8 @@ Windows 11
 <details><summary><b>流利的动画</b></summary>
 
 ![Sample 1](../Images/FluentAnimations/Sample1.gif)   
-[下载预设](../Preset/Sample1.reg)   
 
 ![Sample 2](../Images/FluentAnimations/Sample2.gif)   
-[下载预设](../Preset/Sample2.reg)   
 
 </details>
 
@@ -70,7 +68,6 @@ Windows 11
 1. 从[Release](https://github.com/ALTaleX531/TranslucentFlyouts/releases/latest)下载已经编译和打包好的程序文件
 2. 解压到一个安全的地方比如"`C:\Program Files`"
 3. 以管理员身份运行"`install.cmd`"
-4. 注销以应用更改
 
 > 注意:   
 > **第一次使用时或系统大版本更新后，TranslucentFlyouts需要从微软服务器下载符号文件，否则一些功能将不可用！**  
@@ -78,8 +75,7 @@ Windows 11
 ### 卸载
 
 1. 以管理员身份运行"`uninstall.cmd`"
-2. 注销以应用更改
-3. 手动删除剩下的文件
+3. 手动删除剩下的文件（建议先注销一次）
 
 ## Limitations and Compatibility
 
