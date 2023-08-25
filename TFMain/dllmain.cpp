@@ -192,7 +192,7 @@ int WINAPI Main(
 	return HRESULT_FROM_WIN32(ERROR_BAD_COMMAND);
 }
 
-HRESULT WINAPI MainDLL::StartService()
+HRESULT MainDLL::StartService()
 {
 	wil::unique_handle fileMapping{ nullptr };
 	unique_service_info serviceInfo{nullptr};
@@ -352,7 +352,7 @@ MainDLL::unique_service_info MainDLL::GetServiceInfo()
 	return unique_service_info{ reinterpret_cast<ServiceInfo*>(MapViewOfFile(fileMapping.get(), FILE_MAP_ALL_ACCESS, 0, 0, 0)) };
 }
 
-HRESULT WINAPI MainDLL::StopService()
+HRESULT MainDLL::StopService()
 {
 	RETURN_HR_IF(HRESULT_FROM_WIN32(ERROR_SERVICE_NOT_ACTIVE), !IsServiceRunning());
 	auto serviceInfo{ GetServiceInfo() };
@@ -375,7 +375,7 @@ HRESULT WINAPI MainDLL::StopService()
 	return S_OK;
 }
 
-HRESULT WINAPI MainDLL::Install() try
+HRESULT MainDLL::Install() try
 {
 	using namespace wil;
 	using namespace TranslucentFlyouts;
@@ -481,7 +481,7 @@ HRESULT WINAPI MainDLL::Install() try
 }
 CATCH_LOG_RETURN_HR(wil::ResultFromCaughtException())
 
-HRESULT WINAPI MainDLL::Uninstall() try
+HRESULT MainDLL::Uninstall() try
 {
 	using namespace wil;
 	using namespace TranslucentFlyouts;
