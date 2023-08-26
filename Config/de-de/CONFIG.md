@@ -7,7 +7,8 @@ Deshalb rufen wir alle dazu auf, dieses Dokument gemeinsam zu verbessern, und je
 ## Guide
 Zielversion:
 - V2.0.0-alpha.4
-- V2.0.0
+- V2.0.x
+- V2.1.0
 > Notiz:   
 > Frühere Versionen werden nicht unterstützt und der auf dieser Seite und den Unterseiten angezeigte Inhalt ist für neuere Versionen möglicherweise veraltet.  
 
