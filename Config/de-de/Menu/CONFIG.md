@@ -97,7 +97,7 @@ Geben Sie ein: <b>DWORD</b>
 <td width="10%">
 <dl>
 <dt><b>NoModernAppBackgroundColor</b></dt>
-<dt>Standard: 0</dt>
+<dt>Standard: 1</dt>
 </dl>
 </td>
 <td width="20%">

@@ -48,6 +48,8 @@ namespace TranslucentFlyouts
 		void AddCallback(Callback callback);
 		void DeleteCallback(Callback callback);
 
+		bool IsStartAllBackActivated();
+
 		void Startup();
 		void Shutdown();
 

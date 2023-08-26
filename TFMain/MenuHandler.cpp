@@ -107,7 +107,7 @@ namespace TranslucentFlyouts::MenuHandler
 	list<HWND> g_hookedWindowList{};
 	list<HWND> g_menuList{};
 
-	HRESULT WINAPI GetBackgroundColorForAppUserModelId(PCWSTR pszItem, COLORREF* color);
+	HRESULT __fastcall GetBackgroundColorForAppUserModelId(PCWSTR pszItem, COLORREF* color);
 
 	void CalcAPIAddress();
 	bool IsAPIOffsetReady();
@@ -115,6 +115,7 @@ namespace TranslucentFlyouts::MenuHandler
 #pragma data_seg(".shared")
 	static DWORD64 g_GetBackgroundColorForAppUserModelId_Offset { 0 };
 	static DWORD64 g_CreateStoreIcon_Offset{0};
+	static DWORD64 g_CreateStoreIconFlagsDataOffset{ 0 };
 #pragma data_seg()
 #pragma comment(linker,"/SECTION:.shared,RWS")
 	PVOID g_actualGetBackgroundColorForAppUserModelId { nullptr };
@@ -123,11 +124,54 @@ namespace TranslucentFlyouts::MenuHandler
 	namespace
 	{
 		PVOID g_flagsDataAddress{nullptr};
-		BYTE g_oldData[] {0x04, 0x00, 0x00, 0x20};
+#ifdef _WIN64
+		BYTE g_oldData[]
+		{ 
+			0x41, 0xB8,							// mov r8d, 20000004h
+			0x04, 0x00, 0x00, 0x20,
+			0x48, 0x8B, 0xD7					// mov rdx, rdi
+		};
+		constexpr DWORD64 g_oldDataOffset{ 2 };
+#else
+		BYTE g_oldData[]
+		{ 
+			0x68,								// push 20000004h
+			0x04, 0x00, 0x00, 0x20,	
+			0xFF, 0X75, 0x0C					// push dword ptr [ebp+0Ch]
+		};
+		constexpr DWORD64 g_oldDataOffset{ 1 };
+#endif // _WIN64
+		
+		void RefreshModernAppIcon()
+		{
+			if (g_flagsDataAddress)
+			{
+				if (RegHelper::GetDword(L"Menu"sv, L"NoModernAppBackgroundColor", 1, false))
+				{
+					Hooking::WriteMemory(g_flagsDataAddress, [&]()
+					{
+						DWORD flags{ SIIGBF_RESIZETOFIT };
+						memcpy_s(g_flagsDataAddress, sizeof(flags), &flags, sizeof(flags));
+					});
+				}
+				else
+				{
+					Hooking::WriteMemory(g_flagsDataAddress, [&]()
+					{
+						DWORD flags{ 0x20'00'00'04 };
+						memcpy_s(g_flagsDataAddress, sizeof(flags), &flags, sizeof(flags));
+					});
+				}
+
+				FlushInstructionCache(GetCurrentProcess(), g_flagsDataAddress, sizeof(DWORD));
+			}
+		}
 	}
 
+	once_flag run_once{};
 	bool g_startup{ false };
 	bool g_hooked{ false };
+	bool g_disableOnce{false};
 
 	void WinEventCallback(HWND hWnd, DWORD event);
 	// In certain situations, using SetWindowSubclass can't receive WM_DRAWITEM (eg. Windows 11 Taskmgr),
@@ -730,6 +774,7 @@ LRESULT CALLBACK MenuHandler::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, 
 
 			DetachPopupMenuOwner(hWnd);
 			DetachPopupMenu(hWnd);
+			RefreshModernAppIcon();
 		}
 	}
 
@@ -954,11 +999,15 @@ void MenuHandler::WinEventCallback(HWND hWnd, DWORD event)
 	}
 }
 
-HRESULT WINAPI MenuHandler::GetBackgroundColorForAppUserModelId(PCWSTR pszItem, COLORREF* color)
+HRESULT __fastcall MenuHandler::GetBackgroundColorForAppUserModelId(PCWSTR pszItem, COLORREF* color)
 {
 	if (RegHelper::GetDword(L"Menu"sv, L"NoModernAppBackgroundColor", 1, false))
 	{
-		return E_NOTIMPL;
+		if (color)
+		{
+			*color = 0;
+		}
+		return E_NOT_SET;
 	}
 	return (reinterpret_cast<decltype(GetBackgroundColorForAppUserModelId)*>(g_actualGetBackgroundColorForAppUserModelId))(
 			   pszItem, color
@@ -967,11 +1016,22 @@ HRESULT WINAPI MenuHandler::GetBackgroundColorForAppUserModelId(PCWSTR pszItem, 
 
 void MenuHandler::Startup()
 {
+	call_once(run_once, CalcAPIAddress);
+
 	if (g_startup)
 	{
 		return;
 	}
-	CalcAPIAddress();
+
+	if (TFMain::IsStartAllBackActivated())
+	{
+		g_disableOnce = true;
+	}
+
+	if (g_disableOnce)
+	{
+		return;
+	}
 
 	Hooking::MsgHooks::GetInstance().AddCallback(MenuOwnerMsgCallback);
 	Hooking::MsgHooks::GetInstance().AddCallback(ListviewpopupMsgCallback);
@@ -980,23 +1040,12 @@ void MenuHandler::Startup()
 
 	g_startup = true;
 
-	if (RegHelper::GetDword(L"Menu"sv, L"NoModernAppBackgroundColor", 1, false))
-	{
-		g_flagsDataAddress = Hooking::SearchData(g_actualCreateStoreIcon, g_oldData, sizeof(g_oldData));
-		if (g_flagsDataAddress)
-		{
-			Hooking::WriteMemory(g_flagsDataAddress, [&]()
-			{
-				DWORD flags{ SIIGBF_RESIZETOFIT };
-				memcpy_s(g_flagsDataAddress, sizeof(flags), &flags, sizeof(flags));
-			});
-		}
-	}
-
 	if (g_hooked)
 	{
 		return;
 	}
+
+	RefreshModernAppIcon();
 
 	HRESULT hr
 	{
@@ -1015,6 +1064,11 @@ void MenuHandler::Startup()
 void MenuHandler::Shutdown()
 {
 	if (!g_startup)
+	{
+		return;
+	}
+
+	if (g_disableOnce)
 	{
 		return;
 	}
@@ -1052,7 +1106,8 @@ void MenuHandler::Shutdown()
 	{
 		Hooking::WriteMemory(g_flagsDataAddress, [&]()
 		{
-			memcpy_s(g_flagsDataAddress, sizeof(g_oldData), g_oldData, sizeof(g_oldData));
+			DWORD flags{ 0x20'00'00'04 };
+			memcpy_s(g_flagsDataAddress, sizeof(flags), &flags, sizeof(flags));
 		});
 	}
 
@@ -1080,7 +1135,8 @@ bool MenuHandler::IsAPIOffsetReady()
 {
 	if (
 		g_GetBackgroundColorForAppUserModelId_Offset &&
-		g_CreateStoreIcon_Offset
+		g_CreateStoreIcon_Offset &&
+		g_CreateStoreIconFlagsDataOffset
 	)
 	{
 		return true;
@@ -1091,8 +1147,15 @@ bool MenuHandler::IsAPIOffsetReady()
 void MenuHandler::Prepare(const TFMain::InteractiveIO& io)
 {
 	using TFMain::InteractiveIO;
-	// TO-DO
-	// Cache the offset information into the registry so that we don't need to calculate them every time
+
+	auto currentVersion{ Utils::GetVersion(unique_hmodule{LoadLibraryW(L"shell32.dll")}.get()) };
+	auto savedVersion{ RegHelper::_TryGetString(L"ShellVersion"sv) };
+	if (savedVersion && savedVersion.value() == currentVersion)
+	{
+		g_CreateStoreIcon_Offset = RegHelper::_GetQword(L"CreateStoreIcon_Offset", 0);
+		g_CreateStoreIconFlagsDataOffset = RegHelper::_GetQword(L"CreateStoreIconFlagsData_Offset", 0);
+		g_GetBackgroundColorForAppUserModelId_Offset = RegHelper::_GetQword(L"GetBackgroundColorForAppUserModelId_Offset", 0);
+	}
 
 	while (!IsAPIOffsetReady())
 	{
@@ -1120,6 +1183,14 @@ void MenuHandler::Prepare(const TFMain::InteractiveIO& io)
 			if (!strcmp(fullyUnDecoratedFunctionName, "CreateStoreIcon") || !strcmp(fullyUnDecoratedFunctionName, "_CreateStoreIcon@12"))
 			{
 				g_CreateStoreIcon_Offset = functionOffset;
+
+				unique_hmodule shell32Base{LoadLibraryW(L"Shell32.dll")};
+				
+				auto actualCreateStoreIcon{reinterpret_cast<PVOID>(reinterpret_cast<DWORD64>(shell32Base.get()) + g_CreateStoreIcon_Offset)};
+				g_CreateStoreIconFlagsDataOffset =
+					reinterpret_cast<DWORD64>(&reinterpret_cast<BYTE*>(Hooking::SearchData(actualCreateStoreIcon, g_oldData, sizeof(g_oldData)))[g_oldDataOffset]) -
+					reinterpret_cast<DWORD64>(shell32Base.get())
+					;
 			}
 
 			if (IsAPIOffsetReady())
@@ -1199,12 +1270,30 @@ void MenuHandler::Prepare(const TFMain::InteractiveIO& io)
 		}
 	}
 
+	if (IsAPIOffsetReady())
+	{
+		io.OutputString(
+			TFMain::InteractiveIO::StringType::Notification,
+			TFMain::InteractiveIO::WaitType::NoWait,
+			IDS_STRING108,
+			std::format(L"[MenuHandler] "),
+			std::format(L" ({})\n", currentVersion),
+			true
+		);
+		RegHelper::_SetString(L"ShellVersion"sv, currentVersion);
+		RegHelper::_SetQword(L"CreateStoreIcon_Offset"sv, g_CreateStoreIcon_Offset);
+		RegHelper::_SetQword(L"CreateStoreIconFlagsData_Offset"sv, g_CreateStoreIconFlagsDataOffset);
+		RegHelper::_SetQword(L"GetBackgroundColorForAppUserModelId_Offset"sv, g_GetBackgroundColorForAppUserModelId_Offset);
+	}
+
+	filesystem::remove_all(Utils::make_current_folder_file_str(L"symbols"));
+
 	io.OutputString(
 		TFMain::InteractiveIO::StringType::Notification,
 		TFMain::InteractiveIO::WaitType::NoWait,
 		0,
 		std::format(L"[MenuHandler] "),
-		std::format(L"Done. \n"),
+		std::format(L"Over. \n"),
 		true
 	);
 }
@@ -1218,5 +1307,9 @@ void MenuHandler::CalcAPIAddress() try
 		g_actualGetBackgroundColorForAppUserModelId = reinterpret_cast<decltype(g_actualGetBackgroundColorForAppUserModelId)>(reinterpret_cast<DWORD64>(shell32Base) + g_GetBackgroundColorForAppUserModelId_Offset);
 	if (g_CreateStoreIcon_Offset)
 		g_actualCreateStoreIcon = reinterpret_cast<decltype(g_actualCreateStoreIcon)>(reinterpret_cast<DWORD64>(shell32Base) + g_CreateStoreIcon_Offset);
+	if (g_CreateStoreIconFlagsDataOffset)
+	{
+		g_flagsDataAddress = reinterpret_cast<PVOID>(reinterpret_cast<DWORD64>(GetModuleHandleW(L"Shell32.dll")) + g_CreateStoreIconFlagsDataOffset);
+	}
 }
 CATCH_LOG_RETURN()

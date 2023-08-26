@@ -1,6 +1,12 @@
 ﻿#include "pch.h"
+#include "resource.h"
 #include "Utils.hpp"
 #include "TFMain.hpp"
+#include "MenuHandler.hpp"
+#include "SharedUxTheme.hpp"
+#include "ToolTipHandler.hpp"
+#include "UxThemePatcher.hpp"
+#include "ImmersiveContextMenuPatcher.hpp"
 #include "UxThemePatcher.hpp"
 
 using namespace std;
@@ -63,6 +69,10 @@ BOOL APIENTRY DllMain(
 			{
 				bResult = FALSE;
 			}
+			else if(MainDLL::IsServiceRunning())
+			{
+				TFMain::Startup();
+			}
 			break;
 		}
 
@@ -93,6 +103,7 @@ int WINAPI Main(
 	{
 		SetThreadUILanguage(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US));
 	}
+	RETURN_IF_WIN32_BOOL_FALSE(SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2));
 
 	HRESULT hr{S_OK};
 
@@ -205,8 +216,15 @@ HRESULT MainDLL::StartService()
 	RETURN_IF_FAILED(MainDLL::InstallHook());
 
 #ifdef _DEBUG
-	Utils::StartupConsole();
 	{
+		TFMain::InteractiveIO io{};
+		io.OutputString(
+			TFMain::InteractiveIO::StringType::Notification, 
+			TFMain::InteractiveIO::WaitType::NoWait,
+			0,
+			L""sv,
+			L""sv
+		);
 		printf("Input 'Q' or 'q' to exit...\n");
 
 		char input{};
@@ -215,8 +233,6 @@ HRESULT MainDLL::StartService()
 			input = getchar();
 		}
 		while (input != 'q' && input != 'Q');
-
-		Utils::ShutdownConsole();
 	}
 #else
 	serviceInfo->hostWindow = CreateWindowExW(
@@ -323,7 +339,8 @@ bool MainDLL::IsCurrentProcessInBlockList()
 		L"StartMenuExperienceHost.exe"sv,
 		L"WindowsPackageManagerServer.exe"sv,
 		L"msedgewebview2.exe"sv,
-		L"Microsoft.SharePoint.exe"sv
+		L"Microsoft.SharePoint.exe"sv,
+		L"PerfWatson2.exe"sv
 	};
 	auto is_in_list = [](const auto list)
 	{
@@ -510,6 +527,41 @@ HRESULT MainDLL::Uninstall() try
 				name, 0
 			)
 		);
+	}
+
+	WCHAR msg[MAX_PATH];
+	THROW_LAST_ERROR_IF(!LoadStringW(HINST_THISCOMPONENT, IDS_STRING105, msg, MAX_PATH));
+	if (
+		ShellMessageBoxW(
+			HINST_THISCOMPONENT,
+			nullptr,
+			msg,
+			nullptr,
+			MB_ICONINFORMATION | MB_YESNO
+		) == IDYES
+	)
+	{
+		SHDeleteKeyW(
+			HKEY_LOCAL_MACHINE, L"SOFTWARE\\TranslucentFlyouts"
+		);
+		SHDeleteKeyW(
+			HKEY_CURRENT_USER, L"SOFTWARE\\TranslucentFlyouts"
+		);
+#ifdef _WIN64
+		SHDeleteKeyW(
+			HKEY_CURRENT_USER, L"SOFTWARE\\TranslucentFlyouts_Internals"
+		);
+		SHDeleteKeyW(
+			HKEY_CURRENT_USER, L"SOFTWARE\\TranslucentFlyouts_Internals"
+		);
+#else
+		SHDeleteKeyW(
+			HKEY_CURRENT_USER, L"SOFTWARE\\TranslucentFlyouts_Internals(x86)"
+		);
+		SHDeleteKeyW(
+			HKEY_CURRENT_USER, L"SOFTWARE\\TranslucentFlyouts_Internals(x86)"
+		);
+#endif // _WIN64
 	}
 
 	return S_OK;

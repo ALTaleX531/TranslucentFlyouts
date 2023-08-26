@@ -67,7 +67,6 @@ void Hooking::WalkIAT(PVOID baseAddress, std::string_view dllName, std::function
 		)
 	};
 
-	LOG_LAST_ERROR_IF_NULL(importDescriptor);
 	THROW_HR_IF_NULL(E_INVALIDARG, importDescriptor);
 
 	LPCSTR moduleName{nullptr};
@@ -84,7 +83,7 @@ void Hooking::WalkIAT(PVOID baseAddress, std::string_view dllName, std::function
 	}
 
 	THROW_HR_IF_NULL_MSG(HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND), moduleName, "Cannot find specific module for [%hs]!", dllName.data());
-	THROW_HR_IF_MSG(HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND), importDescriptor->Name == 0, "Cannot find specific module for [%hs]!", dllName.data());
+	THROW_WIN32_IF_MSG(ERROR_FILE_NOT_FOUND, importDescriptor->Name == 0, "Cannot find specific module for [%hs]!", dllName.data());
 
 	auto thunk{reinterpret_cast<PIMAGE_THUNK_DATA>(reinterpret_cast<UINT_PTR>(baseAddress) + importDescriptor->FirstThunk)};
 	auto nameThunk = reinterpret_cast<PIMAGE_THUNK_DATA>(reinterpret_cast<UINT_PTR>(baseAddress) + importDescriptor->OriginalFirstThunk);
@@ -138,7 +137,6 @@ void Hooking::WalkDeleyloadIAT(PVOID baseAddress, string_view dllName, function<
 		)
 	};
 
-	LOG_LAST_ERROR_IF_NULL(importDescriptor);
 	THROW_HR_IF_NULL(E_INVALIDARG, importDescriptor);
 
 	LPCSTR moduleName{nullptr};
@@ -155,10 +153,10 @@ void Hooking::WalkDeleyloadIAT(PVOID baseAddress, string_view dllName, function<
 	}
 
 	THROW_HR_IF_NULL_MSG(HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND), moduleName, "Cannot find specific module for [%hs]!", dllName.data());
-	THROW_HR_IF_MSG(HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND), importDescriptor->DllNameRVA == 0, "Cannot find specific module for [%hs]!", dllName.data());
+	THROW_WIN32_IF_MSG(ERROR_FILE_NOT_FOUND, importDescriptor->DllNameRVA == 0, "Cannot find specific module for [%hs]!", dllName.data());
 
 	auto attributes{importDescriptor->Attributes.RvaBased};
-	THROW_HR_IF_MSG(HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND), attributes != 1, "Unsupported delay loaded dll![%hs]", dllName.data());
+	THROW_WIN32_IF_MSG(ERROR_FILE_NOT_FOUND, attributes != 1, "Unsupported delay loaded dll![%hs]", dllName.data());
 
 	auto moduleHandle = reinterpret_cast<HMODULE*>(reinterpret_cast<UINT_PTR>(baseAddress) + importDescriptor->ModuleHandleRVA);
 	auto thunk = reinterpret_cast<PIMAGE_THUNK_DATA>(reinterpret_cast<UINT_PTR>(baseAddress) + importDescriptor->ImportAddressTableRVA);

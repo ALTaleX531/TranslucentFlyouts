@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Hooking.hpp"
 #include "ThemeHelper.hpp"
 #include "MenuHandler.hpp"
@@ -79,10 +79,12 @@ namespace TranslucentFlyouts::ImmersiveContextMenuPatcher
 	void DoIATHook(PVOID moduleBaseAddress);
 	void UndoIATHook(PVOID moduleBaseAddress);
 
+	decltype(DrawThemeBackground)* g_actualDrawThemeBackground{ nullptr };
 	decltype(DrawTextW)* g_actualDrawTextW{ nullptr };
 	decltype(BitBlt)* g_actualBitBlt{ nullptr };
 	decltype(StretchBlt)* g_actualStretchBlt{ nullptr };
 
+	bool g_disableOnce{false};
 	bool g_startup{ false };
 }
 
@@ -147,7 +149,7 @@ HRESULT WINAPI ImmersiveContextMenuPatcher::DrawThemeBackground(
 	}();
 	if (!handled)
 	{
-		hr = SharedUxTheme::RealDrawThemeBackground(
+		hr = g_actualDrawThemeBackground(
 			hTheme,
 			hdc,
 			iPartId,
@@ -425,7 +427,28 @@ void ImmersiveContextMenuPatcher::DllNotificationCallback(bool load, Hooking::Dl
 
 void ImmersiveContextMenuPatcher::Startup() try
 {
-	THROW_HR_IF(E_ILLEGAL_METHOD_CALL, g_startup);
+	if (g_startup)
+	{
+		return;
+	}
+
+	if (TFMain::IsStartAllBackActivated())
+	{
+		g_disableOnce = true;
+	}
+
+	if (g_disableOnce)
+	{
+		return;
+	}
+
+	if (!ThemeHelper::IsThemeAvailable())
+	{
+		return;
+	}
+
+	g_actualDrawThemeBackground = reinterpret_cast<decltype(g_actualDrawThemeBackground)>(DetourFindFunction("uxtheme.dll", "DrawThemeBackground"));
+	THROW_LAST_ERROR_IF_NULL(g_actualDrawThemeBackground);
 
 	g_actualDrawTextW = reinterpret_cast<decltype(g_actualDrawTextW)>(DetourFindFunction("user32.dll", "DrawTextW"));
 	THROW_LAST_ERROR_IF_NULL(g_actualDrawTextW);
@@ -453,6 +476,11 @@ CATCH_LOG_RETURN()
 
 void ImmersiveContextMenuPatcher::Shutdown() try
 {
+	if (g_disableOnce)
+	{
+		return;
+	}
+
 	THROW_HR_IF(E_ILLEGAL_METHOD_CALL, !g_startup);
 
 	Hooking::DllNotifyRoutine::GetInstance().DeleteCallback(DllNotificationCallback);

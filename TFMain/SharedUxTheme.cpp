@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Hooking.hpp"
 #include "RegHelper.hpp"
 #include "ThemeHelper.hpp"
@@ -40,6 +40,10 @@ namespace TranslucentFlyouts::SharedUxTheme
 		L"StartIsBack64.dll"sv,
 		L"StartIsBack32.dll"sv
 	};
+	const array g_delayHookModuleList
+	{
+		L"explorer.exe"sv
+	};
 
 	HRESULT WINAPI DrawThemeBackground(
 		HTHEME  hTheme,
@@ -49,28 +53,13 @@ namespace TranslucentFlyouts::SharedUxTheme
 		LPCRECT pRect,
 		LPCRECT pClipRect
 	);
+	void DllNotificationCallback(bool load, Hooking::DllNotifyRoutine::DllInfo info);
+	void DoIATHook(PVOID moduleBaseAddress);
+	void UndoIATHook(PVOID moduleBaseAddress);
 
 	bool g_startup{ false };
+	bool g_disableOnce{false};
 	decltype(DrawThemeBackground)* g_actualDrawThemeBackground{ nullptr };
-}
-
-HRESULT WINAPI SharedUxTheme::RealDrawThemeBackground(
-	HTHEME  hTheme,
-	HDC     hdc,
-	int     iPartId,
-	int     iStateId,
-	LPCRECT pRect,
-	LPCRECT pClipRect
-)
-{
-	return g_actualDrawThemeBackground(
-		hTheme,
-		hdc,
-		iPartId,
-		iStateId,
-		pRect,
-		pClipRect
-	);
 }
 
 HRESULT WINAPI SharedUxTheme::DrawThemeBackground(
@@ -211,7 +200,7 @@ HRESULT WINAPI SharedUxTheme::DrawThemeBackgroundHelper(
 				}
 
 				handled = true;
-				return RealDrawThemeBackground(
+				return g_actualDrawThemeBackground(
 					hTheme,
 					hdc,
 					iPartId,
@@ -243,30 +232,90 @@ HRESULT WINAPI SharedUxTheme::DrawThemeBackgroundHelper(
 	return E_NOTIMPL;
 }
 
+void SharedUxTheme::DoIATHook(PVOID moduleBaseAddress)
+{
+	if (g_actualDrawThemeBackground)
+	{
+		Hooking::WriteDelayloadIAT(moduleBaseAddress, "uxtheme.dll", { {"DrawThemeBackground", SharedUxTheme::DrawThemeBackground} });
+		Hooking::WriteIAT(moduleBaseAddress, "uxtheme.dll", { {"DrawThemeBackground", SharedUxTheme::DrawThemeBackground} });
+		Hooking::WriteDelayloadIAT(moduleBaseAddress, "ext-ms-win-uxtheme-themes-l1-1-0.dll",
+		{
+			{"DrawThemeBackground", SharedUxTheme::DrawThemeBackground}
+		});
+		Hooking::WriteIAT(moduleBaseAddress, "ext-ms-win-uxtheme-themes-l1-1-0.dll",
+		{
+			{"DrawThemeBackground", SharedUxTheme::DrawThemeBackground}
+		});
+	}
+}
+
+void SharedUxTheme::UndoIATHook(PVOID moduleBaseAddress)
+{
+	if (g_actualDrawThemeBackground)
+	{
+		Hooking::WriteDelayloadIAT(moduleBaseAddress, "uxtheme.dll", { {"DrawThemeBackground", g_actualDrawThemeBackground} });
+		Hooking::WriteIAT(moduleBaseAddress, "uxtheme.dll", { {"DrawThemeBackground", g_actualDrawThemeBackground} });
+		Hooking::WriteDelayloadIAT(moduleBaseAddress, "ext-ms-win-uxtheme-themes-l1-1-0.dll",
+		{
+			{"DrawThemeBackground", g_actualDrawThemeBackground}
+		});
+		Hooking::WriteIAT(moduleBaseAddress, "ext-ms-win-uxtheme-themes-l1-1-0.dll",
+		{
+			{"DrawThemeBackground", g_actualDrawThemeBackground}
+		});
+	}
+}
+
+void SharedUxTheme::DllNotificationCallback(bool load, Hooking::DllNotifyRoutine::DllInfo info)
+{
+	if (load)
+	{
+		for (auto moduleName : g_hookModuleList)
+		{
+			if (!_wcsicmp(moduleName.data(), info.BaseDllName->Buffer))
+			{
+				DoIATHook(info.DllBase);
+			}
+		}
+	}
+}
+
 void SharedUxTheme::Startup() try
 {
-	THROW_HR_IF(E_ILLEGAL_METHOD_CALL, g_startup);
+	if (g_startup)
+	{
+		return;
+	}
+
+	if (TFMain::IsStartAllBackActivated())
+	{
+		g_disableOnce = true;
+	}
+
+	if (g_disableOnce)
+	{
+		return;
+	}
+
+	if (!ThemeHelper::IsThemeAvailable())
+	{
+		return;
+	}
 
 	g_actualDrawThemeBackground = reinterpret_cast<decltype(g_actualDrawThemeBackground)>(DetourFindFunction("uxtheme.dll", "DrawThemeBackground"));
 	THROW_LAST_ERROR_IF_NULL(g_actualDrawThemeBackground);
 
 	for (const auto moduleName : g_hookModuleList)
 	{
-		HMODULE moduleHandle{ GetModuleHandle(moduleName.data()) };
+		HMODULE moduleHandle{ GetModuleHandleW(moduleName.data()) };
 		if (moduleHandle)
 		{
-			Hooking::WriteDelayloadIAT(moduleHandle, "uxtheme.dll", { {"DrawThemeBackground", SharedUxTheme::DrawThemeBackground} });
-			Hooking::WriteIAT(moduleHandle, "uxtheme.dll", { {"DrawThemeBackground", SharedUxTheme::DrawThemeBackground} });
-			Hooking::WriteDelayloadIAT(moduleHandle, "ext-ms-win-uxtheme-themes-l1-1-0.dll",
-			{
-				{"DrawThemeBackground", SharedUxTheme::DrawThemeBackground}
-			});
-			Hooking::WriteIAT(moduleHandle, "ext-ms-win-uxtheme-themes-l1-1-0.dll",
-			{
-				{"DrawThemeBackground", SharedUxTheme::DrawThemeBackground}
-			});
+			DoIATHook(moduleHandle);
 		}
 	}
+
+	Hooking::DllNotifyRoutine::GetInstance().AddCallback(DllNotificationCallback);
+
 	g_startup = true;
 }
 CATCH_LOG_RETURN()
@@ -278,22 +327,56 @@ void SharedUxTheme::Shutdown()
 		return;
 	}
 
+	if (g_disableOnce)
+	{
+		return;
+	}
+
+	Hooking::DllNotifyRoutine::GetInstance().DeleteCallback(DllNotificationCallback);
+
 	for (const auto moduleName : g_hookModuleList)
 	{
-		HMODULE moduleHandle{ GetModuleHandle(moduleName.data()) };
+		HMODULE moduleHandle{ GetModuleHandleW(moduleName.data()) };
 		if (moduleHandle)
 		{
-			Hooking::WriteDelayloadIAT(moduleHandle, "uxtheme.dll", { {"DrawThemeBackground", g_actualDrawThemeBackground} });
-			Hooking::WriteIAT(moduleHandle, "uxtheme.dll", { {"DrawThemeBackground", g_actualDrawThemeBackground} });
-			Hooking::WriteDelayloadIAT(moduleHandle, "ext-ms-win-uxtheme-themes-l1-1-0.dll",
-			{
-				{"DrawThemeBackground", g_actualDrawThemeBackground}
-			});
-			Hooking::WriteIAT(moduleHandle, "ext-ms-win-uxtheme-themes-l1-1-0.dll",
-			{
-				{"DrawThemeBackground", g_actualDrawThemeBackground}
-			});
+			UndoIATHook(moduleHandle);
 		}
 	}
+	for (const auto moduleName : g_delayHookModuleList)
+	{
+		HMODULE moduleHandle{ GetModuleHandleW(moduleName.data()) };
+		if (moduleHandle)
+		{
+			UndoIATHook(moduleHandle);
+		}
+	}
+
 	g_startup = false;
+}
+
+void SharedUxTheme::DelayStartup()
+{
+	if (!GetModuleHandleW(L"StartIsBack64.dll") && !GetModuleHandleW(L"StartIsBack32.dll"))
+	{
+		return;
+	}
+
+	if (g_disableOnce)
+	{
+		return;
+	}
+
+	if (!ThemeHelper::IsThemeAvailable())
+	{
+		return;
+	}
+
+	for (const auto moduleName : g_delayHookModuleList)
+	{
+		HMODULE moduleHandle{ GetModuleHandleW(moduleName.data()) };
+		if (moduleHandle)
+		{
+			DoIATHook(moduleHandle);
+		}
+	}
 }

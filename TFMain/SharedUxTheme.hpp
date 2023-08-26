@@ -1,21 +1,14 @@
-#pragma once
+﻿#pragma once
 #include "pch.h"
 
 namespace TranslucentFlyouts
 {
 	namespace SharedUxTheme
 	{
+		void DelayStartup();
 		void Startup();
 		void Shutdown();
 
-		inline HRESULT WINAPI RealDrawThemeBackground(
-			HTHEME  hTheme,
-			HDC     hdc,
-			int     iPartId,
-			int     iStateId,
-			LPCRECT pRect,
-			LPCRECT pClipRect
-		);
 		HRESULT WINAPI DrawThemeBackgroundHelper(
 			HTHEME  hTheme,
 			HDC     hdc,

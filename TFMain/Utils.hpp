@@ -129,6 +129,68 @@ namespace TranslucentFlyouts
 			return result;
 		}
 
+		static inline std::wstring GetVersion(HMODULE moduleHandle) try
+		{
+			WCHAR pszModuleName[MAX_PATH + 1];
+			GetModuleFileNameW(moduleHandle, pszModuleName, MAX_PATH);
+			
+			DWORD handle{0};
+			DWORD size{ GetFileVersionInfoSizeW(pszModuleName, &handle) };
+			THROW_LAST_ERROR_IF(!size);
+
+			auto data{ std::make_unique<BYTE[]>(size) };
+			THROW_LAST_ERROR_IF(!GetFileVersionInfoW(pszModuleName, handle, size, data.get()));
+
+			UINT len{0};
+			VS_FIXEDFILEINFO* fileInfo{nullptr};
+			THROW_IF_WIN32_BOOL_FALSE(VerQueryValueW(data.get(), L"\\", reinterpret_cast<PVOID*>(&fileInfo), &len));
+			THROW_LAST_ERROR_IF(!len);
+
+			THROW_WIN32_IF(ERROR_INVALID_IMAGE_HASH, fileInfo->dwSignature != VS_FFI_SIGNATURE);
+
+			// Doesn't matter if you are on 32 bit or 64 bit,
+			// DWORD is always 32 bits, so first two revision numbers
+			// come from dwFileVersionMS, last two come from dwFileVersionLS
+			return std::format(
+				L"{}.{}.{}.{}",
+				HIWORD(fileInfo->dwFileVersionMS),
+				LOWORD(fileInfo->dwFileVersionMS),
+				HIWORD(fileInfo->dwFileVersionLS),
+				LOWORD(fileInfo->dwFileVersionLS)
+			);
+		}
+		catch (...)
+		{
+			LOG_CAUGHT_EXCEPTION();
+			return std::wstring{};
+		}
+
+		static inline HRESULT EnumModules(std::function<void(HMODULE moduleHandle, std::wstring_view dllName)> callback) try
+		{
+			THROW_HR_IF_NULL(E_INVALIDARG, callback);
+			DWORD dwNeeded{0};
+			THROW_IF_WIN32_BOOL_FALSE(EnumProcessModules(GetCurrentProcess(), nullptr, 0, &dwNeeded));
+			DWORD dwModuleCount{ dwNeeded / sizeof(HMODULE) };
+			auto hModuleList{std::make_unique<HMODULE[]>(dwModuleCount)};
+			THROW_IF_WIN32_BOOL_FALSE(EnumProcessModules(GetCurrentProcess(), hModuleList.get(), dwNeeded, &dwNeeded));
+
+			for (DWORD i = 0; i < dwModuleCount; i++)
+			{
+				HMODULE hDllModule{ hModuleList[i] };
+
+				if (hDllModule)
+				{
+					WCHAR pszModuleName[MAX_PATH + 1];
+					GetModuleBaseNameW(GetCurrentProcess(), hDllModule, pszModuleName, MAX_PATH);
+
+					callback(hDllModule, pszModuleName);
+				}
+			}
+
+			return S_OK;
+		}
+		CATCH_LOG_RETURN_HR(wil::ResultFromCaughtException())
+
 		static inline void CloakWindow(HWND hWnd, BOOL cloak)
 		{
 			DwmSetWindowAttribute(hWnd, DWMWA_CLOAK, &cloak, sizeof(cloak));

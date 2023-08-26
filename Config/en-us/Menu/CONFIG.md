@@ -100,7 +100,7 @@ Type: **DWORD**
 <td width="10%">
 <dl>
 <dt><b>NoModernAppBackgroundColor</b></dt>
-<dt>Default Value: 0</dt>
+<dt>Default Value: 1</dt>
 </dl>
 </td>
 <td width="20%">

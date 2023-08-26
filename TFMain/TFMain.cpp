@@ -18,8 +18,15 @@ using namespace std;
 namespace TranslucentFlyouts::TFMain
 {
 	bool g_debug{ false };
-	bool g_startup{ false };
 	vector<Callback> g_callbackList{};
+}
+
+bool TFMain::IsStartAllBackActivated()
+{
+	auto result{ wil::reg::try_get_value_dword(HKEY_CURRENT_USER, L"SOFTWARE\\StartIsBack", L"Disabled") };
+	return	GetModuleHandleW(L"explorer.exe") &&
+			GetModuleHandleW(L"StartAllBackX64.dll") &&
+			(!result.has_value() || !result.value());
 }
 
 TFMain::InteractiveIO::~InteractiveIO()
@@ -131,11 +138,6 @@ void TFMain::InteractiveIO::Shutdown()
 
 void TFMain::Startup()
 {
-	if (g_startup)
-	{
-		return;
-	}
-
 	wil::SetResultLoggingCallback([](wil::FailureInfo const & failure) noexcept
 	{
 		WCHAR logString[MAX_PATH + 1] {};
@@ -162,23 +164,14 @@ void TFMain::Startup()
 	UxThemePatcher::Startup();
 	ImmersiveContextMenuPatcher::Startup();
 	ToolTipHandler::Startup();
-
-	g_startup = true;
 }
 void TFMain::Shutdown()
 {
-	if (!g_startup)
-	{
-		return;
-	}
-
 	ImmersiveContextMenuPatcher::Shutdown();
 	UxThemePatcher::Shutdown();
 	SharedUxTheme::Shutdown();
 	MenuHandler::Shutdown();
 	ToolTipHandler::Shutdown();
-
-	g_startup = false;
 }
 
 void TFMain::Prepare()
@@ -204,29 +197,24 @@ void CALLBACK TFMain::HandleWinEvent(
 	DWORD dwEventThread, DWORD dwmsEventTime
 )
 {
+	DWORD processId{0};
+	GetWindowThreadProcessId(hWnd, &processId);
 	if (
-		auto result{ wil::reg::try_get_value_dword(HKEY_CURRENT_USER, L"SOFTWARE\\StartIsBack", L"Disabled") };
+		GetSystemMetrics(SM_CLEANBOOT) ||
+		ThemeHelper::IsHighContrast() ||
 		idObject != OBJID_WINDOW ||
 		idChild != CHILDID_SELF ||
 		!hWnd || !IsWindow(hWnd) ||
-		(
-			GetModuleHandleW(L"explorer.exe") &&
-			GetModuleHandleW(L"StartAllBackX64.dll") &&
-			(!result.has_value() || !result.value())
-		)
+		processId != GetCurrentProcessId() ||
+		IsStartAllBackActivated()
 	)
 	{
 		return;
 	}
 
-	if (
-		Utils::IsValidFlyout(hWnd) &&
-		//ThemeHelper::IsThemeAvailable() &&
-		//!ThemeHelper::IsHighContrast() &&
-		!GetSystemMetrics(SM_CLEANBOOT)
-	)
+	if (Utils::IsValidFlyout(hWnd))
 	{
-		TFMain::Startup();
+		SharedUxTheme::DelayStartup();
 	}
 
 	if (!g_callbackList.empty())

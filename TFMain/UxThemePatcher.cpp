@@ -54,8 +54,10 @@ namespace TranslucentFlyouts::UxThemePatcher
 #pragma data_seg()
 #pragma comment(linker,"/SECTION:.shared,RWS")
 
+	once_flag run_once{};
 	bool g_startup{ false };
 	bool g_hooked{ false };
+	bool g_disableOnce{false};
 
 	PVOID g_actualCThemeMenuPopup_DrawItem{ nullptr };
 	PVOID g_actualCThemeMenuPopup_DrawItemCheck{ nullptr };
@@ -488,8 +490,17 @@ bool UxThemePatcher::IsAPIOffsetReady()
 void UxThemePatcher::Prepare(const TFMain::InteractiveIO& io)
 {
 	using TFMain::InteractiveIO;
-	// TO-DO
-	// Cache the offset information into the registry so that we don't need to calculate them every time
+	
+	auto currentVersion{ Utils::GetVersion(unique_hmodule{LoadLibraryW(L"uxtheme.dll")}.get())};
+	auto savedVersion{RegHelper::_TryGetString(L"UxThemeVersion"sv)};
+	if (savedVersion && savedVersion.value() == currentVersion)
+	{
+		g_CThemeMenuPopup_DrawItem_Offset = RegHelper::_GetQword(L"CThemeMenuPopup_DrawItem_Offset", 0);
+		g_CThemeMenuPopup_DrawItemCheck_Offset = RegHelper::_GetQword(L"CThemeMenuPopup_DrawItemCheck_Offset", 0);
+		g_CThemeMenuPopup_DrawClientArea_Offset = RegHelper::_GetQword(L"CThemeMenuPopup_DrawClientArea_Offset", 0);
+		g_CThemeMenuPopup_DrawNonClientArea_Offset = RegHelper::_GetQword(L"CThemeMenuPopup_DrawNonClientArea_Offset", 0);
+		g_CThemeMenu_DrawItemBitmap_Offset = RegHelper::_GetQword(L"CThemeMenu_DrawItemBitmap_Offset", 0);
+	}
 
 	while (!IsAPIOffsetReady())
 	{
@@ -637,12 +648,32 @@ void UxThemePatcher::Prepare(const TFMain::InteractiveIO& io)
 		}
 	}
 
+	if (IsAPIOffsetReady())
+	{
+		io.OutputString(
+			TFMain::InteractiveIO::StringType::Notification,
+			TFMain::InteractiveIO::WaitType::NoWait,
+			IDS_STRING108,
+			std::format(L"[UxThemePatcher] "),
+			std::format(L" ({})\n", currentVersion),
+			true
+		);
+		RegHelper::_SetString(L"UxThemeVersion"sv, currentVersion);
+		RegHelper::_SetQword(L"CThemeMenuPopup_DrawItem_Offset"sv, g_CThemeMenuPopup_DrawItem_Offset);
+		RegHelper::_SetQword(L"CThemeMenuPopup_DrawItemCheck_Offset"sv, g_CThemeMenuPopup_DrawItemCheck_Offset);
+		RegHelper::_SetQword(L"CThemeMenuPopup_DrawClientArea_Offset"sv, g_CThemeMenuPopup_DrawClientArea_Offset);
+		RegHelper::_SetQword(L"CThemeMenuPopup_DrawNonClientArea_Offset"sv, g_CThemeMenuPopup_DrawNonClientArea_Offset);
+		RegHelper::_SetQword(L"CThemeMenu_DrawItemBitmap_Offset"sv, g_CThemeMenu_DrawItemBitmap_Offset);
+	}
+
+	filesystem::remove_all(Utils::make_current_folder_file_str(L"symbols"));
+
 	io.OutputString(
 		TFMain::InteractiveIO::StringType::Notification,
 		TFMain::InteractiveIO::WaitType::NoWait,
 		0,
 		std::format(L"[UxThemePatcher] "),
-		std::format(L"Done. \n"),
+		std::format(L"Over. \n"),
 		true
 	);
 }
@@ -672,12 +703,27 @@ CATCH_LOG_RETURN()
 
 void UxThemePatcher::Startup()
 {
+	call_once(run_once, CalcAPIAddress);
+
 	if (g_startup)
 	{
 		return;
 	}
 
-	CalcAPIAddress();
+	if (TFMain::IsStartAllBackActivated())
+	{
+		g_disableOnce = true;
+	}
+
+	if (g_disableOnce)
+	{
+		return;
+	}
+
+	if (!ThemeHelper::IsThemeAvailable())
+	{
+		return;
+	}
 
 	LOG_HR_IF(
 		E_FAIL,
@@ -769,6 +815,12 @@ void UxThemePatcher::Shutdown()
 	{
 		return;
 	}
+
+	if (g_disableOnce)
+	{
+		return;
+	}
+
 	g_callHook.Detach();
 
 	if (!g_hooked)

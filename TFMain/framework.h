@@ -25,6 +25,7 @@
 #pragma comment(lib, "taskschd.lib")
 #pragma comment(lib, "comsuppw.lib")
 #pragma comment(lib, "windowsapp.lib")
+#pragma comment(lib, "version.lib")
 #pragma comment(lib, "Shlwapi.lib")
 #pragma comment(lib, "dwmapi.lib")
 #pragma comment(lib, "delayimp.lib")

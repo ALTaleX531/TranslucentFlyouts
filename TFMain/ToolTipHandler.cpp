@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Hooking.hpp"
 #include "TFMain.hpp"
 #include "RegHelper.hpp"
@@ -34,6 +34,7 @@ namespace TranslucentFlyouts::ToolTipHandler
 	decltype(DrawThemeBackground)* g_actualDrawThemeBackground{nullptr};
 
 	bool g_startup{false};
+	bool g_disableOnce{false};
 	thread_local bool g_darkMode{ false };
 	thread_local bool g_useUxTheme{ false };
 
@@ -111,7 +112,7 @@ HRESULT WINAPI TranslucentFlyouts::ToolTipHandler::DrawThemeBackground(
 	}();
 	if (!handled)
 	{
-		hr = SharedUxTheme::RealDrawThemeBackground(
+		hr = g_actualDrawThemeBackground(
 				 hTheme,
 				 hdc,
 				 iPartId,
@@ -231,6 +232,8 @@ LRESULT CALLBACK ToolTipHandler::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wPara
 		{
 			if (uMsg == WM_THDETACH)
 			{
+				auto cornerType{ DWMWCP_DEFAULT };
+				DwmSetWindowAttribute(hWnd, DWMWA_WINDOW_CORNER_PREFERENCE, &cornerType, sizeof(DWM_WINDOW_CORNER_PREFERENCE));
 				EffectHelper::SetWindowBackdrop(hWnd, FALSE, 0, static_cast<DWORD>(EffectHelper::EffectType::None));
 				InvalidateRect(hWnd, nullptr, TRUE);
 			}
@@ -279,7 +282,25 @@ void ToolTipHandler::WinEventCallback(HWND hWnd, DWORD event)
 
 void TranslucentFlyouts::ToolTipHandler::Startup() try
 {
-	THROW_HR_IF(E_ILLEGAL_METHOD_CALL, g_startup);
+	if (g_startup)
+	{
+		return;
+	}
+
+	if (TFMain::IsStartAllBackActivated())
+	{
+		g_disableOnce = true;
+	}
+
+	if (g_disableOnce)
+	{
+		return;
+	}
+
+	if (!ThemeHelper::IsThemeAvailable())
+	{
+		return;
+	}
 
 	g_actualDrawTextW = reinterpret_cast<decltype(g_actualDrawTextW)>(DetourFindFunction("user32.dll", "DrawTextW"));
 	THROW_LAST_ERROR_IF_NULL(g_actualDrawTextW);
@@ -287,14 +308,17 @@ void TranslucentFlyouts::ToolTipHandler::Startup() try
 	g_actualDrawThemeBackground = reinterpret_cast<decltype(g_actualDrawThemeBackground)>(DetourFindFunction("uxtheme.dll", "DrawThemeBackground"));
 	THROW_LAST_ERROR_IF_NULL(g_actualDrawThemeBackground);
 
-	HMODULE moduleHandle{ GetModuleHandleW(L"comctl32.dll") };
-	if (moduleHandle)
+	// Sometimes there are multiple versions of comctl32.dll (eg. 5.8.1, 6.0.0)
+	Utils::EnumModules([&](HMODULE moduleHandle, wstring_view dllName)
 	{
-		Hooking::WriteDelayloadIAT(moduleHandle, "uxtheme.dll", { {"DrawThemeBackground", ToolTipHandler::DrawThemeBackground} });
-		Hooking::WriteIAT(moduleHandle, "uxtheme.dll", { {"DrawThemeBackground", ToolTipHandler::DrawThemeBackground} });
-		Hooking::WriteDelayloadIAT(moduleHandle, "user32.dll", { {"DrawTextW", ToolTipHandler::DrawTextW} });
-		Hooking::WriteIAT(moduleHandle, "user32.dll", { {"DrawTextW", ToolTipHandler::DrawTextW} });
-	}
+		if (!_wcsicmp(dllName.data(), L"comctl32.dll"))
+		{
+			Hooking::WriteDelayloadIAT(moduleHandle, "uxtheme.dll", { {"DrawThemeBackground", ToolTipHandler::DrawThemeBackground} });
+			Hooking::WriteIAT(moduleHandle, "uxtheme.dll", { {"DrawThemeBackground", ToolTipHandler::DrawThemeBackground} });
+			Hooking::WriteDelayloadIAT(moduleHandle, "user32.dll", { {"DrawTextW", ToolTipHandler::DrawTextW} });
+			Hooking::WriteIAT(moduleHandle, "user32.dll", { {"DrawTextW", ToolTipHandler::DrawTextW} });
+		}
+	});
 	
 	TFMain::AddCallback(WinEventCallback);
 
@@ -305,6 +329,11 @@ CATCH_LOG_RETURN()
 void TranslucentFlyouts::ToolTipHandler::Shutdown()
 {
 	if (!g_startup)
+	{
+		return;
+	}
+
+	if (g_disableOnce)
 	{
 		return;
 	}
@@ -322,10 +351,17 @@ void TranslucentFlyouts::ToolTipHandler::Shutdown()
 		g_tooltipList.clear();
 	}
 
-	Hooking::WriteDelayloadIAT(GetModuleHandleW(L"comctl32.dll"), "uxtheme.dll", { {"DrawThemeBackground", g_actualDrawThemeBackground} });
-	Hooking::WriteIAT(GetModuleHandleW(L"comctl32.dll"), "uxtheme.dll", { {"DrawThemeBackground", g_actualDrawThemeBackground} });
-	Hooking::WriteDelayloadIAT(GetModuleHandleW(L"comctl32.dll"), "user32.dll", { {"DrawTextW", g_actualDrawTextW} });
-	Hooking::WriteIAT(GetModuleHandleW(L"comctl32.dll"), "user32.dll", { {"DrawTextW", g_actualDrawTextW} });
-
+	// Sometimes there are multiple versions of comctl32.dll (eg. 5.8.1, 6.0.0)
+	Utils::EnumModules([&](HMODULE moduleHandle, wstring_view dllName)
+	{
+		if (!_wcsicmp(dllName.data(), L"comctl32.dll"))
+		{
+			Hooking::WriteDelayloadIAT(moduleHandle, "uxtheme.dll", { {"DrawThemeBackground", g_actualDrawThemeBackground} });
+			Hooking::WriteIAT(moduleHandle, "uxtheme.dll", { {"DrawThemeBackground", g_actualDrawThemeBackground} });
+			Hooking::WriteDelayloadIAT(moduleHandle, "user32.dll", { {"DrawTextW", g_actualDrawTextW} });
+			Hooking::WriteIAT(moduleHandle, "user32.dll", { {"DrawTextW", g_actualDrawTextW} });
+		}
+	});
+	
 	g_startup = false;
 }
