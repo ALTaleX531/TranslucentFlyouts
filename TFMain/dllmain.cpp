@@ -549,14 +549,14 @@ HRESULT MainDLL::Uninstall() try
 		);
 #ifdef _WIN64
 		SHDeleteKeyW(
-			HKEY_CURRENT_USER, L"SOFTWARE\\TranslucentFlyouts_Internals"
+			HKEY_LOCAL_MACHINE, L"SOFTWARE\\TranslucentFlyouts_Internals"
 		);
 		SHDeleteKeyW(
 			HKEY_CURRENT_USER, L"SOFTWARE\\TranslucentFlyouts_Internals"
 		);
 #else
 		SHDeleteKeyW(
-			HKEY_CURRENT_USER, L"SOFTWARE\\TranslucentFlyouts_Internals(x86)"
+			HKEY_LOCAL_MACHINE, L"SOFTWARE\\TranslucentFlyouts_Internals(x86)"
 		);
 		SHDeleteKeyW(
 			HKEY_CURRENT_USER, L"SOFTWARE\\TranslucentFlyouts_Internals(x86)"
