@@ -143,7 +143,7 @@ int WINAPI Main(
 				nullptr,
 				Utils::MakeHRErrStr(hr).c_str(),
 				nullptr,
-				MB_ICONINFORMATION
+				MB_ICONERROR
 			);
 		}
 
@@ -196,11 +196,11 @@ int WINAPI Main(
 	ShellMessageBoxW(
 		hInstance,
 		nullptr,
-		Utils::MakeHRErrStr(HRESULT_FROM_WIN32(ERROR_BAD_COMMAND)).c_str(),
+		Utils::MakeHRErrStr(HRESULT_FROM_WIN32(ERROR_BAD_DRIVER_LEVEL)).c_str(),
 		nullptr,
 		MB_ICONERROR
 	);
-	return HRESULT_FROM_WIN32(ERROR_BAD_COMMAND);
+	return HRESULT_FROM_WIN32(ERROR_BAD_DRIVER_LEVEL);
 }
 
 HRESULT MainDLL::StartService()

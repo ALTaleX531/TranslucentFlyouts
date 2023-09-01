@@ -13,33 +13,6 @@ using namespace TranslucentFlyouts;
 
 namespace TranslucentFlyouts::SharedUxTheme
 {
-	// A list of modules that need to be hooked multiple times.
-	const array g_hookModuleList
-	{
-		L"explorer.exe"sv,
-		L"MusNotifyIcon.exe"sv,
-		L"ApplicationFrame.dll"sv,
-		L"ExplorerFrame.dll"sv,
-		L"InputSwitch.dll"sv,
-		L"pnidui.dll"sv,
-		L"SecurityHealthSSO.dll"sv,
-		L"shell32.dll"sv,
-		L"SndVolSSO.dll"sv,
-		L"twinui.dll"sv,
-		L"twinui.pcshell.dll"sv,
-		L"bthprops.cpl"sv,
-		// Windows 11
-		L"Taskmgr.exe"sv,
-		L"museuxdocked.dll"sv,
-		L"SecurityHealthSsoUdk.dll"sv,
-		L"Taskbar.dll"sv,
-		L"Windows.UI.FileExplorer.dll"sv,
-		L"Windows.UI.FileExplorer.WASDK.dll"sv,
-		L"stobject.dll"sv,
-		// Third-party apps
-		L"StartIsBack64.dll"sv,
-		L"StartIsBack32.dll"sv
-	};
 	const array g_delayHookModuleList
 	{
 		L"explorer.exe"sv
@@ -270,7 +243,7 @@ void SharedUxTheme::DllNotificationCallback(bool load, Hooking::DllNotifyRoutine
 {
 	if (load)
 	{
-		for (auto moduleName : g_hookModuleList)
+		for (auto moduleName : ImmersiveContextMenuPatcher::g_hookModuleList)
 		{
 			if (!_wcsicmp(moduleName.data(), info.BaseDllName->Buffer))
 			{
@@ -305,7 +278,7 @@ void SharedUxTheme::Startup() try
 	g_actualDrawThemeBackground = reinterpret_cast<decltype(g_actualDrawThemeBackground)>(DetourFindFunction("uxtheme.dll", "DrawThemeBackground"));
 	THROW_LAST_ERROR_IF_NULL(g_actualDrawThemeBackground);
 
-	for (const auto moduleName : g_hookModuleList)
+	for (const auto moduleName : ImmersiveContextMenuPatcher::g_hookModuleList)
 	{
 		HMODULE moduleHandle{ GetModuleHandleW(moduleName.data()) };
 		if (moduleHandle)
@@ -334,7 +307,7 @@ void SharedUxTheme::Shutdown()
 
 	Hooking::DllNotifyRoutine::GetInstance().DeleteCallback(DllNotificationCallback);
 
-	for (const auto moduleName : g_hookModuleList)
+	for (const auto moduleName : ImmersiveContextMenuPatcher::g_hookModuleList)
 	{
 		HMODULE moduleHandle{ GetModuleHandleW(moduleName.data()) };
 		if (moduleHandle)

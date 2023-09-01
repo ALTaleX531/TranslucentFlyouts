@@ -13,36 +13,6 @@ using namespace TranslucentFlyouts;
 
 namespace TranslucentFlyouts::ImmersiveContextMenuPatcher
 {
-	// A list of modules that contain the symbol of C++ class ImmersiveContextMenuHelper,
-	// which it means these modules provide methods to create a immersive context menu
-	const array g_hookModuleList
-	{
-		L"explorer.exe"sv,
-		L"Narrator.exe"sv,
-		L"MusNotifyIcon.exe"sv,
-		L"ApplicationFrame.dll"sv,
-		L"ExplorerFrame.dll"sv,
-		L"InputSwitch.dll"sv,
-		L"pnidui.dll"sv,
-		L"SecurityHealthSSO.dll"sv,
-		L"shell32.dll"sv,
-		L"SndVolSSO.dll"sv,
-		L"twinui.dll"sv,
-		L"twinui.pcshell.dll"sv,
-		L"bthprops.cpl"sv,
-		// Windows 11
-		L"Taskmgr.exe"sv,
-		L"museuxdocked.dll"sv,
-		L"SecurityHealthSsoUdk.dll"sv,
-		L"Taskbar.dll"sv,
-		L"Windows.UI.FileExplorer.dll"sv,
-		L"Windows.UI.FileExplorer.WASDK.dll"sv,
-		L"stobject.dll"sv,
-		// Third-party apps
-		L"StartIsBack64.dll"sv,
-		L"StartIsBack32.dll"sv
-	};
-	
 	int WINAPI DrawTextW(
 		HDC     hdc,
 		LPCWSTR lpchText,

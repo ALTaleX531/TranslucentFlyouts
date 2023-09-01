@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Utils.hpp"
 #include "Hooking.hpp"
 #include "DXHelper.hpp"
@@ -183,8 +183,7 @@ void LazyD2D::CreateDeviceResources()
 				// Always use software rendering, otherwise the performance is pretty bad!
 				// The reason is you incur costs transferring from GPU to System
 				D2D1_RENDER_TARGET_TYPE_SOFTWARE,
-				PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
-				96.f, 96.f
+				PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED)
 			)
 		};
 
@@ -197,6 +196,7 @@ void LazyD2D::CreateDeviceResources()
 		);
 
 		dcRT->SetAntialiasMode(D2D1_ANTIALIAS_MODE::D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+		dcRT.query<ID2D1DeviceContext>()->SetUnitMode(D2D1_UNIT_MODE::D2D1_UNIT_MODE_PIXELS);
 		dcRT.copy_to(&m_dcRT);
 	}
 	catch (...)
