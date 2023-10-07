@@ -814,6 +814,7 @@ namespace TranslucentFlyouts::MenuAnimation
 			);
 
 			Restart(m_totDuration);
+			Animator(startTimeStamp);
 
 			m_started = true;
 		}

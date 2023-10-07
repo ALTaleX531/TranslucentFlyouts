@@ -7,7 +7,7 @@
 存储位置：`HKEY_CURRENT_USER\SOFTWARE\TranslucentFlyouts\Menu\Hot`   
 ## 值
 类型: <b>DWORD</b>  
-> 继承于[CustomRendering](..\CustomRendering\CONFIG.md)，同样使用其中的值
+> 继承于[CustomRendering](../CustomRendering/CONFIG.md)，同样使用其中的值
 <table>
 <tr>
 <th>名称</th>

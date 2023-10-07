@@ -78,7 +78,7 @@ BOOL APIENTRY DllMain(
 
 		case DLL_PROCESS_DETACH:
 		{
-			TFMain::Shutdown();
+			//TFMain::Shutdown();
 
 			break;
 		}
@@ -340,7 +340,8 @@ bool MainDLL::IsCurrentProcessInBlockList()
 		L"WindowsPackageManagerServer.exe"sv,
 		L"msedgewebview2.exe"sv,
 		L"Microsoft.SharePoint.exe"sv,
-		L"PerfWatson2.exe"sv
+		L"PerfWatson2.exe"sv,
+		L"splwow64.exe"sv
 	};
 	auto is_in_list = [](const auto list)
 	{

@@ -4,7 +4,7 @@
 Speicherort: `HKEY_CURRENT_USER\SOFTWARE\TranslucentFlyouts\DropDown`
 ## Wert
 Geben Sie ein: <b>DWORD</b>
-> Von [TranslucentFlyouts](..\CONFIG.md) geerbt, verwenden Sie auch den Wert
+> Von [TranslucentFlyouts](../CONFIG.md) geerbt, verwenden Sie auch den Wert
 <table>
 <tr>
 <th>Name</th>

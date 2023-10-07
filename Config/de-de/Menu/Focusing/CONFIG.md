@@ -7,7 +7,7 @@
 Speicherort: `HKEY_CURRENT_USER\SOFTWARE\TranslucentFlyouts\Menu\Focusing`   
 ## Wert
 Geben Sie ein: <b>DWORD</b>
-> Geerbt von [CustomRendering](..\CustomRendering\CONFIG.md), verwenden Sie auch den Wert
+> Geerbt von [CustomRendering](../CustomRendering/CONFIG.md), verwenden Sie auch den Wert
 <table>
 <tr>
 <th>Name</th>

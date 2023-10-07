@@ -3,7 +3,9 @@ An application that makes most of the win32 popup menus translucent/transparent 
 
 Compared to V1, TranslucentFlyouts V2 has better compatibility and the ability to customize.   
 TranslucentFlyouts V1 has been moved to [TranslucentFlyoutsV1](https://github.com/ALTaleX531/TranslucentFlyoutsV1).   
-**TranslucentFlyouts uses [LGNU V3 license](./COPYING.LESSER) started from V2.**  
+**TranslucentFlyouts uses [LGNU V3 license](./COPYING.LESSER) started from V2.** 
+
+**I' m developing this program entirely in my spare time without any profit, so it may not get timely updates due to my busy academic schedule. I hope you can understand.**
 
 [![license](https://img.shields.io/github/license/ALTaleX531/TranslucentFlyouts.svg)](https://www.gnu.org/licenses/lgpl-3.0.en.html)
 [![Github All Releases](https://img.shields.io/github/downloads/ALTaleX531/TranslucentFlyouts/total.svg)](https://github.com/ALTaleX531/TranslucentFlyouts/releases)
@@ -16,7 +18,7 @@ TranslucentFlyouts V1 has been moved to [TranslucentFlyoutsV1](https://github.co
 ## Catalog
 - [Gallery](#gallery)
 - [How to use](#how-to-use)
-- [Config](./Config/en-us/CONFIG.md)
+- [How to configure](#how-to-configure)
 - [Limitations & Compatibility](#limitations-and-compatibility)
 - [Dependencies & References](#dependencies-and-references)
 ## Gallery
@@ -64,6 +66,12 @@ Windows 11
 ### Uninstall
 1. Run "`uninstall.cmd`" as administrator.
 2. Delete the remaining files. (It is recommended to logoff before doing it)
+
+## How to configure
+Thanks to **[@Satanarious](https://github.com/Satanarious/)**'s hard work, a perfect and easy-to-use GUI can be found [here](https://github.com/Satanarious/TransparentFlyoutsConfig)!  
+[Take me to the download page!](https://github.com/Satanarious/TransparentFlyoutsConfig/releases/latest)   
+
+Of course, you can also modify related registry settings on your own according to the [configuration docs](./Config/en-us/CONFIG.md) .
 
 ## Limitations and Compatibility
 ### Here are some situations that TranslucentFlyouts will always be automatically disabled.

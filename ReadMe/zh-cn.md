@@ -6,6 +6,8 @@
 TranslucentFlyouts V1 已经被移动到 [TranslucentFlyoutsV1](https://github.com/ALTaleX531/TranslucentFlyoutsV1).  
 **从TranslucentFlyouts V2开始，该项目使用[LGNU V3 license](/COPYING.LESSER)作为开源许可。**  
 
+**我完全在业余时间里开发这个项目，没有任何收益，因此我有可能因学业繁忙不能及时更新它，希望大家能理解**
+
 [![license](https://img.shields.io/github/license/ALTaleX531/TranslucentFlyouts.svg)](https://www.gnu.org/licenses/lgpl-3.0.en.html)
 [![Github All Releases](https://img.shields.io/github/downloads/ALTaleX531/TranslucentFlyouts/total.svg)](https://github.com/ALTaleX531/TranslucentFlyouts/releases)
 [![GitHub release](https://img.shields.io/github/release/ALTaleX531/TranslucentFlyouts.svg)](https://github.com/ALTaleX531/TranslucentFlyouts/releases/latest)
@@ -20,7 +22,7 @@ TranslucentFlyouts V1 已经被移动到 [TranslucentFlyoutsV1](https://github.c
 
 - [图库](#gallery)
 - [如何使用](#how-to-use)
-- [配置文件](../Config/zh-cn/CONFIG.md)
+- [如何配置](#how-to-configure)
 - [一些限制和兼容性相关的问题](#limitations-and-compatibility)
 - [依靠和引用](#dependencies-and-references)
 
@@ -76,6 +78,14 @@ Windows 11
 
 1. 以管理员身份运行"`uninstall.cmd`"
 3. 手动删除剩下的文件（建议先注销一次）
+
+## How to configure
+如何配置   
+
+感谢外国友人 **[@Satanarious](https://github.com/Satanarious/)** 的付出，你可以在[这里](https://github.com/Satanarious/TransparentFlyoutsConfig)找到这一个既完美又易于使用的GUI（只是目前还不支持中文）。   
+[下载地址](https://github.com/Satanarious/TransparentFlyoutsConfig/releases/latest)     
+
+当然你也可以根据[配置信息文档](./Config/en-us/CONFIG.md)进行手动修改相应的注册表配置
 
 ## Limitations and Compatibility
 
