@@ -93,20 +93,20 @@ Windows 11
 
 ### 在以下的情况下，TranslucentFlyouts不可用
 
-### 1. Windows 2000 风格的弹出菜单  
+#### 1. Windows 2000 风格的弹出菜单  
 ![Windows2000](../Images/Unsupported/Windows2000.png)
 
 老古董。  
 有些第三方程序比如`HoneyView`可能会造成这样的菜单。
 
-### 2. Ownerdrawn popup menu
+#### 2. Ownerdrawn popup menu
 >
 > ![Ownerdrawn](../Images/Unsupported/Ownerdrawn.png)
 
 如你所见，这是一个QT弹出菜单  
 是不是看着挺像系统的那种默认菜单？  
 但是它的渲染流程与默认菜单截然不同，使得TranslucentFlyouts很难正确修改它的视觉内容
-### **3. StartAllBack**
+#### **3. StartAllBack**
 `StartAllBack`具有对半透明弹出菜单的内置支持，并且它的渲染流程的优先级高于TranslucentFlyouts。  
 > 注意:  
 > 出于这个原因的考量，`v2.0.0-alpha.4`和更高版本的TranslucentFlyouts检测到`StartAllBack`会自动禁用自身，且该现状将继续保持直到有办法能完全禁用`StartAllBack`对弹出菜单的处理。  

@@ -75,18 +75,18 @@ Of course, you can also modify related registry settings on your own according t
 
 ## Limitations and Compatibility
 ### Here are some situations that TranslucentFlyouts will always be automatically disabled.
-### 1. Windows 2000 Style popup menu  
+#### 1. Windows 2000 Style popup menu  
 ![Windows2000](./Images/Unsupported/Windows2000.png)
 
 Outdated.   
 Some third-party applications like `HoneyView` may cause this issue.
-### 2. Ownerdrawn popup menu
+#### 2. Ownerdrawn popup menu
 ![Ownerdrawn](./Images/Unsupported/Ownerdrawn.png)
 
 As you can see, it is a QT popup menu.  
 It really looks like the default menu, isn't it?  
 But it's rendering procedure is completely different from the defualt one, making TranslucentFlyout hard to modify its visual content.  
-### **3. StartAllBack**
+#### **3. StartAllBack**
 `StartAllBack` has built-in support for translucent popup menu, and its rendering procedure priority is higher than TranslucentFlyouts.  
 > [Note!]:  
 > For this reason, `v2.0.0-alpha.4` and higher versions of TranslucentFlyouts will automatically disable itself when `StartAllBack` was detected, unless there is a way to fully disable `StartAllBack`' s handling procedure.  
