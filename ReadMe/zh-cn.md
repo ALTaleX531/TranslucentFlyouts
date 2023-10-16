@@ -85,7 +85,7 @@ Windows 11
 感谢外国友人 **[@Satanarious](https://github.com/Satanarious/)** 的付出，你可以在[这里](https://github.com/Satanarious/TransparentFlyoutsConfig)找到这一个既完美又易于使用的GUI（只是目前还不支持中文）。   
 [下载地址](https://github.com/Satanarious/TransparentFlyoutsConfig/releases/latest)     
 
-当然你也可以根据[配置信息文档](./Config/en-us/CONFIG.md)进行手动修改相应的注册表配置
+当然你也可以根据[配置信息文档](../Config/zh-cn/CONFIG.md)进行手动修改相应的注册表配置
 
 ## Limitations and Compatibility
 

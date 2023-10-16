@@ -78,7 +78,7 @@ BOOL APIENTRY DllMain(
 
 		case DLL_PROCESS_DETACH:
 		{
-			//TFMain::Shutdown();
+			TFMain::Shutdown();
 
 			break;
 		}
