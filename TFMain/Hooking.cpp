@@ -101,7 +101,7 @@ void Hooking::WalkIAT(PVOID baseAddress, std::string_view dllName, std::function
 		}
 		else
 		{
-			functionName = MAKEINTRESOURCEA(IMAGE_ORDINAL(thunk->u1.Ordinal));
+			functionName = MAKEINTRESOURCEA(IMAGE_ORDINAL(nameThunk->u1.Ordinal));
 		}
 
 		result = callback(functionAddress, functionName, importedByName);
@@ -175,7 +175,7 @@ void Hooking::WalkDeleyloadIAT(PVOID baseAddress, string_view dllName, function<
 		}
 		else
 		{
-			functionName = MAKEINTRESOURCEA(IMAGE_ORDINAL(thunk->u1.Ordinal));
+			functionName = MAKEINTRESOURCEA(IMAGE_ORDINAL(nameThunk->u1.Ordinal));
 		}
 
 		result = callback(moduleHandle, functionAddress, functionName, importedByName);
