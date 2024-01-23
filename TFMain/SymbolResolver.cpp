@@ -1,10 +1,9 @@
 ﻿#include "pch.h"
 #include "Utils.hpp"
 #include "resource.h"
+#include "Api.hpp"
 #include "SymbolResolver.hpp"
 
-using namespace std;
-using namespace wil;
 using namespace TranslucentFlyouts;
 
 BOOL CALLBACK SymbolResolver::SymCallback(
@@ -18,7 +17,7 @@ BOOL CALLBACK SymbolResolver::SymCallback(
 	{
 		if (UserContext)
 		{
-			using TranslucentFlyouts::TFMain::InteractiveIO;
+			using namespace TranslucentFlyouts::Api;
 			auto& symbolResolver{*reinterpret_cast<SymbolResolver*>(UserContext)};
 			auto event{reinterpret_cast<PIMAGEHLP_CBA_EVENTW>(CallbackData)};
 
@@ -28,21 +27,21 @@ BOOL CALLBACK SymbolResolver::SymCallback(
 			}
 			if (wcsstr(event->desc, L"SYMSRV:  HTTPGET: /download/symbols/index2.txt"))
 			{
-				symbolResolver.m_io.OutputString(
+				InteractiveIO::OutputToConsole(
 					InteractiveIO::StringType::Notification,
 					InteractiveIO::WaitType::NoWait,
 					IDS_STRING106,
 					std::format(L"[{}] ", symbolResolver.m_sessionName),
-					L"\n"sv
+					L"\n"
 				);
 			}
 			if (symbolResolver.m_printInfo)
 			{
-				symbolResolver.m_io.OutputString(
+				InteractiveIO::OutputToConsole(
 					InteractiveIO::StringType::Notification,
 					InteractiveIO::WaitType::NoWait,
 					0,
-					L""sv,
+					L"",
 					std::format(L"{}", event->desc)
 				);
 			}
@@ -57,7 +56,7 @@ BOOL CALLBACK SymbolResolver::SymCallback(
 	return FALSE;
 }
 
-SymbolResolver::SymbolResolver(std::wstring_view sessionName, const TFMain::InteractiveIO& io) : m_sessionName{ sessionName }, m_io{io}
+SymbolResolver::SymbolResolver(std::wstring_view sessionName) : m_sessionName{ sessionName }
 {
 	try
 	{
@@ -67,10 +66,10 @@ SymbolResolver::SymbolResolver(std::wstring_view sessionName, const TFMain::Inte
 		THROW_IF_WIN32_BOOL_FALSE(SymRegisterCallbackW64(GetCurrentProcess(), SymCallback, reinterpret_cast<ULONG64>(this)));
 
 		WCHAR curDir[MAX_PATH + 1]{};
-		THROW_LAST_ERROR_IF(GetModuleFileName(HINST_THISCOMPONENT, curDir, MAX_PATH) == 0);
+		THROW_LAST_ERROR_IF(GetModuleFileName(wil::GetModuleInstanceHandle(), curDir, MAX_PATH) == 0);
 		THROW_IF_FAILED(PathCchRemoveFileSpec(curDir, MAX_PATH));
 
-		wstring symPath{format(L"SRV*{}\\symbols", curDir)};
+		std::wstring symPath{std::format(L"SRV*{}\\symbols", curDir)};
 		THROW_IF_WIN32_BOOL_FALSE(SymSetSearchPathW(GetCurrentProcess(), symPath.c_str()));
 	}
 	catch (...)
@@ -85,13 +84,13 @@ SymbolResolver::~SymbolResolver() noexcept
 	SymCleanup(GetCurrentProcess());
 }
 
-HRESULT SymbolResolver::Walk(std::wstring_view dllName, string_view mask, function<bool(PSYMBOL_INFO, ULONG)> callback) try
+HRESULT SymbolResolver::Walk(std::wstring_view dllName, std::string_view mask, std::function<bool(PSYMBOL_INFO, ULONG)> callback) try
 {
 	DWORD64 dllBase{0};
 	WCHAR filePath[MAX_PATH + 1]{}, symFile[MAX_PATH + 1]{};
 	MODULEINFO modInfo{};
 
-	auto cleanUp = scope_exit([&]
+	auto cleanUp = wil::scope_exit([&]
 	{
 		if (dllBase != 0)
 		{
@@ -102,7 +101,7 @@ HRESULT SymbolResolver::Walk(std::wstring_view dllName, string_view mask, functi
 
 	THROW_HR_IF(E_INVALIDARG, dllName.empty());
 
-	unique_hmodule moduleHandle{LoadLibraryExW(dllName.data(), nullptr, DONT_RESOLVE_DLL_REFERENCES | LOAD_LIBRARY_SEARCH_SYSTEM32)};
+	wil::unique_hmodule moduleHandle{LoadLibraryExW(dllName.data(), nullptr, DONT_RESOLVE_DLL_REFERENCES)};
 	THROW_LAST_ERROR_IF_NULL(moduleHandle);
 	THROW_LAST_ERROR_IF(GetModuleFileNameW(moduleHandle.get(), filePath, MAX_PATH) == 0);
 	THROW_IF_WIN32_BOOL_FALSE(GetModuleInformation(GetCurrentProcess(), moduleHandle.get(), &modInfo, sizeof(modInfo)));
@@ -114,14 +113,14 @@ HRESULT SymbolResolver::Walk(std::wstring_view dllName, string_view mask, functi
 		THROW_WIN32_IF(lastError, lastError != ERROR_FILE_NOT_FOUND);
 
 		WCHAR curDir[MAX_PATH + 1]{};
-		THROW_LAST_ERROR_IF(GetModuleFileName(HINST_THISCOMPONENT, curDir, MAX_PATH) == 0);
+		THROW_LAST_ERROR_IF(GetModuleFileName(wil::GetModuleInstanceHandle(), curDir, MAX_PATH) == 0);
 		THROW_IF_FAILED(PathCchRemoveFileSpec(curDir, MAX_PATH));
 
-		wstring symPath{format(L"SRV*{}\\symbols*http://msdl.microsoft.com/download/symbols", curDir)};
+		std::wstring symPath{std::format(L"SRV*{}\\symbols*http://msdl.microsoft.com/download/symbols", curDir)};
 		
 		DWORD options = SymSetOptions(SYMOPT_DEFERRED_LOADS | SYMOPT_DEBUG);
 		
-		auto cleanUp = scope_exit([&]
+		auto cleanUp = wil::scope_exit([&]
 		{
 			SymSetOptions(options);
 		});
@@ -137,21 +136,21 @@ HRESULT SymbolResolver::Walk(std::wstring_view dllName, string_view mask, functi
 	
 	return S_OK;
 }
-CATCH_LOG_RETURN_HR(ResultFromCaughtException())
+CATCH_LOG_RETURN_HR(wil::ResultFromCaughtException())
 
-bool SymbolResolver::GetSymbolStatus()
+bool SymbolResolver::IsLoaded()
 {
 	return m_symbolsOK;
 }
 
-bool SymbolResolver::GetSymbolSource()
+bool SymbolResolver::IsInternetRequired()
 {
 	return m_requireInternet;
 }
 
 BOOL SymbolResolver::EnumSymbolsCallback(PSYMBOL_INFO pSymInfo, ULONG SymbolSize, PVOID UserContext)
 {
-	auto& callback{*reinterpret_cast<function<bool(PSYMBOL_INFO symInfo, ULONG symbolSize)>*>(UserContext)};
+	auto& callback{*reinterpret_cast<std::function<bool(PSYMBOL_INFO symInfo, ULONG symbolSize)>*>(UserContext)};
 
 	if (callback)
 	{

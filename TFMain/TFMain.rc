@@ -54,12 +54,14 @@ STRINGTABLE
 BEGIN
     IDS_STRING101           "符号文件已经解析完成，将会被自动删除。"
     IDS_STRING102           "我们尝试从微软服务器下载合适的符号文件，但是不幸失败了！\n没有符号文件，TranslucentFlyouts的某些功能可能不可用或受限，你想现在重试吗？(Y/N) "
-    IDS_STRING103           "在解析符号的过程中抛出了一个异常，部分功能将不可用！"
+    IDS_STRING103           "加载符号的过程中出现错误，这可能是因为你没有网络或无法连接上微软符号服务器，也可能是操作系统太新符号文件尚不可用，该部分功能将不可用。"
     IDS_STRING104           "完成！按下任意键关闭窗口，正常情况下你之后都不会看到该窗口的出现。"
     IDS_STRING105           "是否一并删除你的注册表配置信息？"
     IDS_STRING106           "正在从本地或微软符号服务器加载符号文件，请确保你的网络连接正常..."
     IDS_STRING107           "你似乎是在一个不受支持的Windows系统上运行TranslucentFlyouts！符号文件已成功加载但未解析出必要的信息，请将你的系统版本报告给开发者！"
     IDS_STRING108           "解析的结果已经被缓存到注册表中。"
+    IDS_STRING109           "Windows 资源管理器在过去30秒内已连续崩溃两次！看起来似乎存在着一个严重的兼容性问题！出于安全考量，TranslucentFlyouts主服务将会被强制中止。\n如果该问题持续出现，请考虑报告你的系统版本给开发者！"
+    IDS_STRING110           "已经超过了5秒钟而Windows 资源管理器仍然没有正常重新启动！看起来似乎存在着一个严重的兼容性问题！出于安全考量，TranslucentFlyouts主服务将会被强制中止。\n如果该问题持续出现，请考虑报告你的系统版本给开发者！"
 END
 
 #endif    // 中文(简体，中国) resources
@@ -82,12 +84,14 @@ STRINGTABLE
 BEGIN
     IDS_STRING101           "The symbol files have been successfully resolved, and they will be automatically deleted."
     IDS_STRING102           "We tried to download appropriate symbols package from Microsoft server but it failed.\nWithout symbol files, some features of TranslucentFlyouts may be limited or unavailable, do you want to retry it now? (Y/N) "
-    IDS_STRING103           "An exception thrown while resolving symbol files, some features of TranslucentFlyouts will be limited or unavailable! "
+    IDS_STRING103           "An error occured while loading symbols, this may be because you don't have an internet connection or you can't connect to the Microsoft Symbol Server, or the operating system is too new for the symbol file to be available yet."
     IDS_STRING104           "Done! Press any key to close this window, normally you will not see this console window again!"
     IDS_STRING105           "Do you want to delete your registry configuration information as well?"
     IDS_STRING106           "Loading symbol files from local disk or Microsoft symbol servers, please make sure your network connection is alright..."
-    IDS_STRING107           "It appears that you are running TranslucentFlyouts on an UNSUPPORTED Windows system! The symbol file was loaded successfully but resolved failed, please report your OS information to developer!"
+    IDS_STRING107           "It appears that you are running TranslucentFlyouts on an UNSUPPORTED Windows system! The symbol file was loaded successfully but resolved failed, please report your OS information to the developer!"
     IDS_STRING108           "The results of resolved symbols have been saved into the registry."
+    IDS_STRING109           "Windows Explorer crashed twice in the last 30 seconds! It seems like there is a severe compatibility issue! For security reasons, TranslucentFlyouts main service will now be terminated.\nPlease consider reporting your OS information to the developer if you encounter this situation again!"
+    IDS_STRING110           "It's been more than 5 seconds and Windows Explorer still hasn't restarted properly! It seems like there is a severe compatibility issue! For security reasons, TranslucentFlyouts main service will now be terminated.\nPlease consider reporting your OS information to the developer if you keep encountering this situation!"
 END
 
 #endif    // 英语(中性) resources

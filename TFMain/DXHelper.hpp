@@ -1,5 +1,6 @@
-#pragma once
-#include "pch.h"
+﻿#pragma once
+#include "Utils.hpp"
+#include "dx.h"
 
 namespace TranslucentFlyouts
 {
@@ -60,14 +61,16 @@ namespace TranslucentFlyouts
 		class LazyD3D : public LazyDX
 		{
 		public:
+			friend class wil::manually_managed_shutdown_aware_object<LazyD3D>;
 			static bool EnsureInitialized();
 			static LazyD3D& GetInstance();
-			virtual ~LazyD3D() noexcept;
+			virtual ~LazyD3D() noexcept = default;
 			LazyD3D(const LazyD3D&) = delete;
 			LazyD3D& operator=(const LazyD3D&) = delete;
 
 			wil::com_ptr<IDXGIDevice3> GetDxgiDevice() const { return m_dxgiDevice; };
 			wil::com_ptr<ID3D11Device> GetD3DDevice() const { return m_d3dDevice; };
+			void ProcessShutdown() {}
 		protected:
 			void CreateDeviceIndependentResources() override;
 			void CreateDeviceResources() override;
@@ -83,14 +86,16 @@ namespace TranslucentFlyouts
 		class LazyD2D : public LazyDX
 		{
 		public:
+			friend class wil::manually_managed_shutdown_aware_object<LazyD2D>;
 			static bool EnsureInitialized();
 			static LazyD2D& GetInstance();
-			virtual ~LazyD2D() noexcept;
+			virtual ~LazyD2D() noexcept = default;
 			LazyD2D(const LazyD2D&) = delete;
 			LazyD2D& operator=(const LazyD2D&) = delete;
 
 			wil::com_ptr<ID2D1DCRenderTarget> GetRenderTarget() const { return m_dcRT; };
 			wil::com_ptr<ID2D1Factory> GetFactory() const { return m_factory; };
+			void ProcessShutdown() {}
 		protected:
 			void CreateDeviceIndependentResources() override;
 			void CreateDeviceResources() override;
@@ -106,13 +111,15 @@ namespace TranslucentFlyouts
 		class LazyDComposition : public LazyDX
 		{
 		public:
+			friend class wil::manually_managed_shutdown_aware_object<LazyDComposition>;
 			static bool EnsureInitialized();
 			static LazyDComposition& GetInstance();
-			virtual ~LazyDComposition() noexcept;
+			virtual ~LazyDComposition() noexcept = default;
 			LazyDComposition(const LazyDComposition&) = delete;
 			LazyDComposition& operator=(const LazyDComposition&) = delete;
 
 			wil::com_ptr<IDCompositionDesktopDevice> GetDCompositionDevice() const { return m_dcompDevice; };
+			void ProcessShutdown() {}
 		protected:
 			void CreateDeviceIndependentResources() override;
 			void CreateDeviceResources() override;

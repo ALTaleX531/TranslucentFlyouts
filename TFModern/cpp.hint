@@ -1,0 +1,2 @@
+#define TFMODERN_API __declspec(dllexport)
+#define TFMODERN_API __declspec(dllimport)

@@ -33,10 +33,7 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
-    <SupportLTL>true</SupportLTL>
-    <WindowsTargetPlatformMinVersion>6.2.9200.0</WindowsTargetPlatformMinVersion>
-    <CleanImport>true</CleanImport>
-    <DisableAdvancedSupport>false</DisableAdvancedSupport>
+    <WindowsTargetPlatformMinVersion>10.0.10240.0</WindowsTargetPlatformMinVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
@@ -44,19 +41,14 @@
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
-    <SupportLTL>true</SupportLTL>
     <WindowsTargetPlatformMinVersion>10.0.10240.0</WindowsTargetPlatformMinVersion>
-    <CleanImport>true</CleanImport>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
-    <SupportLTL>true</SupportLTL>
-    <WindowsTargetPlatformMinVersion>6.2.9200.0</WindowsTargetPlatformMinVersion>
-    <CleanImport>true</CleanImport>
-    <DisableAdvancedSupport>false</DisableAdvancedSupport>
+    <WindowsTargetPlatformMinVersion>10.0.10240.0</WindowsTargetPlatformMinVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
@@ -64,14 +56,13 @@
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
-    <SupportLTL>true</SupportLTL>
     <WindowsTargetPlatformMinVersion>10.0.10240.0</WindowsTargetPlatformMinVersion>
-    <CleanImport>true</CleanImport>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
   <ImportGroup Label="Shared">
+    <Import Project="..\Common\Common.vcxitems" Label="Shared" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -89,32 +80,31 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)Build\$(PlatformShortName)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)Cache\$(PlatformShortName)\$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)Cache\$(ProjectName)\$(PlatformShortName)\$(Configuration)\</IntDir>
     <TargetName>$(ProjectName)$(PlatformArchitecture)</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)Build\$(PlatformShortName)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)Cache\$(PlatformShortName)\$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)Cache\$(ProjectName)\$(PlatformShortName)\$(Configuration)\</IntDir>
     <TargetName>$(ProjectName)$(PlatformArchitecture)</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)Build\$(PlatformShortName)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)Cache\$(PlatformShortName)\$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)Cache\$(ProjectName)\$(PlatformShortName)\$(Configuration)\</IntDir>
     <TargetName>$(ProjectName)$(PlatformArchitecture)</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)Build\$(PlatformShortName)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)Cache\$(PlatformShortName)\$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)Cache\$(ProjectName)\$(PlatformShortName)\$(Configuration)\</IntDir>
     <TargetName>$(ProjectName)$(PlatformArchitecture)</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;TFMAIN_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -125,6 +115,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ModuleDefinitionFile>GlobalFunctions.def</ModuleDefinitionFile>
+      <AdditionalLibraryDirectories>$(SolutionDir)Build\$(PlatformShortName)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -133,7 +124,6 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;TFMAIN_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -155,13 +145,13 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
       <ModuleDefinitionFile>GlobalFunctions.def</ModuleDefinitionFile>
+      <AdditionalLibraryDirectories>$(SolutionDir)Build\$(PlatformShortName)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;TFMAIN_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -172,6 +162,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ModuleDefinitionFile>GlobalFunctions.def</ModuleDefinitionFile>
+      <AdditionalLibraryDirectories>$(SolutionDir)Build\$(PlatformShortName)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -180,7 +171,6 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;TFMAIN_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -203,59 +193,67 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
       <ModuleDefinitionFile>GlobalFunctions.def</ModuleDefinitionFile>
+      <AdditionalLibraryDirectories>$(SolutionDir)Build\$(PlatformShortName)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClInclude Include="crt.h" />
-    <ClInclude Include="DwmThumbnailAPI.hpp" />
-    <ClInclude Include="dx.h" />
-    <ClInclude Include="EffectHelper.hpp" />
-    <ClInclude Include="framework.h" />
-    <ClInclude Include="Hooking.hpp" />
-    <ClInclude Include="ImmersiveContextMenuPatcher.hpp" />
-    <ClInclude Include="DXHelper.hpp" />
-    <ClInclude Include="MenuAnimation.hpp" />
-    <ClInclude Include="MenuHandler.hpp" />
-    <ClInclude Include="MenuRendering.hpp" />
-    <ClInclude Include="pch.h" />
-    <ClInclude Include="RegHelper.hpp" />
-    <ClInclude Include="resource.h" />
-    <ClInclude Include="SharedUxTheme.hpp" />
-    <ClInclude Include="SymbolResolver.hpp" />
-    <ClInclude Include="TFMain.hpp" />
-    <ClInclude Include="ThemeHelper.hpp" />
-    <ClInclude Include="ToolTipHandler.hpp" />
-    <ClInclude Include="UxThemePatcher.hpp" />
-    <ClInclude Include="Utils.hpp" />
-    <ClInclude Include="wil.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="Hooking.cpp" />
-    <ClCompile Include="ImmersiveContextMenuPatcher.cpp" />
-    <ClCompile Include="DXHelper.cpp" />
-    <ClCompile Include="MenuAnimation.cpp" />
-    <ClCompile Include="MenuHandler.cpp" />
-    <ClCompile Include="MenuRendering.cpp" />
-    <ClCompile Include="pch.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="RegHelper.cpp" />
-    <ClCompile Include="SharedUxTheme.cpp" />
-    <ClCompile Include="SymbolResolver.cpp" />
-    <ClCompile Include="dllmain.cpp" />
-    <ClCompile Include="TFMain.cpp" />
-    <ClCompile Include="ToolTipHandler.cpp" />
-    <ClCompile Include="UxThemePatcher.cpp" />
-  </ItemGroup>
   <ItemGroup>
     <None Include="GlobalFunctions.def" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="TFMain.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ApiEx.hpp" />
+    <ClInclude Include="Application.hpp" />
+    <ClInclude Include="DropDownHandler.hpp" />
+    <ClInclude Include="DropDownHooks.hpp" />
+    <ClInclude Include="DwmThumbnailAPI.hpp" />
+    <ClInclude Include="DXHelper.hpp" />
+    <ClInclude Include="EffectHelper.hpp" />
+    <ClInclude Include="HookDispatcher.hpp" />
+    <ClInclude Include="HookLocks.hpp" />
+    <ClInclude Include="ImmersiveHooks.hpp" />
+    <ClInclude Include="FlyoutAnimation.hpp" />
+    <ClInclude Include="MenuAppearance.hpp" />
+    <ClInclude Include="MenuHandler.hpp" />
+    <ClInclude Include="MenuHooks.hpp" />
+    <ClInclude Include="MenuRendering.hpp" />
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="KbxLabelHooks.hpp" />
+    <ClInclude Include="Framework.hpp" />
+    <ClInclude Include="SymbolResolver.hpp" />
+    <ClInclude Include="TooltipHandler.hpp" />
+    <ClInclude Include="TooltipHooks.hpp" />
+    <ClInclude Include="TraverseLogHooks.hpp" />
+    <ClInclude Include="UxThemeHooks.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="ApiEx.cpp" />
+    <ClCompile Include="Application.cpp" />
+    <ClCompile Include="dllmain.cpp" />
+    <ClCompile Include="DropDownHandler.cpp" />
+    <ClCompile Include="DropDownHooks.cpp" />
+    <ClCompile Include="DXHelper.cpp" />
+    <ClCompile Include="ImmersiveHooks.cpp" />
+    <ClCompile Include="FlyoutAnimation.cpp" />
+    <ClCompile Include="KbxLabelHooks.cpp" />
+    <ClCompile Include="MenuHandler.cpp" />
+    <ClCompile Include="MenuHooks.cpp" />
+    <ClCompile Include="MenuRendering.cpp" />
+    <ClCompile Include="pch.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Framework.cpp" />
+    <ClCompile Include="SymbolResolver.cpp" />
+    <ClCompile Include="TooltipHandler.cpp" />
+    <ClCompile Include="TooltipHooks.cpp" />
+    <ClCompile Include="TraverseLogHooks.cpp" />
+    <ClCompile Include="UxThemeHooks.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

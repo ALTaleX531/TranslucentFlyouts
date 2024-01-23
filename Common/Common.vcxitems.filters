@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="pch">
+      <UniqueIdentifier>{7c6cec53-d251-4949-9855-5e54e915131a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Helpers">
+      <UniqueIdentifier>{e2fc2e69-8c89-4b2b-adac-c6f88fb1ce29}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)wil.h">
+      <Filter>pch</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)framework.h">
+      <Filter>pch</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)dx.h">
+      <Filter>pch</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)cpprt.h">
+      <Filter>pch</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)HookHelper.hpp">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Utils.hpp">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)RegHelper.hpp">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)SystemHelper.hpp">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)Api.hpp">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)ThemeHelper.hpp">
+      <Filter>Helpers</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)HookHelper.cpp">
+      <Filter>Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)Api.cpp">
+      <Filter>Helpers</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

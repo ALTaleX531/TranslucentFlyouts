@@ -1,5 +1,5 @@
-#pragma once
-#include "pch.h"
+﻿#pragma once
+#include "framework.h"
 
 namespace TranslucentFlyouts
 {
@@ -80,7 +80,7 @@ namespace TranslucentFlyouts
 			DWORD dwAnimationId;
 		};
 
-		static const auto g_actualSetWindowCompositionAttribute
+		inline const auto g_actualSetWindowCompositionAttribute
 		{
 			reinterpret_cast<BOOL(WINAPI*)(HWND, WINDOWCOMPOSITIONATTRIBUTEDATA*)>(
 				DetourFindFunction("user32", "SetWindowCompositionAttribute")
@@ -89,7 +89,7 @@ namespace TranslucentFlyouts
 
 		static void DwmMakeWindowTransparent(HWND hwnd, BOOL enable)
 		{
-			DWM_BLURBEHIND bb{DWM_BB_ENABLE | static_cast<DWORD>(enable ? (DWM_BB_BLURREGION | DWM_BB_TRANSITIONONMAXIMIZED) : 0), enable, CreateRectRgn(0, 0, -1, -1), TRUE};
+			DWM_BLURBEHIND bb{ DWM_BB_ENABLE | static_cast<DWORD>(enable ? (DWM_BB_BLURREGION | DWM_BB_TRANSITIONONMAXIMIZED) : 0), enable, CreateRectRgn(0, 0, -1, -1), TRUE };
 			DwmEnableBlurBehindWindow(hwnd, &bb);
 			DeleteObject(bb.hRgnBlur);
 		}
@@ -123,12 +123,12 @@ namespace TranslucentFlyouts
 
 		// Set specific backdrop effect for a window,
 		// please remember don't call this function when you received WM_NC** messages...(eg. WM_NCCREATE, WM_NCDESTROY)
-		static void SetWindowBackdrop(HWND hwnd, BOOL dropshadow, DWORD tintColor, DWORD effectType)
+		static void SetWindowBackdrop(HWND hwnd, BOOL dropShadow, DWORD tintColor, DWORD effectType)
 		{
 			ACCENT_POLICY accentPolicy
 			{
 				static_cast<DWORD>(ACCENT_STATE::ACCENT_DISABLED),
-				static_cast<DWORD>(dropshadow ? ACCENT_FLAG::ACCENT_ENABLE_BORDER : ACCENT_FLAG::ACCENT_NONE),
+				static_cast<DWORD>(dropShadow ? ACCENT_FLAG::ACCENT_ENABLE_BORDER : ACCENT_FLAG::ACCENT_NONE),
 				tintColor,
 				0
 			};
@@ -210,7 +210,7 @@ namespace TranslucentFlyouts
 			DwmSetWindowAttribute(hwnd, 1029, &mica, sizeof(mica));
 			DwmSetWindowAttribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, &backdropType, sizeof(DWM_SYSTEMBACKDROP_TYPE));
 			DwmMakeWindowTransparent(hwnd, windowTransparent);
-			if (g_actualSetWindowCompositionAttribute)
+			if (g_actualSetWindowCompositionAttribute) [[likely]]
 			{
 				g_actualSetWindowCompositionAttribute(hwnd, &data);
 			}

@@ -1,0 +1,93 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="源文件">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="头文件">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="资源文件">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="源文件\Main">
+      <UniqueIdentifier>{27f19ef6-296b-4357-ac7d-7bd747a1ed9c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\Main">
+      <UniqueIdentifier>{2b9d1d78-f912-4393-bd95-9b7a0af49782}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\Diagnostics">
+      <UniqueIdentifier>{27a27bf7-09b2-4a54-8b55-f2cf6ffa60f6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\Diagnostics">
+      <UniqueIdentifier>{c951530b-6283-42d7-abbf-6c779145c0f3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\FlyoutsHandler">
+      <UniqueIdentifier>{ea7efecd-b09d-4ddb-94d4-62634406c7f3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\FlyoutsHandler">
+      <UniqueIdentifier>{b01f2e11-2d35-4565-8259-be8518b168f6}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="cpp.hint" />
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="pch.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="winrt.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Application.hpp">
+      <Filter>头文件\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework.hpp">
+      <Filter>头文件\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="DiagnosticsHandler.hpp">
+      <Filter>头文件\Diagnostics</Filter>
+    </ClInclude>
+    <ClInclude Include="DiagnosticsHooks.hpp">
+      <Filter>头文件\Diagnostics</Filter>
+    </ClInclude>
+    <ClInclude Include="CommonFlyoutsHandler.hpp">
+      <Filter>头文件\FlyoutsHandler</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="dllmain.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="pch.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Application.cpp">
+      <Filter>源文件\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework.cpp">
+      <Filter>源文件\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="DiagnosticsHandler.cpp">
+      <Filter>源文件\Diagnostics</Filter>
+    </ClCompile>
+    <ClCompile Include="DiagnosticsHooks.cpp">
+      <Filter>源文件\Diagnostics</Filter>
+    </ClCompile>
+    <ClCompile Include="CommonFlyoutsHandler.cpp">
+      <Filter>源文件\FlyoutsHandler</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="TFModern.rc">
+      <Filter>资源文件</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+</Project>

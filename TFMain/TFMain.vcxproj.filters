@@ -13,118 +13,36 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="framework.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="pch.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="crt.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="Hooking.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="UxThemePatcher.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="ThemeHelper.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="Utils.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="SymbolResolver.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="MenuHandler.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="EffectHelper.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="ImmersiveContextMenuPatcher.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="resource.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="RegHelper.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="MenuAnimation.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="DXHelper.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="wil.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="dx.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="MenuRendering.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="DwmThumbnailAPI.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="TFMain.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="ToolTipHandler.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="SharedUxTheme.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="pch.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="dllmain.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="Hooking.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="UxThemePatcher.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="SymbolResolver.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="MenuHandler.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="ImmersiveContextMenuPatcher.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="RegHelper.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="MenuAnimation.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="DXHelper.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="MenuRendering.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="TFMain.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="ToolTipHandler.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="SharedUxTheme.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
+    <Filter Include="源文件\Menu">
+      <UniqueIdentifier>{8af4bc04-00e3-471d-b1b1-21cc1fe7eb2c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\Helpers">
+      <UniqueIdentifier>{79a20548-5a62-4e9e-ac35-0d4ba57eac5f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\Tooltip">
+      <UniqueIdentifier>{84d31ee5-ea0e-41f6-b530-df693f303256}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\Menu">
+      <UniqueIdentifier>{121ff584-8bcc-42e9-bf25-d1cf8336f12a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\Tooltip">
+      <UniqueIdentifier>{d68cb722-5c77-49de-aa04-d167e6755d9d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\DropDown">
+      <UniqueIdentifier>{ab37a123-5d27-450d-b911-798b84fc03da}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\DropDown">
+      <UniqueIdentifier>{d8aa5b4a-e546-44ea-9823-c04a2517011e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\Main">
+      <UniqueIdentifier>{f31e1a5c-cdb1-4ac1-b854-b743a3dbd49c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\Main">
+      <UniqueIdentifier>{7266efe3-8796-4bbc-bee5-3656c25c153a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\Helpers">
+      <UniqueIdentifier>{86704dd9-e841-4b33-bf83-4e818b3c7313}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -139,5 +57,138 @@
     <ResourceCompile Include="TFMain.rc">
       <Filter>资源文件</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="DwmThumbnailAPI.hpp">
+      <Filter>头文件\Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="MenuHooks.hpp">
+      <Filter>头文件\Menu</Filter>
+    </ClInclude>
+    <ClInclude Include="ImmersiveHooks.hpp">
+      <Filter>头文件\Menu</Filter>
+    </ClInclude>
+    <ClInclude Include="MenuHandler.hpp">
+      <Filter>头文件\Menu</Filter>
+    </ClInclude>
+    <ClInclude Include="MenuAppearance.hpp">
+      <Filter>头文件\Menu</Filter>
+    </ClInclude>
+    <ClInclude Include="MenuRendering.hpp">
+      <Filter>头文件\Menu</Filter>
+    </ClInclude>
+    <ClInclude Include="UxThemeHooks.hpp">
+      <Filter>头文件\Menu</Filter>
+    </ClInclude>
+    <ClInclude Include="TooltipHandler.hpp">
+      <Filter>头文件\Tooltip</Filter>
+    </ClInclude>
+    <ClInclude Include="TooltipHooks.hpp">
+      <Filter>头文件\Tooltip</Filter>
+    </ClInclude>
+    <ClInclude Include="TraverseLogHooks.hpp">
+      <Filter>头文件\Menu</Filter>
+    </ClInclude>
+    <ClInclude Include="DropDownHandler.hpp">
+      <Filter>头文件\DropDown</Filter>
+    </ClInclude>
+    <ClInclude Include="DropDownHooks.hpp">
+      <Filter>头文件\DropDown</Filter>
+    </ClInclude>
+    <ClInclude Include="KbxLabelHooks.hpp">
+      <Filter>头文件\Tooltip</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="pch.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Application.hpp">
+      <Filter>头文件\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="FlyoutAnimation.hpp">
+      <Filter>头文件\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="Framework.hpp">
+      <Filter>头文件\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="HookLocks.hpp">
+      <Filter>头文件\Main</Filter>
+    </ClInclude>
+    <ClInclude Include="SymbolResolver.hpp">
+      <Filter>头文件\Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="HookDispatcher.hpp">
+      <Filter>头文件\Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="DXHelper.hpp">
+      <Filter>头文件\Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="EffectHelper.hpp">
+      <Filter>头文件\Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="ApiEx.hpp">
+      <Filter>头文件\Helpers</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="pch.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="MenuHooks.cpp">
+      <Filter>源文件\Menu</Filter>
+    </ClCompile>
+    <ClCompile Include="ImmersiveHooks.cpp">
+      <Filter>源文件\Menu</Filter>
+    </ClCompile>
+    <ClCompile Include="MenuHandler.cpp">
+      <Filter>源文件\Menu</Filter>
+    </ClCompile>
+    <ClCompile Include="MenuRendering.cpp">
+      <Filter>源文件\Menu</Filter>
+    </ClCompile>
+    <ClCompile Include="UxThemeHooks.cpp">
+      <Filter>源文件\Menu</Filter>
+    </ClCompile>
+    <ClCompile Include="TooltipHandler.cpp">
+      <Filter>源文件\Tooltip</Filter>
+    </ClCompile>
+    <ClCompile Include="TooltipHooks.cpp">
+      <Filter>源文件\Tooltip</Filter>
+    </ClCompile>
+    <ClCompile Include="TraverseLogHooks.cpp">
+      <Filter>源文件\Menu</Filter>
+    </ClCompile>
+    <ClCompile Include="DropDownHandler.cpp">
+      <Filter>源文件\DropDown</Filter>
+    </ClCompile>
+    <ClCompile Include="DropDownHooks.cpp">
+      <Filter>源文件\DropDown</Filter>
+    </ClCompile>
+    <ClCompile Include="KbxLabelHooks.cpp">
+      <Filter>源文件\Tooltip</Filter>
+    </ClCompile>
+    <ClCompile Include="Application.cpp">
+      <Filter>源文件\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="FlyoutAnimation.cpp">
+      <Filter>源文件\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="Framework.cpp">
+      <Filter>源文件\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="dllmain.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SymbolResolver.cpp">
+      <Filter>源文件\Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="DXHelper.cpp">
+      <Filter>源文件\Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="ApiEx.cpp">
+      <Filter>源文件\Helpers</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

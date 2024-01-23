@@ -1,3 +1,8 @@
-LIBRARY
+﻿LIBRARY
 EXPORTS
-    Main   PRIVATE
+	Main   PRIVATE
+	IsServiceRunning   PRIVATE
+	StopService   PRIVATE
+	StartService   PRIVATE
+	InstallApp   PRIVATE
+	UninstallApp   PRIVATE

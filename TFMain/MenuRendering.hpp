@@ -1,22 +1,19 @@
-#pragma once
+﻿#pragma once
 #include "pch.h"
+#include "MenuHandler.hpp"
 
-namespace TranslucentFlyouts
+namespace TranslucentFlyouts::MenuRendering
 {
-	namespace MenuRendering
-	{
-		HRESULT DoCustomThemeRendering(HDC hdc, bool darkMode, int partId, int stateId, const RECT& clipRect, const RECT& paintRect);
-		HRESULT BltWithAlpha(
-			HDC   hdcDest,
-			int   xDest,
-			int   yDest,
-			int   wDest,
-			int   hDest,
-			HDC   hdcSrc,
-			int   xSrc,
-			int   ySrc,
-			int   wSrc,
-			int   hSrc
-		);
-	}
+	bool HandlePopupMenuNonClientBorderColors(HDC hdc, const RECT& paintRect);
+	bool HandleCustomRendering(HDC hdc, int partId, int stateId, const RECT& clipRect, const RECT& paintRect);
+	bool HandleMenuBitmap(HBITMAP& source, wil::unique_hbitmap& target);
+	bool HandleDrawThemeBackground(
+		HTHEME  hTheme,
+		HDC     hdc,
+		int     iPartId,
+		int     iStateId,
+		LPCRECT pRect,
+		LPCRECT pClipRect,
+		decltype(&DrawThemeBackground) actualDrawThemeBackground
+	);
 }

@@ -1,9 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.32802.440
+# Visual Studio Version 17
+VisualStudioVersion = 17.8.34408.163
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TFMain", "TFMain\TFMain.vcxproj", "{6F20B078-C16A-4287-9A13-C7C65EF27205}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Common", "Common\Common.vcxitems", "{6C80F873-8DBE-4B58-9F32-585B3EA767F3}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TFModern", "TFModern\TFModern.vcxproj", "{F79B986C-C960-40AB-B0B2-4D6EA009BC15}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,11 +25,24 @@ Global
 		{6F20B078-C16A-4287-9A13-C7C65EF27205}.Release|x64.Build.0 = Release|x64
 		{6F20B078-C16A-4287-9A13-C7C65EF27205}.Release|x86.ActiveCfg = Release|Win32
 		{6F20B078-C16A-4287-9A13-C7C65EF27205}.Release|x86.Build.0 = Release|Win32
+		{F79B986C-C960-40AB-B0B2-4D6EA009BC15}.Debug|x64.ActiveCfg = Debug|x64
+		{F79B986C-C960-40AB-B0B2-4D6EA009BC15}.Debug|x64.Build.0 = Debug|x64
+		{F79B986C-C960-40AB-B0B2-4D6EA009BC15}.Debug|x86.ActiveCfg = Debug|Win32
+		{F79B986C-C960-40AB-B0B2-4D6EA009BC15}.Debug|x86.Build.0 = Debug|Win32
+		{F79B986C-C960-40AB-B0B2-4D6EA009BC15}.Release|x64.ActiveCfg = Release|x64
+		{F79B986C-C960-40AB-B0B2-4D6EA009BC15}.Release|x64.Build.0 = Release|x64
+		{F79B986C-C960-40AB-B0B2-4D6EA009BC15}.Release|x86.ActiveCfg = Release|Win32
+		{F79B986C-C960-40AB-B0B2-4D6EA009BC15}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E4955DCF-189C-446B-A80D-C7A53CB10C90}
+	EndGlobalSection
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		Common\Common.vcxitems*{6c80f873-8dbe-4b58-9f32-585b3ea767f3}*SharedItemsImports = 9
+		Common\Common.vcxitems*{6f20b078-c16a-4287-9a13-c7c65ef27205}*SharedItemsImports = 4
+		Common\Common.vcxitems*{f79b986c-c960-40ab-b0b2-4d6ea009bc15}*SharedItemsImports = 4
 	EndGlobalSection
 EndGlobal

@@ -1,23 +1,45 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <DebuggerFlavor>WindowsRemoteDebugger</DebuggerFlavor>
     <LocalDebuggerCommand>C:\WINDOWS\sysWow64\Rundll32.exe</LocalDebuggerCommand>
     <LocalDebuggerCommandArguments>$(SolutionDir)Build\$(PlatformShortName)\$(Configuration)\$(ProjectName)$(PlatformArchitecture).dll,Main /start</LocalDebuggerCommandArguments>
+    <RemoteDebuggerCommand>C:\Windows\System32\Rundll32.exe</RemoteDebuggerCommand>
+    <RemoteDebuggerWorkingDirectory>C:\Users\ALTaleX\Desktop\TF3</RemoteDebuggerWorkingDirectory>
+    <RemoteDebuggerServerName>192.168.209.135:4026</RemoteDebuggerServerName>
+    <RemoteDebuggerConnection>RemoteWithoutAuthentication</RemoteDebuggerConnection>
+    <RemoteDebuggerCommandArguments>"C:\Users\ALTaleX\Desktop\TF3\TFMain64.dll", Main /start</RemoteDebuggerCommandArguments>
+    <RemoteDebuggerDebuggerType>NativeOnly</RemoteDebuggerDebuggerType>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <DebuggerFlavor>WindowsRemoteDebugger</DebuggerFlavor>
     <LocalDebuggerCommandArguments>$(SolutionDir)Build\$(PlatformShortName)\$(Configuration)\$(ProjectName)$(PlatformArchitecture).dll,Main /start</LocalDebuggerCommandArguments>
     <LocalDebuggerCommand>C:\WINDOWS\sysWow64\Rundll32.exe</LocalDebuggerCommand>
+    <RemoteDebuggerCommand>explorer.exe</RemoteDebuggerCommand>
+    <RemoteDebuggerConnection>RemoteWithoutAuthentication</RemoteDebuggerConnection>
+    <RemoteDebuggerDebuggerType>NativeOnly</RemoteDebuggerDebuggerType>
+    <RemoteDebuggerAttach>true</RemoteDebuggerAttach>
+    <RemoteDebuggerServerName>192.168.209.135:4026</RemoteDebuggerServerName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerCommand>C:\WINDOWS\system32\Rundll32.exe</LocalDebuggerCommand>
     <LocalDebuggerCommandArguments>$(SolutionDir)Build\$(PlatformShortName)\$(Configuration)\$(ProjectName)$(PlatformArchitecture).dll,Main /start</LocalDebuggerCommandArguments>
+    <RemoteDebuggerCommand>C:\Windows\System32\Rundll32.exe</RemoteDebuggerCommand>
+    <RemoteDebuggerWorkingDirectory>C:\Users\ALTaleX\Desktop\TF3</RemoteDebuggerWorkingDirectory>
+    <RemoteDebuggerServerName>192.168.209.135:4026</RemoteDebuggerServerName>
+    <RemoteDebuggerConnection>RemoteWithoutAuthentication</RemoteDebuggerConnection>
+    <RemoteDebuggerCommandArguments>"C:\Users\ALTaleX\Desktop\TF3\TFMain64.dll", Main /start</RemoteDebuggerCommandArguments>
+    <RemoteDebuggerDebuggerType>NativeOnly</RemoteDebuggerDebuggerType>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <DebuggerFlavor>WindowsRemoteDebugger</DebuggerFlavor>
     <LocalDebuggerCommandArguments>$(SolutionDir)Build\$(PlatformShortName)\$(Configuration)\$(ProjectName)$(PlatformArchitecture).dll,Main /start</LocalDebuggerCommandArguments>
     <LocalDebuggerCommand>C:\WINDOWS\system32\Rundll32.exe</LocalDebuggerCommand>
+    <RemoteDebuggerCommand>explorer.exe</RemoteDebuggerCommand>
+    <RemoteDebuggerConnection>RemoteWithoutAuthentication</RemoteDebuggerConnection>
+    <RemoteDebuggerDebuggerType>NativeOnly</RemoteDebuggerDebuggerType>
+    <RemoteDebuggerAttach>true</RemoteDebuggerAttach>
+    <RemoteDebuggerServerName>192.168.209.135:4026</RemoteDebuggerServerName>
   </PropertyGroup>
 </Project>

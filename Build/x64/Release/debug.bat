@@ -1,1 +1,0 @@
-start Rundll32 "%~dp0TFMain64.dll",Main /start

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "pch.h"
 
 namespace TranslucentFlyouts
@@ -7,11 +7,11 @@ namespace TranslucentFlyouts
 	{
 		enum class THUMBNAIL_TYPE
 		{
-			TT_DEFAULT = 0x0,
-			TT_SNAPSHOT = 0x1,
-			TT_ICONIC = 0x2,
-			TT_BITMAPPENDING = 0x3,
-			TT_BITMAP = 0x4
+			TT_DEFAULT,
+			TT_SNAPSHOT,
+			TT_ICONIC,
+			TT_BITMAPPENDING,
+			TT_BITMAP
 		};
 
 		constexpr UINT DWM_TNP_FREEZE{0x100000};
@@ -23,7 +23,7 @@ namespace TranslucentFlyouts
 		static const auto g_actualDwmpQueryThumbnailType
 		{
 			reinterpret_cast<HRESULT(WINAPI*)(IN HTHUMBNAIL, OUT THUMBNAIL_TYPE*)>(
-				DetourFindFunction("dwmapi", MAKEINTRESOURCEA(114))
+				GetProcAddress(GetModuleHandleW(L"dwmapi.dll"), MAKEINTRESOURCEA(114))
 			)
 		};
 		static const auto g_actualDwmpCreateSharedThumbnailVisual
@@ -40,7 +40,7 @@ namespace TranslucentFlyouts
 				OUT PHTHUMBNAIL phThumbnailId
 			)
 			> (
-				DetourFindFunction("dwmapi", MAKEINTRESOURCEA(147))
+				GetProcAddress(GetModuleHandleW(L"dwmapi.dll"), MAKEINTRESOURCEA(147))
 			)
 		};
 		static const auto g_actualDwmpQueryWindowThumbnailSourceSize
@@ -52,7 +52,7 @@ namespace TranslucentFlyouts
 				OUT SIZE * pSize
 			)
 			> (
-				DetourFindFunction("dwmapi", MAKEINTRESOURCEA(162))
+				GetProcAddress(GetModuleHandleW(L"dwmapi.dll"), MAKEINTRESOURCEA(162))
 			)
 		};
 
@@ -68,7 +68,7 @@ namespace TranslucentFlyouts
 				OUT PHTHUMBNAIL phThumbnailId
 			)
 			> (
-				DetourFindFunction("dwmapi", MAKEINTRESOURCEA(163))
+				GetProcAddress(GetModuleHandleW(L"dwmapi.dll"), MAKEINTRESOURCEA(163))
 			)
 		};
 		static const auto g_actualDwmpUpdateSharedVirtualDesktopVisual
@@ -84,7 +84,7 @@ namespace TranslucentFlyouts
 				OUT SIZE * pDestinationSize
 			)
 			> (
-				DetourFindFunction("dwmapi", MAKEINTRESOURCEA(164))
+				GetProcAddress(GetModuleHandleW(L"dwmapi.dll"), MAKEINTRESOURCEA(164))
 			)
 		};
 
@@ -100,7 +100,7 @@ namespace TranslucentFlyouts
 				OUT PHTHUMBNAIL phThumbnailId
 			)
 			> (
-				DetourFindFunction("dwmapi", MAKEINTRESOURCEA(163))
+				GetProcAddress(GetModuleHandleW(L"dwmapi.dll"), MAKEINTRESOURCEA(163))
 			)
 		};
 		// Change: function name + new DWORD parameter.
@@ -119,7 +119,7 @@ namespace TranslucentFlyouts
 				IN DWORD dwFlags
 			)
 			> (
-				DetourFindFunction("dwmapi", MAKEINTRESOURCEA(164))
+				GetProcAddress(GetModuleHandleW(L"dwmapi.dll"), MAKEINTRESOURCEA(164))
 			)
 		};
 	}

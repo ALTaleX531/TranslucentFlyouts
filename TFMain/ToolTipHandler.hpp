@@ -1,20 +1,31 @@
-#pragma once
+﻿#pragma once
 #include "pch.h"
 
-namespace TranslucentFlyouts
+namespace TranslucentFlyouts::TooltipHandler
 {
-	namespace ToolTipHandler
+	inline thread_local struct TooltipContext
 	{
-		HRESULT WINAPI DrawThemeBackground(
-			HTHEME  hTheme,
-			HDC     hdc,
-			int     iPartId,
-			int     iStateId,
-			LPCRECT pRect,
-			LPCRECT pClipRect
-		);
+		bool useDarkMode;
+		HWND hwnd;
 
-		void Startup();
-		void Shutdown();
-	}
+		bool noSystemDropShadow;
+		// rendering context
+		Api::TooltipRenderingContext renderingContext;
+		// backdrop effect
+		Api::WindowBackdropEffectContext backdropEffect;
+		// border
+		Api::BorderContext border;
+
+		void Update(HWND hWnd, std::optional<bool> darkMode = std::nullopt);
+	} g_tooltipContext;
+
+	void Prepare();
+	void Startup();
+	void Shutdown();
+	void Update();
+	void CALLBACK HandleWinEvent(
+		HWINEVENTHOOK hWinEventHook, DWORD dwEvent, HWND hWnd,
+		LONG idObject, LONG idChild,
+		DWORD dwEventThread, DWORD dwmsEventTime
+	);
 }

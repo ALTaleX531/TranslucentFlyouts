@@ -1,367 +1,226 @@
 ﻿#include "pch.h"
-#include "Hooking.hpp"
-#include "TFMain.hpp"
-#include "RegHelper.hpp"
-#include "ThemeHelper.hpp"
+#include "Utils.hpp"
+#include "ApiEx.hpp"
 #include "EffectHelper.hpp"
-#include "SharedUxTheme.hpp"
-#include "ToolTipHandler.hpp"
+#include "SystemHelper.hpp"
+#include "RegHelper.hpp"
+#include "HookHelper.hpp"
+#include "ThemeHelper.hpp"
+#include "TooltipHooks.hpp"
+#include "KbxLabelHooks.hpp"
+#include "TooltipHandler.hpp"
 
 using namespace TranslucentFlyouts;
-using namespace std;
-using namespace wil;
-
-namespace TranslucentFlyouts::ToolTipHandler
+namespace TranslucentFlyouts::TooltipHandler
 {
-	int WINAPI DrawTextW(
-		HDC     hdc,
-		LPCWSTR lpchText,
-		int     cchText,
-		LPRECT  lprc,
-		UINT    format
-	);
-	void WinEventCallback(HWND hWnd, DWORD event);
-	LRESULT CALLBACK SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
-	
-	void AttachTooltip(HWND hWnd);
-	void DetachTooltip(HWND hWnd);
+	bool ShouldTooltipUseDarkMode(HWND hWnd);
+	bool IsTooltipAttachable(HWND hWnd);
+	LRESULT CALLBACK TooltipSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
+	LRESULT CALLBACK KbxLabelSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
+}
+namespace TranslucentFlyouts::TooltipHooks { extern HMODULE g_comctl32Module; }
 
-	constexpr int tooltipSubclassId{ 0 };
-	const UINT WM_THATTACH{ RegisterWindowMessageW(L"TranslucentFlyouts.TooltipHandler.Attach") };
-	const UINT WM_THDETACH{RegisterWindowMessageW(L"TranslucentFlyouts.TooltipHandler.Detach")};
+bool TooltipHandler::ShouldTooltipUseDarkMode(HWND hWnd)
+{
+	if (
+		GetWindowThreadProcessId(FindWindowW(L"Shell_TrayWnd", nullptr), nullptr) == GetWindowThreadProcessId(hWnd, nullptr) ||
+		GetWindowThreadProcessId(FindWindowW(L"Shell_SecondaryTrayWnd", nullptr), nullptr) == GetWindowThreadProcessId(hWnd, nullptr)
+	)
+	{
+		return ThemeHelper::ShouldSystemUseDarkMode();
+	}
 
-	decltype(DrawTextW)* g_actualDrawTextW{ nullptr };
-	decltype(DrawThemeBackground)* g_actualDrawThemeBackground{nullptr};
-
-	bool g_startup{false};
-	bool g_disableOnce{false};
-	thread_local bool g_darkMode{ false };
-	thread_local bool g_useUxTheme{ false };
-
-	list<HWND> g_tooltipList{};
+	return ThemeHelper::ShouldAppsUseDarkMode() && ThemeHelper::IsDarkModeAllowedForApp();
 }
 
-HRESULT WINAPI TranslucentFlyouts::ToolTipHandler::DrawThemeBackground(
-	HTHEME  hTheme,
-	HDC     hdc,
-	int     iPartId,
-	int     iStateId,
-	LPCRECT pRect,
-	LPCRECT pClipRect
-)
+bool TooltipHandler::IsTooltipAttachable(HWND hWnd)
 {
-	bool handled{ false };
-	HRESULT hr{ S_OK };
-
-	hr = [hTheme, hdc, iPartId, iStateId, pRect, pClipRect, &handled]()
+	if (!GetWindowTheme(hWnd))
 	{
-		RETURN_HR_IF_NULL_EXPECTED(E_INVALIDARG, hTheme);
-		RETURN_HR_IF_NULL_EXPECTED(E_INVALIDARG, hdc);
-		RETURN_HR_IF_NULL_EXPECTED(E_INVALIDARG, pRect);
-		RETURN_HR_IF(E_INVALIDARG, Utils::IsBadReadPtr(pRect));
-		RETURN_HR_IF_EXPECTED(E_INVALIDARG, IsRectEmpty(pRect) == TRUE);
-
-		WCHAR themeClassName[MAX_PATH + 1] {};
-		RETURN_IF_FAILED(
-			ThemeHelper::GetThemeClass(hTheme, themeClassName, MAX_PATH)
-		);
-
-		if (!_wcsicmp(themeClassName, L"Tooltip"))
-		{
-			DWORD itemDisabled
-			{
-				RegHelper::GetDword(
-					L"Tooltip",
-					L"Disabled",
-					0
-				)
-			};
-			RETURN_HR_IF_EXPECTED(
-				E_NOTIMPL, (itemDisabled != 0)
-			);
-			
-			g_darkMode = ThemeHelper::DetermineThemeMode(hTheme, L"Explorer"sv, L"Tooltip"sv, 0, 0, TMT_TEXTCOLOR);
-			
-			HWND hWnd{WindowFromDC(hdc)};
-			RETURN_LAST_ERROR_IF_NULL_EXPECTED(hWnd);
-			RETURN_HR_IF_EXPECTED(
-				E_NOTIMPL, !Utils::IsWindowClass(hWnd, TOOLTIPS_CLASSW)
-			);
-			RETURN_HR_IF_EXPECTED(
-				E_NOTIMPL, (GetWindowStyle(hWnd) & TTS_BALLOON) == TTS_BALLOON
-			);
-			RETURN_HR_IF_EXPECTED(
-				E_NOTIMPL,
-				iPartId != TTP_STANDARD
-			);
-
-			RECT paintRect{*pRect};
-			if (pClipRect != nullptr)
-			{
-				IntersectRect(&paintRect, &paintRect, pClipRect);
-			}
-
-			THROW_IF_WIN32_BOOL_FALSE(PatBlt(hdc, paintRect.left, paintRect.top, paintRect.right - paintRect.left, paintRect.bottom - paintRect.top, BLACKNESS));
-			
-			handled = true;
-			g_useUxTheme = true;
-			return S_OK;
-		}
-
-		return E_NOTIMPL;
-	}();
-	if (!handled)
+		return false;
+	}
+	if ((GetWindowStyle(hWnd) & TTS_BALLOON) == TTS_BALLOON)
 	{
-		hr = g_actualDrawThemeBackground(
-				 hTheme,
-				 hdc,
-				 iPartId,
-				 iStateId,
-				 pRect,
-				 pClipRect
-			 );
+		return false;
+	}
+
+	return !HookHelper::Subclass::IsAlreadyAttached<TooltipSubclassProc>(hWnd);
+}
+
+void TooltipHandler::TooltipContext::Update(HWND hWnd, std::optional<bool> darkMode)
+{
+	g_tooltipContext.hwnd = hWnd;
+	if (darkMode.has_value())
+	{
+		g_tooltipContext.useDarkMode = darkMode.value();
 	}
 	else
 	{
-		LOG_IF_FAILED(hr);
+		g_tooltipContext.useDarkMode = ShouldTooltipUseDarkMode(g_tooltipContext.hwnd);
 	}
-
-	return hr;
+	// rendering context
+	Api::QueryTooltipRenderingContext(g_tooltipContext.renderingContext, g_tooltipContext.useDarkMode);
+	// backdrop effect
+	g_tooltipContext.noSystemDropShadow = RegHelper::Get<DWORD>(
+		{ L"Tooltip" },
+		L"NoSystemDropShadow",
+		0
+	) != 0;
+	Api::QueryBackdropEffectContext(L"Tooltip", g_tooltipContext.useDarkMode, g_tooltipContext.backdropEffect);
+	// border part
+	Api::QueryBorderContext(L"Tooltip", g_tooltipContext.useDarkMode, g_tooltipContext.border);
+	// apply backdrop effect
+	Api::ApplyEffect(g_tooltipContext.hwnd, g_tooltipContext.useDarkMode, g_tooltipContext.backdropEffect, g_tooltipContext.border);
 }
 
-int WINAPI ToolTipHandler::DrawTextW(
-	HDC     hdc,
-	LPCWSTR lpchText,
-	int     cchText,
-	LPRECT  lprc,
-	UINT    format
-)
+LRESULT CALLBACK TooltipHandler::TooltipSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
 {
-	bool handled{ false };
-	HRESULT hr{ S_OK };
-	int result{ 0 };
-
-	hr = [hdc, lpchText, cchText, lprc, format, &result, &handled]()
+	if (uMsg == WM_WINDOWPOSCHANGED)
 	{
-		RETURN_HR_IF(E_INVALIDARG, Utils::IsBadReadPtr(lprc));
-		RETURN_HR_IF_EXPECTED(E_NOTIMPL, ((format & DT_CALCRECT) || (format & DT_INTERNAL) || (format & DT_NOCLIP)));
-		RETURN_HR_IF_EXPECTED(
-			E_NOTIMPL, !g_useUxTheme
-		);
-		DWORD itemDisabled
+		const auto& windowPos{ *reinterpret_cast<WINDOWPOS*>(lParam) };
+		if (windowPos.flags & SWP_SHOWWINDOW)
 		{
-			RegHelper::GetDword(
-				L"Tooltip",
-				L"Disabled",
-				0
-			)
-		};
-		RETURN_HR_IF_EXPECTED(
-			E_NOTIMPL, (itemDisabled != 0)
-		);
-		HWND hWnd{ WindowFromDC(hdc) };
-		RETURN_LAST_ERROR_IF_NULL_EXPECTED(hWnd);
-		RETURN_HR_IF_EXPECTED(
-			E_NOTIMPL, !Utils::IsWindowClass(hWnd, TOOLTIPS_CLASSW)
-		);
-		RETURN_HR_IF_EXPECTED(
-			E_NOTIMPL, (GetWindowStyle(hWnd) & TTS_BALLOON) == TTS_BALLOON
-		);
+			auto result{ DefSubclassProc(hWnd, uMsg, wParam, lParam) };
 
-		handled = true;
-		SetTextColor(hdc, g_darkMode ? RGB(255, 255, 255) : RGB(0, 0, 0));
-		return ThemeHelper::DrawTextWithAlpha(
-				   hdc,
-				   lpchText,
-				   cchText,
-				   lprc,
-				   format,
-				   result
-			   );
-	}();
-	if (!handled)
-	{
-		result = g_actualDrawTextW(hdc, lpchText, cchText, lprc, format);
-	}
-	else
-	{
-		LOG_IF_FAILED(hr);
-	}
-
-	return result;
-}
-
-void ToolTipHandler::AttachTooltip(HWND hWnd)
-{
-	DWORD itemDisabled
-	{
-		RegHelper::GetDword(
-			L"Tooltip",
-			L"Disabled",
-			0
-		)
-	};
-
-	if (itemDisabled)
-	{
-		return;
-	}
-
-	g_tooltipList.push_back(hWnd);
-	SetWindowSubclass(hWnd, SubclassProc, tooltipSubclassId, 0);
-
-	TFMain::ApplyBackdropEffect(L"Tooltip", hWnd, g_darkMode, TFMain::darkMode_GradientColor, TFMain::lightMode_GradientColor);
-	TFMain::ApplyRoundCorners(L"Tooltip", hWnd);
-	TFMain::ApplySysBorderColors(L"Tooltip", hWnd, g_darkMode, DWMWA_COLOR_NONE, DWMWA_COLOR_NONE);
-}
-void ToolTipHandler::DetachTooltip(HWND hWnd)
-{
-	RemoveWindowSubclass(hWnd, SubclassProc, tooltipSubclassId);
-	g_tooltipList.remove(hWnd);
-}
-
-LRESULT CALLBACK ToolTipHandler::SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
-{
-	bool handled{ false };
-	LRESULT result{ 0 };
-
-	// Tooltip
-	if (uIdSubclass == tooltipSubclassId)
-	{
-		if (uMsg == WM_DESTROY || uMsg == WM_THDETACH)
-		{
-			if (uMsg == WM_THDETACH)
+			if (g_tooltipContext.noSystemDropShadow)
 			{
-				auto cornerType{ DWMWCP_DEFAULT };
-				DwmSetWindowAttribute(hWnd, DWMWA_WINDOW_CORNER_PREFERENCE, &cornerType, sizeof(DWM_WINDOW_CORNER_PREFERENCE));
-				EffectHelper::SetWindowBackdrop(hWnd, FALSE, 0, static_cast<DWORD>(EffectHelper::EffectType::None));
-				InvalidateRect(hWnd, nullptr, TRUE);
-			}
-
-			DetachTooltip(hWnd);
-		}
-	}
-
-	if (!handled)
-	{
-		result = DefSubclassProc(hWnd, uMsg, wParam, lParam);
-	}
-
-	return result;
-}
-
-void ToolTipHandler::WinEventCallback(HWND hWnd, DWORD event)
-{
-	if (event == EVENT_OBJECT_SHOW)
-	{
-		if (
-			Utils::IsWindowClass(hWnd, TOOLTIPS_CLASSW) &&
-			!(GetWindowStyle(hWnd) & TTS_BALLOON)
-		)
-		{
-			g_useUxTheme = false;
-			{
-				unique_hdc memoryDC{ CreateCompatibleDC(nullptr) };
-				THROW_LAST_ERROR_IF_NULL(memoryDC);
-				unique_hbitmap bitmap{ CreateCompatibleBitmap(memoryDC.get(), 1, 1) };
-				THROW_LAST_ERROR_IF_NULL(bitmap);
-
+				HWND backdropWindow{ GetWindow(hWnd, GW_HWNDNEXT) };
+				if (Utils::IsWindowClass(backdropWindow, L"SysShadow"))
 				{
-					auto selectedObject{ wil::SelectObject(memoryDC.get(), bitmap.get()) };
-					THROW_IF_WIN32_BOOL_FALSE(PrintWindow(hWnd, memoryDC.get(), 0));
+					ShowWindow(backdropWindow, SW_HIDE);
 				}
 			}
 
-			if (g_useUxTheme)
-			{
-				AttachTooltip(hWnd);
-			}
+			return result;
+		}
+	}
+	if (uMsg == WM_PAINT || uMsg == WM_PRINTCLIENT)
+	{
+		TooltipHooks::EnableHooks(true);
+
+		g_tooltipContext.Update(hWnd);
+		SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
+
+		auto result{DefSubclassProc(hWnd, uMsg, wParam, lParam)};
+
+		TooltipHooks::EnableHooks(false);
+
+		return result;
+	}
+
+	if (uMsg == HookHelper::TFM_ATTACH)
+	{
+		g_tooltipContext.Update(hWnd);
+		SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
+
+		return 0;
+	}
+	if (uMsg == HookHelper::TFM_DETACH)
+	{
+		if (wParam == 0)
+		{
+			Api::DropEffect(L"Tooltip", hWnd);
+
+			TooltipHooks::EnableMarginHooks(false);
+			SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
+			TooltipHooks::EnableMarginHooks(true);
+		}
+
+		return 0;
+	}
+
+	return DefSubclassProc(hWnd, uMsg, wParam, lParam);
+}
+LRESULT CALLBACK TooltipHandler::KbxLabelSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
+{
+	if (uMsg == WM_PAINT)
+	{
+		KbxLabelHooks::EnableHooks(true);
+		auto result{ DefSubclassProc(hWnd, uMsg, wParam, lParam) };
+		KbxLabelHooks::EnableHooks(false);
+
+		return result;
+	}
+
+	if (uMsg == HookHelper::TFM_ATTACH)
+	{
+		g_tooltipContext.Update(hWnd, ThemeHelper::ShouldAppsUseDarkMode() && ThemeHelper::IsDarkModeAllowedForApp());
+		return 0;
+	}
+	if (uMsg == HookHelper::TFM_DETACH)
+	{
+		if (wParam == 0)
+		{
+			Api::DropEffect(L"Tooltip", hWnd);
+		}
+
+		return 0;
+	}
+
+	return DefSubclassProc(hWnd, uMsg, wParam, lParam);
+}
+
+void CALLBACK TooltipHandler::HandleWinEvent(
+	HWINEVENTHOOK hWinEventHook, DWORD dwEvent, HWND hWnd,
+	LONG idObject, LONG idChild,
+	DWORD dwEventThread, DWORD dwmsEventTime
+)
+{
+	if (Api::IsPartDisabled(L"Tooltip")) [[unlikely]]
+	{
+		return;
+	}
+	if (!TooltipHooks::g_comctl32Module) [[unlikely]]
+	{
+		return;
+	}
+
+	if (Utils::IsWindowClass(hWnd, TOOLTIPS_CLASSW) && IsTooltipAttachable(hWnd))
+	{
+		HookHelper::Subclass::Attach<TooltipSubclassProc>(hWnd, true);
+	}
+	if (dwEvent == EVENT_OBJECT_CREATE)
+	{
+		if (Utils::IsWindowClass(hWnd, L"KbxLabelClass"))
+		{
+			HookHelper::Subclass::Attach<KbxLabelSubclassProc>(hWnd, true);
 		}
 	}
 }
 
-void TranslucentFlyouts::ToolTipHandler::Startup() try
+void TooltipHandler::Prepare()
 {
-	if (g_startup)
-	{
-		return;
-	}
-
-	if (TFMain::IsStartAllBackActivated())
-	{
-		g_disableOnce = true;
-	}
-
-	if (g_disableOnce)
-	{
-		return;
-	}
-
-	if (!ThemeHelper::IsThemeAvailable())
-	{
-		return;
-	}
-
-	g_actualDrawTextW = reinterpret_cast<decltype(g_actualDrawTextW)>(DetourFindFunction("user32.dll", "DrawTextW"));
-	THROW_LAST_ERROR_IF_NULL(g_actualDrawTextW);
-
-	g_actualDrawThemeBackground = reinterpret_cast<decltype(g_actualDrawThemeBackground)>(DetourFindFunction("uxtheme.dll", "DrawThemeBackground"));
-	THROW_LAST_ERROR_IF_NULL(g_actualDrawThemeBackground);
-
-	// Sometimes there are multiple versions of comctl32.dll (eg. 5.8.1, 6.0.0)
-	Utils::EnumModules([&](HMODULE moduleHandle, wstring_view dllName)
-	{
-		if (!_wcsicmp(dllName.data(), L"comctl32.dll"))
-		{
-			Hooking::WriteDelayloadIAT(moduleHandle, "uxtheme.dll", { {"DrawThemeBackground", ToolTipHandler::DrawThemeBackground} });
-			Hooking::WriteIAT(moduleHandle, "uxtheme.dll", { {"DrawThemeBackground", ToolTipHandler::DrawThemeBackground} });
-			Hooking::WriteDelayloadIAT(moduleHandle, "user32.dll", { {"DrawTextW", ToolTipHandler::DrawTextW} });
-			Hooking::WriteIAT(moduleHandle, "user32.dll", { {"DrawTextW", ToolTipHandler::DrawTextW} });
-		}
-	});
-	
-	TFMain::AddCallback(WinEventCallback);
-
-	g_startup = true;
+	TooltipHooks::Prepare();
+	KbxLabelHooks::Startup();
 }
-CATCH_LOG_RETURN()
 
-void TranslucentFlyouts::ToolTipHandler::Shutdown()
+void TooltipHandler::Startup()
 {
-	if (!g_startup)
+	TooltipHooks::Startup();
+	KbxLabelHooks::Shutdown();
+
+	Update();
+}
+
+void TooltipHandler::Shutdown()
+{
+	HookHelper::Subclass::DetachAll<TooltipSubclassProc>();
+	HookHelper::Subclass::DetachAll<KbxLabelSubclassProc>();
+
+	TooltipHooks::Shutdown();
+	KbxLabelHooks::Shutdown();
+}
+
+void TooltipHandler::Update()
+{
+	if (Api::IsPartDisabled(L"Tooltip")) [[unlikely]]
 	{
+		HookHelper::Subclass::DetachAll<TooltipSubclassProc>();
+		TooltipHooks::DisableHooks();
+		KbxLabelHooks::DisableHooks();
+
 		return;
 	}
 
-	if (g_disableOnce)
-	{
-		return;
-	}
-
-	TFMain::DeleteCallback(WinEventCallback);
-
-	// Remove subclass for all existing tool tip
-	if (!g_tooltipList.empty())
-	{
-		auto tooltipList{ g_tooltipList };
-		for (auto tooltip : tooltipList)
-		{
-			SendMessage(tooltip, WM_THDETACH, 0, 0);
-		}
-		g_tooltipList.clear();
-	}
-
-	// Sometimes there are multiple versions of comctl32.dll (eg. 5.8.1, 6.0.0)
-	Utils::EnumModules([&](HMODULE moduleHandle, wstring_view dllName)
-	{
-		if (!_wcsicmp(dllName.data(), L"comctl32.dll"))
-		{
-			Hooking::WriteDelayloadIAT(moduleHandle, "uxtheme.dll", { {"DrawThemeBackground", g_actualDrawThemeBackground} });
-			Hooking::WriteIAT(moduleHandle, "uxtheme.dll", { {"DrawThemeBackground", g_actualDrawThemeBackground} });
-			Hooking::WriteDelayloadIAT(moduleHandle, "user32.dll", { {"DrawTextW", g_actualDrawTextW} });
-			Hooking::WriteIAT(moduleHandle, "user32.dll", { {"DrawTextW", g_actualDrawTextW} });
-		}
-	});
-	
-	g_startup = false;
+	TooltipHooks::EnableMarginHooks(true);
 }
