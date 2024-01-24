@@ -1,9 +1,11 @@
 ﻿#include "pch.h"
+#include "resource.h"
 #include "Api.hpp"
 #include "Utils.hpp"
 #include "RegHelper.hpp"
 #include "Framework.hpp"
 #include "HookHelper.hpp"
+#include "Application.hpp"
 #include "CommonFlyoutsHandler.hpp"
 
 using namespace TranslucentFlyouts;
@@ -23,6 +25,76 @@ namespace TranslucentFlyouts::Framework
 
 	void Update();
 	DWORD WINAPI MessageThreadProc(LPVOID);
+	void DoExplorerCrashCheck();
+}
+
+void Framework::DoExplorerCrashCheck()
+{
+	static std::chrono::steady_clock::time_point g_lastExplorerDied{ std::chrono::steady_clock::time_point{} - std::chrono::seconds(30) };
+	static std::chrono::steady_clock::time_point g_lastExplorerDied2{ std::chrono::steady_clock::time_point{} - std::chrono::seconds(10) };
+	static DWORD g_lastExplorerPid
+	{
+		[]
+		{
+			DWORD explorerPid{ 0 };
+			GetWindowThreadProcessId(GetShellWindow(), &explorerPid);
+
+			return explorerPid;
+		} ()
+	};
+
+	auto terminate = [](UINT id)
+	{
+		Application::UninstallHook();
+
+		static WCHAR msg[32768 + 1]{};
+		LoadStringW(wil::GetModuleInstanceHandle(), id, msg, 32768);
+		MessageBoxW(
+			nullptr,
+			msg,
+			nullptr,
+			MB_ICONERROR | MB_SYSTEMMODAL | MB_SERVICE_NOTIFICATION | MB_SETFOREGROUND
+		);
+
+		std::thread{ [&]
+		{
+			Application::StopService();
+		} }.detach();
+	};
+
+	DWORD explorerPid{ 0 };
+	GetWindowThreadProcessId(GetShellWindow(), &explorerPid);
+
+	if (explorerPid)
+	{
+		g_lastExplorerDied2 = std::chrono::steady_clock::now();
+		g_lastExplorerPid = explorerPid;
+	}
+
+	// Being dead for too long!
+	{
+		const auto currentTimePoint{ std::chrono::steady_clock::now() };
+		if (currentTimePoint >= g_lastExplorerDied2 + std::chrono::seconds(5))
+		{
+			terminate(IDS_STRING103);
+			return;
+		}
+	}
+	// Died twice in a short time!
+	if (g_lastExplorerPid && explorerPid == 0)
+	{
+		const auto currentTimePoint{ std::chrono::steady_clock::now() };
+
+		if (currentTimePoint < g_lastExplorerDied + std::chrono::seconds(30)) [[unlikely]]
+		{
+			terminate(IDS_STRING102);
+			return;
+		}
+
+		g_lastExplorerDied = currentTimePoint;
+		g_lastExplorerDied2 = currentTimePoint;
+		g_lastExplorerPid = 0;
+	}
 }
 
 DWORD WINAPI Framework::MessageThreadProc(LPVOID)
@@ -339,6 +411,7 @@ void CALLBACK Framework::HandleWinEvent(
 	DWORD dwEventThread, DWORD dwmsEventTime
 )
 {
+	Framework::DoExplorerCrashCheck();
 	if (Api::IsPartDisabled(L"ImmersiveFlyouts")) [[unlikely]]
 	{
 		return;

@@ -3,6 +3,8 @@
 // 供 TFModern.rc 使用
 //
 #define IDS_STRING101                   101
+#define IDS_STRING102                   102
+#define IDS_STRING103                   103
 
 // Next default values for new objects
 // 
