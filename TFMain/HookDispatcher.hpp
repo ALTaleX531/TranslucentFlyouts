@@ -36,6 +36,8 @@ namespace TranslucentFlyouts::HookHelper
 					OffsetStorage::From(imageMapper.GetBaseAddress(), functionAddress),
 					!moduleHandle ? std::nullopt : std::make_optional(OffsetStorage::From(imageMapper.GetBaseAddress(), moduleHandle))
 				);
+
+#ifdef _DEBUG
 				OutputDebugStringW(
 					std::format(
 						L"[{}] index: {}, offset stored: {}, {}\n",
@@ -45,6 +47,7 @@ namespace TranslucentFlyouts::HookHelper
 						hookInfoCache[index].second.has_value() ? std::format(L"{}", hookInfoCache[index].second.value().value) : L"empty"
 					).c_str()
 				);
+#endif
 				functionAddress = nullptr;
 				moduleHandle = nullptr;
 			};

@@ -436,10 +436,23 @@ void CALLBACK Framework::HandleWinEvent(
 				processId
 			)
 		};
-		if (!HookHelper::GetProcessModule(processHandle.get(), g_currentDllPath))
+		WCHAR processName[MAX_PATH + 1]{};
+		GetModuleBaseNameW(processHandle.get(), nullptr, processName, MAX_PATH);
+
+		if (
+			!HookHelper::GetProcessModule(processHandle.get(), g_currentDllPath) &&
+			(
+				!_wcsicmp(L"explorer.exe", processName) ||
+				!_wcsicmp(L"PhotosApp.exe", processName) ||
+				!_wcsicmp(L"Microsoft.Media.Player.exe", processName) ||
+				!_wcsicmp(L"StartMenuExperienceHost.exe", processName) ||
+				!_wcsicmp(L"ShellExperienceHost.exe", processName)
+			)
+		)
 		{
 			Inject(processHandle.get());
 
+#ifdef _DEBUG
 			OutputDebugStringW(
 				std::format(
 					L"[{}] process: {} injected\n",
@@ -447,6 +460,7 @@ void CALLBACK Framework::HandleWinEvent(
 					wil::QueryFullProcessImageNameW<std::wstring, MAX_PATH + 1>(processHandle.get()).c_str()
 				).c_str()
 			);
+#endif
 		}
 	}
 }

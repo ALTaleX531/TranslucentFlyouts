@@ -104,18 +104,6 @@ BOOL WINAPI MenuHooks::MySetMenuInfo(
 	if (menuInfo && (menuInfo->fMask & MIM_BACKGROUND) && menuInfo->hbrBack)
 	{
 		g_targetModule = callerModule;
-		{
-			WCHAR dllName[MAX_PATH + 1]{};
-			if (GetModuleBaseNameW(GetCurrentProcess(), callerModule, dllName, MAX_PATH))
-			{
-				OutputDebugStringW(
-					std::format(
-						L"[{}] MySetMenuInfo",
-						dllName
-					).c_str()
-				);
-			}
-		}
 	}
 
 	return reinterpret_cast<decltype(&MySetMenuInfo)>(std::get<0>(g_hookTable[reinterpret_cast<PVOID>(callerModule)]))(hMenu, menuInfo);

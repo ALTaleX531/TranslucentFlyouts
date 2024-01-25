@@ -264,12 +264,14 @@ void DiagnosticsHandler::Startup()
 					}
 				});
 
+#ifdef _DEBUG
 				OutputDebugStringW(
 					std::format(
 						L"[WUX] Get DispatcherQueue of {}\n",
 						threadEntry.ThreadId
 					).c_str()
 				);
+#endif
 			}
 			return true;
 		});
@@ -329,12 +331,14 @@ void DiagnosticsHandler::Startup()
 					}
 				});
 
+#ifdef _DEBUG
 				OutputDebugStringW(
 					std::format(
 						L"[MUX] Get DispatcherQueue of {}\n",
 						threadEntry.ThreadId
 					).c_str()
 				);
+#endif
 			}
 			return true;
 		});
@@ -358,6 +362,7 @@ void DiagnosticsHandler::OnVisualTreeChanged(IInspectable* element, FrameworkTyp
 		return;
 	}
 
+#ifdef _DEBUG
 	OutputDebugStringW(
 		std::format(
 			L"[{}] object {}: [{}]\n",
@@ -366,6 +371,7 @@ void DiagnosticsHandler::OnVisualTreeChanged(IInspectable* element, FrameworkTyp
 			className.c_str()
 		).c_str()
 	);
+#endif
 }
 
 bool DiagnosticsHandler::IsMUXModule(HMODULE moduleHandle)

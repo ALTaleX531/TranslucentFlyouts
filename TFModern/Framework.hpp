@@ -11,12 +11,20 @@ namespace TranslucentFlyouts::Framework
 		bool disabled{ false };
 		winrt::Windows::UI::Color darkMode_TintColor{ 255, 32, 32, 32 };
 		winrt::Windows::UI::Color lightMode_TintColor{ 255, 243, 243, 243 };
+		float darkMode_TintOpacity{ 0.1f };
+		float lightMode_TintOpacity{ 0.1f };
+		float darkMode_LuminosityOpacity{ 0.0f };
+		float lightMode_LuminosityOpacity{ 0.0f };
+		float darkMode_Opacity{ 1.0f };
+		float lightMode_Opacity{ 1.0f };
+		/*winrt::Windows::UI::Color darkMode_TintColor{ 255, 32, 32, 32 };
+		winrt::Windows::UI::Color lightMode_TintColor{ 255, 243, 243, 243 };
 		float darkMode_TintOpacity{ 0.3f };
 		float lightMode_TintOpacity{ 0.15f };
 		float darkMode_LuminosityOpacity{ 0.8f };
 		float lightMode_LuminosityOpacity{ 0.8f };
 		float darkMode_Opacity{ 1.0f };
-		float lightMode_Opacity{ 1.0f };
+		float lightMode_Opacity{ 1.0f };*/
 	} g_immersiveContext{};
 #pragma data_seg()
 #pragma comment(linker,"/SECTION:.shared,RWS")
@@ -30,9 +38,6 @@ namespace TranslucentFlyouts::Framework
 		{
 			static_cast<DWORD>(element.ActualTheme()) == 1
 		};
-		OutputDebugStringW(
-			std::format(L"isLight: {}, theme: {}\n", isLight, static_cast<DWORD>(element.ActualTheme())).c_str()
-		);
 		
 		if constexpr (is_wux_object_v<ElementType>)
 		{

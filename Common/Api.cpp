@@ -152,7 +152,9 @@ bool Api::InteractiveIO::OutputToConsole(
 
 	auto outputString{std::format(L"{}{}{}", prefixStr, str, additionalStr)};
 	std::wcout << outputString;
+#ifdef _DEBUG
 	OutputDebugStringW(outputString.c_str());
+#endif
 
 	SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_INTENSITY);
 

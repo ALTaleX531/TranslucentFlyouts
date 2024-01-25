@@ -443,9 +443,11 @@ namespace TranslucentFlyouts::Utils
 			}
 			else
 			{
+#ifdef _DEBUG
 				OutputDebugStringW(
 					std::format(L"distance: {}, bgra: [{}, {}, {}, {}]", distance, b, g, r, a).c_str()
 				);
+#endif
 				return;
 			}
 
