@@ -47,7 +47,6 @@ namespace TranslucentFlyouts::Framework
 	void DoExplorerCrashCheck()
 	{
 		static std::chrono::steady_clock::time_point g_lastExplorerDied{ std::chrono::steady_clock::time_point{} - std::chrono::seconds(30) };
-		static std::chrono::steady_clock::time_point g_lastExplorerDied2{ std::chrono::steady_clock::time_point{} - std::chrono::seconds(10) };
 		static DWORD g_lastExplorerPid
 		{ 
 			[]
@@ -65,17 +64,24 @@ namespace TranslucentFlyouts::Framework
 
 			static WCHAR msg[32768 + 1]{};
 			LoadStringW(wil::GetModuleInstanceHandle(), id, msg, 32768);
-			MessageBoxW(
-				nullptr,
-				msg,
-				nullptr,
-				MB_ICONERROR | MB_SYSTEMMODAL | MB_SERVICE_NOTIFICATION | MB_SETFOREGROUND
-			);
-
-			std::thread{[&]
+			if (
+				MessageBoxW(
+					nullptr,
+					msg,
+					nullptr,
+					MB_ICONERROR | MB_SYSTEMMODAL | MB_SERVICE_NOTIFICATION | MB_SETFOREGROUND | MB_YESNO
+				) == IDNO
+			)
 			{
-				Application::StopService();
-			}}.detach();
+				Application::InstallHook();
+			}
+			else
+			{
+				std::thread{ [&]
+				{
+					Application::StopService();
+				} }.detach();
+			}
 		};
 		
 		DWORD explorerPid{ 0 };
@@ -83,19 +89,9 @@ namespace TranslucentFlyouts::Framework
 
 		if (explorerPid)
 		{
-			g_lastExplorerDied2 = std::chrono::steady_clock::now();
 			g_lastExplorerPid = explorerPid;
 		}
 
-		// Being dead for too long!
-		{
-			const auto currentTimePoint{ std::chrono::steady_clock::now() };
-			if (currentTimePoint >= g_lastExplorerDied2 + std::chrono::seconds(5))
-			{
-				terminate(IDS_STRING110);
-				return;
-			}
-		}
 		// Died twice in a short time!
 		if (g_lastExplorerPid && explorerPid == 0)
 		{
@@ -108,7 +104,6 @@ namespace TranslucentFlyouts::Framework
 			}
 
 			g_lastExplorerDied = currentTimePoint;
-			g_lastExplorerDied2 = currentTimePoint;
 			g_lastExplorerPid = 0;
 		}
 	}

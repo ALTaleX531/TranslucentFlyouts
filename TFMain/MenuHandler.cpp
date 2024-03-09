@@ -413,7 +413,7 @@ LRESULT CALLBACK MenuHandler::MenuSubclassProc(HWND hWnd, UINT uMsg, WPARAM wPar
 					if (ownerDraw)
 					{
 						ContextMenuRenderingData* menuData{ nullptr };
-						if (IsImmersiveMenuDataStored(menuOwner) && itemData && (menuData = GetContextMenuDataForItem(menuOwner, itemData, itemID)))
+						if (itemData && (menuData = GetContextMenuDataForItem(menuOwner, itemData, itemID)))
 						{
 							g_menuContext.type = MenuContext::Type::Immersive;
 							g_menuContext.useDarkMode = IsDarkModeActiveForImmeriveMenu(menuData->useDarkTheme, menuData->useSystemPadding);
@@ -584,37 +584,40 @@ LRESULT CALLBACK MenuHandler::MenuOwnerSubclassProc(HWND hWnd, UINT uMsg, WPARAM
 				wil::unique_hbitmap my_hbmpUnchecked{ nullptr };
 
 				auto menuData{ GetContextMenuDataForItem(hWnd, g_drawItemStruct->itemData, g_drawItemStruct->itemID) };
+				if (menuData)
+				{
 #ifdef _DEBUG
-				menuData->OutputDebugInfo();
+					menuData->OutputDebugInfo();
 #endif // _DEBUG
-				HBITMAP hbmpItem{ menuData->hbmpItem };
-				HBITMAP hbmpChecked{ menuData->hbmpChecked };
-				HBITMAP hbmpUnchecked{ menuData->hbmpUnchecked };
-				auto cleanUp = wil::scope_exit([&]
-				{
-					menuData->hbmpItem = hbmpItem;
-					menuData->hbmpChecked = hbmpChecked;
-					menuData->hbmpUnchecked = hbmpUnchecked;
-				});
-
-				if (!MenuRendering::HandleMenuBitmap(menuData->hbmpItem, my_hbmpItem))
-				{
-					if (hbmpChecked == hbmpUnchecked)
+					HBITMAP hbmpItem{ menuData->hbmpItem };
+					HBITMAP hbmpChecked{ menuData->hbmpChecked };
+					HBITMAP hbmpUnchecked{ menuData->hbmpUnchecked };
+					auto cleanUp = wil::scope_exit([&]
 					{
-						if (MenuRendering::HandleMenuBitmap(menuData->hbmpChecked, my_hbmpChecked))
+						menuData->hbmpItem = hbmpItem;
+						menuData->hbmpChecked = hbmpChecked;
+						menuData->hbmpUnchecked = hbmpUnchecked;
+					});
+
+					if (!MenuRendering::HandleMenuBitmap(menuData->hbmpItem, my_hbmpItem))
+					{
+						if (hbmpChecked == hbmpUnchecked)
 						{
-							menuData->hbmpUnchecked = my_hbmpChecked.get();
+							if (MenuRendering::HandleMenuBitmap(menuData->hbmpChecked, my_hbmpChecked))
+							{
+								menuData->hbmpUnchecked = my_hbmpChecked.get();
+							}
+						}
+						else
+						{
+							MenuRendering::HandleMenuBitmap(menuData->hbmpChecked, my_hbmpChecked);
+							MenuRendering::HandleMenuBitmap(menuData->hbmpUnchecked, my_hbmpUnchecked);
 						}
 					}
-					else
-					{
-						MenuRendering::HandleMenuBitmap(menuData->hbmpChecked, my_hbmpChecked);
-						MenuRendering::HandleMenuBitmap(menuData->hbmpUnchecked, my_hbmpUnchecked);
-					}
-				}
 
-				auto result{ HookHelper::ForceSubclass::Storage<MenuOwnerSubclassProc>::CallOriginalWndProc(hWnd, uMsg, wParam, lParam) };
-				return result;
+					auto result{ HookHelper::ForceSubclass::Storage<MenuOwnerSubclassProc>::CallOriginalWndProc(hWnd, uMsg, wParam, lParam) };
+					return result;
+				}
 			}
 			if (g_menuContext.type == MenuContext::Type::TraverseLog)
 			{

@@ -60,8 +60,8 @@ BEGIN
     IDS_STRING106           "正在从本地或微软符号服务器加载符号文件，请确保你的网络连接正常..."
     IDS_STRING107           "你似乎是在一个不受支持的Windows系统上运行TranslucentFlyouts！符号文件已成功加载但未解析出必要的信息，请将你的系统版本报告给开发者！"
     IDS_STRING108           "解析的结果已经被缓存到注册表中。"
-    IDS_STRING109           "Windows 资源管理器在过去30秒内已连续崩溃两次！看起来似乎存在着一个严重的兼容性问题！出于安全考量，TranslucentFlyouts.Win32将会被强制中止。\n如果该问题持续出现，请考虑报告你的系统版本给开发者！"
-    IDS_STRING110           "已经超过了5秒钟而Windows 资源管理器仍然没有正常重新启动！看起来似乎存在着一个严重的兼容性问题！出于安全考量，TranslucentFlyouts.Win32将会被强制中止。\n如果该问题持续出现，请考虑报告你的系统版本给开发者！"
+    IDS_STRING109           "Windows 资源管理器在过去30秒内已连续崩溃两次！看起来似乎存在着一个严重的兼容性问题！出于安全考量，是否强制中止TranslucentFlyouts.Win32？\n（如果该问题持续出现，请考虑报告你的系统版本给开发者！）"
+    IDS_STRING110           "很抱歉，该应用抛出了未捕获的异常，即将崩溃。\n我们已经在TranslucentFlyouts所在文件夹的dumps目录生成了一个以当前进程名为关键词命名的内存转储文件，其中不包含您的任何隐私信息。希望您能在Github上提出issue并上传该文件，这能帮助我们更快地发现并修复BUG。\n为了防止应用不断地崩溃，是否强制中止TranslucentFlyouts.Win32？"
 END
 
 #endif    // 中文(简体，中国) resources
@@ -90,8 +90,8 @@ BEGIN
     IDS_STRING106           "Loading symbol files from local disk or Microsoft symbol servers, please make sure your network connection is alright..."
     IDS_STRING107           "It appears that you are running TranslucentFlyouts on an UNSUPPORTED Windows system! The symbol file was loaded successfully but resolved failed, please report your OS information to the developer!"
     IDS_STRING108           "The results of resolved symbols have been saved into the registry."
-    IDS_STRING109           "Windows Explorer crashed twice in the last 30 seconds! It seems like there is a severe compatibility issue! For security reasons, TranslucentFlyouts.Win32 will now be terminated.\nPlease consider reporting your OS information to the developer if you encounter this situation again!"
-    IDS_STRING110           "It's been more than 5 seconds and Windows Explorer still hasn't restarted properly! It seems like there is a severe compatibility issue! For security reasons, TranslucentFlyouts.Win32 main service will now be terminated.\nPlease consider reporting your OS information to the developer if you keep encountering this situation!"
+    IDS_STRING109           "Windows Explorer crashed twice in the last 30 seconds! It seems like there is a severe compatibility issue! For security reasons, do you want to terminate TranslucentFlyouts.Win32 now?\n(PS: Please consider reporting your OS information to the developer if you encounter this situation again!)"
+    IDS_STRING110           "Sorry, this application has thrown an uncaught exception and is about to crash.\nWe have generated a memory dump file in the dumps directory of the folder where TranslucentFlyouts is located named after the current process name as a keyword, which does not contain any of your private information. We hope you will raise an issue on Github and upload the file, which will help us find and fix the bug quicker.\nTo prevent the app from crashing constantly, do you want to terminate TranslucentFlyouts.Win32 now?"
 END
 
 #endif    // 英语(中性) resources

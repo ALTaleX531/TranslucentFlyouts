@@ -25,10 +25,7 @@ BOOL APIENTRY DllMain(
 		{
 			return FALSE;
 		}
-		else if (
-			!GetModuleHandleW(L"Rundll32.exe") &&
-			!GetModuleHandleW(L"TranslucentFlyoutsConfig.exe")
-		)
+		else
 		{
 			Framework::Startup();
 		}

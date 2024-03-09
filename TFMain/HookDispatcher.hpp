@@ -110,46 +110,53 @@ namespace TranslucentFlyouts::HookHelper
 			{
 				CacheHookData();
 			}
+			if (!hookInfoCache[index].first.IsValid())
+			{
+				return false;
+			}
 
 			auto& [functionAddressOffset, moduleHandleOffset] {hookInfoCache[index]};
+			auto iatFunctionAddress{ reinterpret_cast<PVOID*>(functionAddressOffset.To(moduleAddress)) };
+			auto iatModuleAddress{ moduleHandleOffset.has_value() ? std::optional{reinterpret_cast<HMODULE*>(moduleHandleOffset.value().To(moduleAddress))} : std::nullopt };
 			if (enable)
 			{
-				if (moduleHandleOffset.has_value())
+				if (iatModuleAddress.has_value())
 				{
 					HookHelper::ResolveDelayloadIAT(
 						std::make_pair(
-							reinterpret_cast<HMODULE*>(moduleHandleOffset.value().To(moduleAddress)),
-							reinterpret_cast<PVOID*>(functionAddressOffset.To(moduleAddress))
+							iatModuleAddress.value(),
+							iatFunctionAddress
 						),
 						moduleAddress,
 						std::get<0>(std::get<0>(hookDependency[index])),
 						std::get<1>(hookDependency[index])
 					);
 				}
+
 				hookTable[index] = std::make_pair(
-					*reinterpret_cast<PVOID*>(functionAddressOffset.To(moduleAddress)),
+					*iatFunctionAddress,
 					moduleHandleOffset.has_value() ? 
-					std::make_optional(*reinterpret_cast<HMODULE*>(moduleHandleOffset.value().To(moduleAddress))) :
+					std::make_optional(*reinterpret_cast<HMODULE*>(iatModuleAddress.value())) :
 					std::nullopt
 				);
 
 				HookHelper::WriteMemory(functionAddressOffset.To(moduleAddress), [&]
 				{
-					*reinterpret_cast<PVOID*>(functionAddressOffset.To(moduleAddress)) = std::get<2>(hookDependency[index]);
+					*iatFunctionAddress = std::get<2>(hookDependency[index]);
 				});
 			}
 			else
 			{
 				HookHelper::WriteMemory(functionAddressOffset.To(moduleAddress), [&]
 				{
-					*reinterpret_cast<PVOID*>(functionAddressOffset.To(moduleAddress)) = hookTable[index].first;
+					*iatFunctionAddress = hookTable[index].first;
 					hookTable[index].first = nullptr;
 				});
-				if (moduleHandleOffset.has_value())
+				if (iatModuleAddress.has_value())
 				{
-					HookHelper::WriteMemory(moduleHandleOffset.value().To(moduleAddress), [&]
+					HookHelper::WriteMemory(iatModuleAddress.value(), [&]
 					{
-						*reinterpret_cast<PVOID*>(moduleHandleOffset.value().To(moduleAddress)) = hookTable[index].second.value();
+						*reinterpret_cast<PVOID*>(iatModuleAddress.value()) = hookTable[index].second.value();
 						hookTable[index].second = std::nullopt;
 					});
 				}
@@ -214,4 +221,10 @@ namespace TranslucentFlyouts::HookHelper
 		const HookDispatcherDependency<hookCount, possibleImportCount>&,
 		PVOID
 	) -> HookDispatcher<hookCount, possibleImportCount>;
+
+	template <typename THookDispatcherDependency>
+	struct THookDispatcher;
+
+	template <size_t hookCount, size_t possibleImportCount>
+	struct THookDispatcher<HookDispatcherDependency<hookCount, possibleImportCount>> { using type = HookDispatcher<hookCount, possibleImportCount>; };
 }

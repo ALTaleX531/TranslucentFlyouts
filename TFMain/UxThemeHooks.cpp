@@ -1112,7 +1112,10 @@ void UxThemeHooks::EnableHooks(bool enable)
 				HookHelper::Detours::Attach(&g_actualCThemeMenu_DrawItemBitmap, g_detourCThemeMenu_DrawItemBitmap);
 			}
 		});
-		g_hookDispatcher.EnableHook(1, enable);
+		if (SystemHelper::g_buildNumber >= 22000)
+		{
+			g_hookDispatcher.EnableHook(1, enable);
+		}
 
 		g_hookRef += 1;
 	}

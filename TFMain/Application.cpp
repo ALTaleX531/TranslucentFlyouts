@@ -20,7 +20,7 @@ HRESULT Application::InstallHook()
 	RETURN_HR_IF(HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS), serviceInfo->hook != nullptr);
 
 	serviceInfo->hook = SetWinEventHook(
-		EVENT_MIN, EVENT_MAX,
+		EVENT_OBJECT_CREATE, EVENT_OBJECT_SELECTION,
 		wil::GetModuleInstanceHandle(),
 		Framework::HandleWinEvent,
 		0, 0,
@@ -237,7 +237,7 @@ HRESULT Application::InstallApp() try
 		auto key{ wil::reg::create_unique_key(HKEY_CURRENT_USER, folder.data(), wil::reg::key_access::readwrite)};
 		wil::reg::set_value_string(key.get(), nullptr, tip.data());
 	};
-	create_registry_folder_with_tip(L"SOFTWARE\\TranslucentFlyouts", L"Create these registry items manually according to your need, therefore please using a GUI");
+	create_registry_folder_with_tip(L"SOFTWARE\\TranslucentFlyouts", L"Create these registry items manually according to your need, therefore using GUI is a good choice");
 	create_registry_folder_with_tip(L"SOFTWARE\\TranslucentFlyouts\\Menu", L"Define your menu appearance");
 	create_registry_folder_with_tip(L"SOFTWARE\\TranslucentFlyouts\\Menu\\Animation", L"Define your menu animation");
 	create_registry_folder_with_tip(L"SOFTWARE\\TranslucentFlyouts\\Menu\\DisabledHot", L"CustomRendering part of menu");

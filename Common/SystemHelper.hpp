@@ -160,7 +160,7 @@ namespace TranslucentFlyouts::SystemHelper
 	};
 	using PKUSER_SHARED_DATA = KUSER_SHARED_DATA* const;
 
-	static PKUSER_SHARED_DATA GetKernelSharedInfo()
+	__forceinline PKUSER_SHARED_DATA GetKernelSharedInfo()
 	{
 		return reinterpret_cast<PKUSER_SHARED_DATA>(0x7FFE0000);
 	}

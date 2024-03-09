@@ -44,7 +44,8 @@ namespace TranslucentFlyouts::ImmersiveHooks
 			std::array
 			{
 				"user32.dll"sv,
-				"ext-ms-win-ntuser-draw-l1-1-0.dll"sv
+				"ext-ms-win-ntuser-draw-l1-1-0.dll"sv,
+				"ext-ms-win-ntuser-misc-l1-1-0.dll"sv
 			},
 			"DrawTextW",
 			reinterpret_cast<PVOID>(MyDrawTextW)
@@ -54,7 +55,8 @@ namespace TranslucentFlyouts::ImmersiveHooks
 			std::array
 			{
 				"uxtheme.dll"sv,
-				"ext-ms-win-uxtheme-themes-l1-1-0.dll"sv
+				"ext-ms-win-uxtheme-themes-l1-1-0.dll"sv,
+				""sv
 			},
 			"DrawThemeBackground",
 			reinterpret_cast<PVOID>(MyDrawThemeBackground)
@@ -64,13 +66,14 @@ namespace TranslucentFlyouts::ImmersiveHooks
 			std::array
 			{
 				"dwmapi.dll"sv,
+				""sv,
 				""sv
 			},
 			"DwmSetWindowAttribute",
 			reinterpret_cast<PVOID>(MyDwmSetWindowAttribute)
 		}
 	};
-	std::unordered_map<PVOID, HookHelper::HookDispatcher<3, 2>> g_hookDispatcherMap{};
+	std::unordered_map<PVOID, HookHelper::THookDispatcher<decltype(g_hookDependency)>::type> g_hookDispatcherMap{};
 
 	std::array<PVOID, 3> g_cachedOriginalFunction{};
 	template <typename T, size_t index>
@@ -225,7 +228,11 @@ bool ImmersiveHooks::EnableHooksInternal(PVOID baseAddress, bool enable)
 	hookDispatcher.moduleAddress = baseAddress;
 	hookDispatcher.EnableHook(0, enable);
 	hookDispatcher.EnableHook(1, enable);
-	return hookDispatcher.EnableHook(2, enable);
+	if (SystemHelper::g_buildNumber >= 22000)
+	{
+		hookDispatcher.EnableHook(2, enable);
+	}
+	return true;
 }
 
 void ImmersiveHooks::Prepare()
