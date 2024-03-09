@@ -1,10 +1,87 @@
 ﻿#include "pch.h"
+#include "resource.h"
 #include "Utils.hpp"
 #include "RegHelper.hpp"
 #include "Framework.hpp"
+#include "SystemHelper.hpp"
 #include "Application.hpp"
 
 using namespace TranslucentFlyouts;
+
+LPTOP_LEVEL_EXCEPTION_FILTER g_old{ nullptr };
+LONG NTAPI ExceptionFilter(EXCEPTION_POINTERS* exceptionInfo)
+{
+	HRESULT hr = [exceptionInfo]()
+	{
+		CreateDirectoryW(Utils::make_current_folder_file_str(L"dumps").c_str(), nullptr);
+
+		std::time_t tt{ std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()) };
+		tm _tm{};
+		WCHAR time[MAX_PATH + 1];
+		localtime_s(&_tm, &tt);
+		std::wcsftime(time, MAX_PATH, L"%Y-%m-%d-%H-%M-%S", &_tm);
+
+		wil::unique_hfile fileHandle
+		{
+			CreateFile2(
+				Utils::make_current_folder_file_str(
+					std::format(
+						L"dumps\\{}-minidump-{}.dmp",
+						Utils::get_process_name(),
+						time
+					)
+				).c_str(),
+				GENERIC_READ | GENERIC_WRITE,
+				FILE_SHARE_READ,
+				CREATE_ALWAYS,
+				nullptr
+			)
+		};
+		RETURN_LAST_ERROR_IF(!fileHandle.is_valid());
+
+		MINIDUMP_EXCEPTION_INFORMATION minidumpExceptionInfo{ GetCurrentThreadId(), exceptionInfo, FALSE };
+		RETURN_IF_WIN32_BOOL_FALSE(
+			MiniDumpWriteDump(
+				GetCurrentProcess(),
+				GetCurrentProcessId(),
+				fileHandle.get(),
+				static_cast<MINIDUMP_TYPE>(
+					MINIDUMP_TYPE::MiniDumpWithThreadInfo |
+					MINIDUMP_TYPE::MiniDumpWithFullMemoryInfo |
+					MINIDUMP_TYPE::MiniDumpWithFullMemory |
+					MINIDUMP_TYPE::MiniDumpWithUnloadedModules |
+					MINIDUMP_TYPE::MiniDumpWithHandleData
+				),
+				&minidumpExceptionInfo,
+				nullptr,
+				nullptr
+			)
+		);
+
+		return S_OK;
+	} ();
+	if (SUCCEEDED(hr))
+	{
+		static WCHAR msg[32768 + 1]{};
+		LoadStringW(wil::GetModuleInstanceHandle(), IDS_STRING110, msg, 32768);
+		if (
+			MessageBoxW(
+				nullptr,
+				msg,
+				nullptr,
+				MB_ICONERROR | MB_SYSTEMMODAL | MB_SERVICE_NOTIFICATION | MB_SETFOREGROUND | MB_YESNO
+			) == IDYES
+		)
+		{
+			std::thread{ [&]
+			{
+				Application::StopService();
+			} }.detach();
+		}
+	}
+
+	return g_old ? g_old(exceptionInfo) : EXCEPTION_CONTINUE_SEARCH;
+}
 
 BOOL APIENTRY DllMain(
 	HMODULE hModule,
@@ -29,12 +106,12 @@ BOOL APIENTRY DllMain(
 			{
 				return FALSE;
 			}
-			else if (
-				Api::IsServiceRunning(Application::g_serviceName) &&
-				!GetModuleHandleW(L"Rundll32.exe") &&
-				!GetModuleHandleW(L"TranslucentFlyoutsConfig.exe")
-			)
+			else if (Api::IsServiceRunning(Application::g_serviceName))
 			{
+				if (RegHelper::Get<DWORD>({ L"" }, L"EnableMiniDump", 1))
+				{
+					g_old = SetUnhandledExceptionFilter(ExceptionFilter);
+				}
 				Framework::Startup();
 			}
 			break;
@@ -42,6 +119,10 @@ BOOL APIENTRY DllMain(
 
 		case DLL_PROCESS_DETACH:
 		{
+			if (g_old)
+			{
+				SetUnhandledExceptionFilter(g_old);
+			}
 			Framework::Shutdown();
 
 			break;
@@ -69,6 +150,7 @@ int WINAPI Main(
 		SetThreadUILanguage(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US));
 	}
 	RETURN_IF_WIN32_BOOL_FALSE(SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2));
+	RETURN_IF_FAILED(SetCurrentProcessExplicitAppUserModelID(L"TranslucentFlyouts.Win32.Service"));
 
 	HRESULT hr{S_OK};
 

@@ -134,9 +134,9 @@ namespace TranslucentFlyouts
 			void Detach(PVOID* realFuncAddr, PVOID hookFuncAddr) noexcept(false);
 		}
 
-		static inline UINT TFM_REMOVESUBCLASS{RegisterWindowMessageW(L"TranslucentFlyouts.RemoveWindowSublcass")};
-		static inline UINT TFM_ATTACH{ RegisterWindowMessageW(L"TranslucentFlyouts.Attach") };
-		static inline UINT TFM_DETACH{ RegisterWindowMessageW(L"TranslucentFlyouts.Detach") };
+		inline UINT TFM_REMOVESUBCLASS{ RegisterWindowMessageW(L"TranslucentFlyouts.RemoveWindowSublcass") };
+		inline UINT TFM_ATTACH{ RegisterWindowMessageW(L"TranslucentFlyouts.Attach") };
+		inline UINT TFM_DETACH{ RegisterWindowMessageW(L"TranslucentFlyouts.Detach") };
 		inline constexpr std::wstring_view subclassPropPrefix{ L"TranslucentFlyouts.Token" };
 
 		namespace HwndProp

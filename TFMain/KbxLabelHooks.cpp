@@ -36,7 +36,8 @@ namespace TranslucentFlyouts::KbxLabelHooks
 			std::array
 			{
 				"user32.dll"sv,
-				"ext-ms-win-ntuser-draw-l1-1-0.dll"sv
+				"ext-ms-win-ntuser-draw-l1-1-0.dll"sv,
+				"ext-ms-win-ntuser-misc-l1-1-0.dll"sv
 			},
 			"DrawTextW",
 			reinterpret_cast<PVOID>(MyDrawTextW)
@@ -46,7 +47,8 @@ namespace TranslucentFlyouts::KbxLabelHooks
 			std::array
 			{
 				"gdi32.dll"sv,
-				"ext-ms-win-gdi-desktop-l1-1-0.dll"sv
+				"ext-ms-win-gdi-desktop-l1-1-0.dll"sv,
+				""sv
 			},
 			"GdiGradientFill",
 			reinterpret_cast<PVOID>(MyGdiGradientFill)

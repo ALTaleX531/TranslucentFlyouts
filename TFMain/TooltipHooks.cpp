@@ -56,7 +56,8 @@ namespace TranslucentFlyouts::TooltipHooks
 			std::array
 			{
 				"user32.dll"sv,
-				"ext-ms-win-ntuser-draw-l1-1-0.dll"sv
+				"ext-ms-win-ntuser-draw-l1-1-0.dll"sv,
+				"ext-ms-win-ntuser-misc-l1-1-0.dll"sv
 			},
 			"DrawTextW",
 			reinterpret_cast<PVOID>(MyDrawTextW)
@@ -66,7 +67,8 @@ namespace TranslucentFlyouts::TooltipHooks
 			std::array
 			{
 				"uxtheme.dll"sv,
-				"ext-ms-win-uxtheme-themes-l1-1-0.dll"sv
+				"ext-ms-win-uxtheme-themes-l1-1-0.dll"sv,
+				""sv
 			},
 			"DrawThemeBackground",
 			reinterpret_cast<PVOID>(MyDrawThemeBackground)
@@ -76,7 +78,8 @@ namespace TranslucentFlyouts::TooltipHooks
 			std::array
 			{
 				"uxtheme.dll"sv,
-				"ext-ms-win-uxtheme-themes-l1-1-0.dll"sv
+				"ext-ms-win-uxtheme-themes-l1-1-0.dll"sv,
+				""sv
 			},
 			"DrawThemeTextEx",
 			reinterpret_cast<PVOID>(MyDrawThemeTextEx)
@@ -86,7 +89,8 @@ namespace TranslucentFlyouts::TooltipHooks
 			std::array
 			{
 				"uxtheme.dll"sv,
-				"ext-ms-win-uxtheme-themes-l1-1-0.dll"sv
+				"ext-ms-win-uxtheme-themes-l1-1-0.dll"sv,
+				""sv
 			},
 			"GetThemeMargins",
 			reinterpret_cast<PVOID>(MyGetThemeMargins)

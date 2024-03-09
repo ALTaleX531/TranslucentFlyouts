@@ -20,7 +20,7 @@ HRESULT Application::InstallHook()
 	RETURN_HR_IF(HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS), serviceInfo->hook != nullptr);
 
 	serviceInfo->hook = SetWinEventHook(
-		EVENT_MIN, EVENT_MAX,
+		EVENT_OBJECT_CREATE, EVENT_OBJECT_SELECTION,
 		wil::GetModuleInstanceHandle(),
 		Framework::HandleWinEvent,
 		0, 0,

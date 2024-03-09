@@ -553,40 +553,6 @@ namespace TranslucentFlyouts::Utils
 
 		return S_OK;
 	}
-
-	static DWORD GetThemeColorizationColor()
-	{
-		static const auto s_GetImmersiveColorFromColorSetEx{reinterpret_cast<DWORD(WINAPI*)(DWORD dwImmersiveColorSet, DWORD dwImmersiveColorType, bool bIgnoreHighContrast, DWORD dwHighContrastCacheMode)>(GetProcAddress(GetModuleHandleW(L"UxTheme.dll"), MAKEINTRESOURCEA(95)))};
-		static const auto s_GetImmersiveColorTypeFromName{ reinterpret_cast<DWORD(WINAPI*)(LPCWSTR name)>(GetProcAddress(GetModuleHandleW(L"UxTheme.dll"), MAKEINTRESOURCEA(96))) };
-		static const auto s_GetImmersiveUserColorSetPreference{ reinterpret_cast<DWORD(WINAPI*)(bool bForceCheckRegistry, bool bSkipCheckOnFail)>(GetProcAddress(GetModuleHandleW(L"UxTheme.dll"), MAKEINTRESOURCEA(98))) };
-
-		DWORD argb{0};
-		if (s_GetImmersiveColorFromColorSetEx && s_GetImmersiveColorTypeFromName && s_GetImmersiveUserColorSetPreference) [[likely]]
-		{
-			DWORD abgr
-			{
-				s_GetImmersiveColorFromColorSetEx(
-					s_GetImmersiveUserColorSetPreference(0, 0),
-					s_GetImmersiveColorTypeFromName(L"ImmersiveStartHoverBackground"),
-					true,
-					0
-				)
-			};
-			argb = MakeArgb(
-				abgr >> 24,
-				abgr & 0xff,
-				abgr >> 8 & 0xff,
-				abgr >> 16 & 0xff
-			);
-		}
-		else
-		{
-			BOOL opaque{FALSE};
-			DwmGetColorizationColor(&argb, &opaque);
-		}
-
-		return argb;
-	}
 }
 
 #pragma warning(pop)

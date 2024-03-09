@@ -16,6 +16,11 @@ namespace TranslucentFlyouts
 		// Return true if symbol need to be downloaded.
 		bool IsInternetRequired();
 	private:
+		static HMODULE WINAPI MyLoadLibraryExW(
+			LPCWSTR lpLibFileName,
+			HANDLE  hFile,
+			DWORD   dwFlags
+		);
 		static BOOL CALLBACK EnumSymbolsCallback(
 			PSYMBOL_INFO pSymInfo,
 			ULONG SymbolSize,
@@ -29,6 +34,7 @@ namespace TranslucentFlyouts
 		);
 
 		std::wstring_view m_sessionName;
+		PVOID m_LoadLibraryExW_Org{ nullptr };
 		bool m_printInfo{false};
 		bool m_symbolsOK{false};
 		bool m_requireInternet{false};

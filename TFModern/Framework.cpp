@@ -31,7 +31,6 @@ namespace TranslucentFlyouts::Framework
 void Framework::DoExplorerCrashCheck()
 {
 	static std::chrono::steady_clock::time_point g_lastExplorerDied{ std::chrono::steady_clock::time_point{} - std::chrono::seconds(30) };
-	static std::chrono::steady_clock::time_point g_lastExplorerDied2{ std::chrono::steady_clock::time_point{} - std::chrono::seconds(10) };
 	static DWORD g_lastExplorerPid
 	{
 		[]
@@ -67,19 +66,9 @@ void Framework::DoExplorerCrashCheck()
 
 	if (explorerPid)
 	{
-		g_lastExplorerDied2 = std::chrono::steady_clock::now();
 		g_lastExplorerPid = explorerPid;
 	}
 
-	// Being dead for too long!
-	{
-		const auto currentTimePoint{ std::chrono::steady_clock::now() };
-		if (currentTimePoint >= g_lastExplorerDied2 + std::chrono::seconds(5))
-		{
-			terminate(IDS_STRING103);
-			return;
-		}
-	}
 	// Died twice in a short time!
 	if (g_lastExplorerPid && explorerPid == 0)
 	{
@@ -92,7 +81,6 @@ void Framework::DoExplorerCrashCheck()
 		}
 
 		g_lastExplorerDied = currentTimePoint;
-		g_lastExplorerDied2 = currentTimePoint;
 		g_lastExplorerPid = 0;
 	}
 }

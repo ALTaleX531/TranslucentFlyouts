@@ -2,6 +2,7 @@
 #include "Utils.hpp"
 #include "resource.h"
 #include "Api.hpp"
+#include "HookHelper.hpp"
 #include "SymbolResolver.hpp"
 
 using namespace TranslucentFlyouts;
@@ -56,10 +57,30 @@ BOOL CALLBACK SymbolResolver::SymCallback(
 	return FALSE;
 }
 
+HMODULE WINAPI SymbolResolver::MyLoadLibraryExW(
+	LPCWSTR lpLibFileName,
+	HANDLE  hFile,
+	DWORD   dwFlags
+)
+{
+	if (_wcsicmp(lpLibFileName, std::format(L"{}\\symsrv.dll", wil::GetSystemDirectoryW<std::wstring, MAX_PATH + 1>()).c_str()) != 0)
+	{
+		return LoadLibraryExW(lpLibFileName, hFile, dwFlags);
+	}
+
+	WCHAR curDir[MAX_PATH + 1]{};
+	THROW_LAST_ERROR_IF(GetModuleFileName(wil::GetModuleInstanceHandle(), curDir, MAX_PATH) == 0);
+	THROW_IF_FAILED(PathCchRemoveFileSpec(curDir, MAX_PATH));
+	THROW_IF_FAILED(PathCchAppend(curDir, MAX_PATH, L"symsrv.dll"));
+	return LoadLibraryW(curDir);
+}
+
 SymbolResolver::SymbolResolver(std::wstring_view sessionName) : m_sessionName{ sessionName }
 {
 	try
 	{
+		m_LoadLibraryExW_Org = HookHelper::WriteIAT(GetModuleHandleW(L"dbghelp.dll"), "api-ms-win-core-libraryloader-l1-1-0.dll", "LoadLibraryExW", MyLoadLibraryExW);
+
 		THROW_IF_WIN32_BOOL_FALSE(SymInitialize(GetCurrentProcess(), nullptr, FALSE));
 
 		SymSetOptions(SYMOPT_DEFERRED_LOADS);
@@ -82,6 +103,7 @@ SymbolResolver::SymbolResolver(std::wstring_view sessionName) : m_sessionName{ s
 SymbolResolver::~SymbolResolver() noexcept
 {
 	SymCleanup(GetCurrentProcess());
+	m_LoadLibraryExW_Org = HookHelper::WriteIAT(GetModuleHandleW(L"dbghelp.dll"), "api-ms-win-core-libraryloader-l1-1-0.dll", "LoadLibraryExW", m_LoadLibraryExW_Org);
 }
 
 HRESULT SymbolResolver::Walk(std::wstring_view dllName, std::string_view mask, std::function<bool(PSYMBOL_INFO, ULONG)> callback) try

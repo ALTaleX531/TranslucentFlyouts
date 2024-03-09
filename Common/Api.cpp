@@ -90,7 +90,9 @@ bool Api::IsCurrentProcessInBlockList()
 		L"PerfWatson2.exe"sv,
 		L"splwow64.exe"sv,
 		L"ServiceHub.VSDetouredHost.exe"sv,
-		L"CoreWidgetProvider.exe"sv
+		L"CoreWidgetProvider.exe"sv,
+		L"FileCoAuth.exe"sv,
+		L"WerFault.exe"sv
 	};
 	auto is_in_list = [](const auto list)
 	{
@@ -236,6 +238,7 @@ bool Api::IsPartDisabled(std::wstring_view part)
 bool Api::IsPartDisabledExternally(std::wstring_view part)
 {
 	SYSTEM_POWER_STATUS powerStatus{};
+
 	return (
 		IsStartAllBackTakingOver(part) ||
 		GetSystemMetrics(SM_CLEANBOOT) ||
@@ -244,14 +247,15 @@ bool Api::IsPartDisabledExternally(std::wstring_view part)
 			GetSystemPowerStatus(&powerStatus) &&
 			powerStatus.SystemStatusFlag
 		)
-	);
+	) ||
+	RegHelper::Get<DWORD>({ L"DisabledList" }, Utils::get_process_name(), 0);
 }
 
 bool Api::IsStartAllBackTakingOver(std::wstring_view part)
 {
 	if (GetModuleHandleW(L"StartAllBackX64.dll"))
 	{
-		if (!part.empty() || !_wcsicmp(part.data(), L"Menu"))
+		if (part.empty() || !_wcsicmp(part.data(), L"Menu"))
 		{
 			auto immersiveMenus{ wil::reg::try_get_value_dword(HKEY_CURRENT_USER, L"SOFTWARE\\StartIsBack", L"ImmersiveMenus") };
 			if (immersiveMenus && immersiveMenus.value() == 0)
@@ -259,7 +263,7 @@ bool Api::IsStartAllBackTakingOver(std::wstring_view part)
 				return false;
 			}
 		}
-		if (!part.empty() || !_wcsicmp(part.data(), L"Tooltip"))
+		if (part.empty() || !_wcsicmp(part.data(), L"Tooltip"))
 		{
 			auto immersiveTooltips{ wil::reg::try_get_value_dword(HKEY_CURRENT_USER, L"SOFTWARE\\StartIsBack", L"NoDarkTooltips") };
 			if (immersiveTooltips && immersiveTooltips.value() == 0)
