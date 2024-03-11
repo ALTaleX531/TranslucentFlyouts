@@ -56,7 +56,7 @@ Type: <b>DWORD</b>
 <td width="30%">
 <dt>Effect and background type used for pop-up controls.</dt>
 <br>
-<dt><b>Windows 10:  </b>Not supported: 6, 7, 8; using 5 is equivalent to using 4</dt>
+<dt><b>Windows 10:  </b>Not supported: 6, 7, 8; 5 is a darker version of 4; 4 is almost the equivalent of 6</dt>
 <dt><b>Windows 11 22H2+:  </b>Not supported: 2, 3</dt>
 <b>Windows 11 (Before Build 22000):  </b>Not supported: 6, 8
 <dt><b>Note: </b>When using 6, 7, 8, the Fluent Menu animation will not be rendered correctly</dt>
