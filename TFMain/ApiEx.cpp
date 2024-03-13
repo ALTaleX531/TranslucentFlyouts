@@ -200,21 +200,21 @@ void Api::QueryMenuCustomRenderingContext(bool darkMode, MenuCustomRenderingCont
 	if (context.enable)
 	{
 		context.separator_disabled = RegHelper::Get<DWORD>(
-			{ L"Separator" },
+			{ L"Separator", L"Menu" },
 			L"Disabled",
 			0
 		) != 0;
 		if (!context.separator_disabled)
 		{
 			context.separator_width = RegHelper::Get<DWORD>(
-				{ L"Separator" },
+				{ L"Separator", L"Menu" },
 				L"Width",
 				MenuAppearance::separatorWidth
 			);
 			if (darkMode)
 			{
 				context.separator_color = RegHelper::Get<DWORD>(
-					{ L"Separator" },
+					{ L"Separator", L"Menu" },
 					L"DarkMode_Color",
 					MenuAppearance::darkMode_SeparatorColor
 				);
@@ -222,14 +222,14 @@ void Api::QueryMenuCustomRenderingContext(bool darkMode, MenuCustomRenderingCont
 			else
 			{
 				context.separator_color = RegHelper::Get<DWORD>(
-					{ L"Separator" },
+					{ L"Separator", L"Menu" },
 					L"LightMode_Color",
 					MenuAppearance::lightMode_SeparatorColor
 				);
 			}
 			if (
 				RegHelper::Get<DWORD>(
-					{ L"Separator" },
+					{ L"Separator", L"Menu" },
 					L"EnableThemeColorization",
 					0
 				) != 0
@@ -238,7 +238,7 @@ void Api::QueryMenuCustomRenderingContext(bool darkMode, MenuCustomRenderingCont
 				auto colorizationType
 				{
 					RegHelper::Get<std::wstring>(
-						{ L"Separator" },
+						{ L"Separator", L"Menu" },
 						darkMode ? L"DarkMode_ThemeColorizationType" : L"LightMode_ThemeColorizationType",
 						L"ImmersiveStartHoverBackground"
 					)
@@ -248,26 +248,26 @@ void Api::QueryMenuCustomRenderingContext(bool darkMode, MenuCustomRenderingCont
 		}
 
 		context.focusing_disabled = RegHelper::Get<DWORD>(
-			{ L"Focusing" },
+			{ L"Focusing", L"Menu" },
 			L"Disabled",
 			0
 		) != 0;
 		if (!context.focusing_disabled)
 		{
 			context.focusing_cornerRadius = RegHelper::Get<DWORD>(
-				{ L"Focusing" },
+				{ L"Focusing", L"Menu" },
 				L"CornerRadius",
 				MenuAppearance::cornerRadius
 			);
 			context.focusing_width = RegHelper::Get<DWORD>(
-				{ L"Focusing" },
+				{ L"Focusing", L"Menu" },
 				L"Width",
 				MenuAppearance::focusingWidth
 			);
 			if (darkMode)
 			{
 				context.focusing_color = RegHelper::Get<DWORD>(
-					{ L"Focusing" },
+					{ L"Focusing", L"Menu" },
 					L"DarkMode_Color",
 					MenuAppearance::darkMode_FocusingColor
 				);
@@ -275,14 +275,14 @@ void Api::QueryMenuCustomRenderingContext(bool darkMode, MenuCustomRenderingCont
 			else
 			{
 				context.focusing_color = RegHelper::Get<DWORD>(
-					{ L"Focusing" },
+					{ L"Focusing", L"Menu" },
 					L"LightMode_Color",
 					MenuAppearance::lightMode_FocusingColor
 				);
 			}
 			if (
 				RegHelper::Get<DWORD>(
-					{ L"Focusing" },
+					{ L"Focusing", L"Menu" },
 					L"EnableThemeColorization",
 					0
 				) != 0
@@ -291,7 +291,7 @@ void Api::QueryMenuCustomRenderingContext(bool darkMode, MenuCustomRenderingCont
 				auto colorizationType
 				{
 					RegHelper::Get<std::wstring>(
-						{ L"Focusing" },
+						{ L"Focusing", L"Menu" },
 						darkMode ? L"DarkMode_ThemeColorizationType" : L"LightMode_ThemeColorizationType",
 						L"ImmersiveStartHoverBackground"
 					)
@@ -301,21 +301,21 @@ void Api::QueryMenuCustomRenderingContext(bool darkMode, MenuCustomRenderingCont
 		}
 
 		context.disabledHot_disabled = RegHelper::Get<DWORD>(
-			{ L"DisabledHot" },
+			{ L"DisabledHot", L"Menu" },
 			L"Disabled",
 			0
 		) != 0;
 		if (!context.disabledHot_disabled)
 		{
 			context.disabledHot_cornerRadius = RegHelper::Get<DWORD>(
-				{ L"DisabledHot" },
+				{ L"DisabledHot", L"Menu" },
 				L"CornerRadius",
 				MenuAppearance::cornerRadius
 			);
 			if (darkMode)
 			{
 				context.disabledHot_color = RegHelper::Get<DWORD>(
-					{ L"DisabledHot" },
+					{ L"DisabledHot", L"Menu" },
 					L"DarkMode_Color",
 					MenuAppearance::darkMode_DisabledHotColor
 				);
@@ -323,14 +323,14 @@ void Api::QueryMenuCustomRenderingContext(bool darkMode, MenuCustomRenderingCont
 			else
 			{
 				context.disabledHot_color = RegHelper::Get<DWORD>(
-					{ L"DisabledHot" },
+					{ L"DisabledHot", L"Menu" },
 					L"LightMode_Color",
 					MenuAppearance::lightMode_DisabledHotColor
 				);
 			}
 			if (
 				RegHelper::Get<DWORD>(
-					{ L"DisabledHot" },
+					{ L"DisabledHot", L"Menu" },
 					L"EnableThemeColorization",
 					0
 				) != 0
@@ -339,7 +339,7 @@ void Api::QueryMenuCustomRenderingContext(bool darkMode, MenuCustomRenderingCont
 				auto colorizationType
 				{
 					RegHelper::Get<std::wstring>(
-						{ L"DisabledHot" },
+						{ L"DisabledHot", L"Menu" },
 						darkMode ? L"DarkMode_ThemeColorizationType" : L"LightMode_ThemeColorizationType",
 						L"ImmersiveStartHoverBackground"
 					)
@@ -349,21 +349,21 @@ void Api::QueryMenuCustomRenderingContext(bool darkMode, MenuCustomRenderingCont
 		}
 
 		context.hot_disabled = RegHelper::Get<DWORD>(
-			{ L"Hot" },
+			{ L"Hot", L"Menu" },
 			L"Disabled",
 			0
 		) != 0;
 		if (!context.hot_disabled)
 		{
 			context.hot_cornerRadius = RegHelper::Get<DWORD>(
-				{ L"Hot" },
+				{ L"Hot", L"Menu" },
 				L"CornerRadius",
 				MenuAppearance::cornerRadius
 			);
 			if (darkMode)
 			{
 				context.hot_color = RegHelper::Get<DWORD>(
-					{ L"Hot" },
+					{ L"Hot", L"Menu" },
 					L"DarkMode_Color",
 					MenuAppearance::darkMode_HotColor
 				);
@@ -371,14 +371,14 @@ void Api::QueryMenuCustomRenderingContext(bool darkMode, MenuCustomRenderingCont
 			else
 			{
 				context.hot_color = RegHelper::Get<DWORD>(
-					{ L"Hot" },
+					{ L"Hot", L"Menu" },
 					L"LightMode_Color",
 					MenuAppearance::lightMode_HotColor
 				);
 			}
 			if (
 				RegHelper::Get<DWORD>(
-					{ L"Hot" },
+					{ L"Hot", L"Menu" },
 					L"EnableThemeColorization",
 					0
 				) != 0
@@ -387,7 +387,7 @@ void Api::QueryMenuCustomRenderingContext(bool darkMode, MenuCustomRenderingCont
 				auto colorizationType
 				{
 					RegHelper::Get<std::wstring>(
-						{ L"Hot" },
+						{ L"Hot", L"Menu" },
 						darkMode ? L"DarkMode_ThemeColorizationType" : L"LightMode_ThemeColorizationType",
 						L"ImmersiveStartHoverBackground"
 					)
@@ -414,7 +414,6 @@ void Api::QueryMenuIconBackgroundColorRemovalContext(MenuIconBackgroundColorRemo
 void Api::QueryFlyoutAnimationContext(std::wstring_view part, FlyoutAnimationContext& context)
 {
 	RtlSecureZeroMemory(&context, sizeof(context));
-	auto key{ std::format(L"{}\\Animation", part) };
 
 	context.enable = RegHelper::Get<DWORD>(
 		{ part, L"" },
@@ -423,7 +422,7 @@ void Api::QueryFlyoutAnimationContext(std::wstring_view part, FlyoutAnimationCon
 		1
 	);
 	context.fadeOutTime = RegHelper::Get<DWORD>(
-		{ part, L"" },
+		{ L"Animation", part },
 		L"FadeOutTime",
 		static_cast<DWORD>(FlyoutAnimation::standardFadeoutDuration.count()),
 		1
@@ -431,31 +430,31 @@ void Api::QueryFlyoutAnimationContext(std::wstring_view part, FlyoutAnimationCon
 	if (context.enable)
 	{
 		context.startRatio = RegHelper::Get<DWORD>(
-			{ part, L"" },
+			{ L"Animation", part },
 			L"StartRatio",
 			lround(FlyoutAnimation::standardStartPosRatio * 100.f),
 			1
 		);
 		context.popInTime = RegHelper::Get<DWORD>(
-			{ part, L"" },
+			{ L"Animation", part },
 			L"PopInTime",
 			static_cast<DWORD>(FlyoutAnimation::standardPopupInDuration.count()),
 			1
 		);
 		context.fadeInTime = RegHelper::Get<DWORD>(
-			{ part, L"" },
+			{ L"Animation", part },
 			L"FadeInTime",
 			static_cast<DWORD>(FlyoutAnimation::standardFadeInDuration.count()),
 			1
 		);
 		context.popInStyle = RegHelper::Get<DWORD>(
-			{ part, L"" },
+			{ L"Animation", part },
 			L"PopInStyle",
 			0,
 			1
 		);
 		context.immediateInterupting = RegHelper::Get<DWORD>(
-			{ part, L"" },
+			{ L"Animation", part },
 			L"EnableImmediateInterupting",
 			0,
 			1

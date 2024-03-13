@@ -66,7 +66,7 @@ bool Api::IsCurrentProcessInBlockList()
 	// TranslucentFlyouts won't be loaded into one of these process
 	// These processes are quite annoying because TranslucentFlyouts will not be automatically unloaded by them
 	// Some of them even have no chance to show flyouts and other UI elements
-	const std::array blockList
+	static const std::array blockList
 	{
 		L"sihost.exe"sv,
 		L"WSHost.exe"sv,
@@ -128,8 +128,8 @@ bool Api::InteractiveIO::OutputToConsole(
 		return false;
 	}
 
-	static WCHAR str[32768 + 1]{};
-	LoadStringW(wil::GetModuleInstanceHandle(), strResourceId, str, 32768);
+	LPCWSTR buffer{ nullptr };
+	auto length{ LoadStringW(wil::GetModuleInstanceHandle(), strResourceId, reinterpret_cast<LPWSTR>(&buffer), 0)};
 
 	switch (strType)
 	{
@@ -152,7 +152,7 @@ bool Api::InteractiveIO::OutputToConsole(
 		break;
 	}
 
-	auto outputString{std::format(L"{}{}{}", prefixStr, str, additionalStr)};
+	auto outputString{std::format(L"{}{}{}", prefixStr, std::wstring_view{ buffer, static_cast<size_t>(length) }, additionalStr)};
 	std::wcout << outputString;
 #ifdef _DEBUG
 	OutputDebugStringW(outputString.c_str());
@@ -246,15 +246,20 @@ bool Api::IsPartDisabledExternally(std::wstring_view part)
 		(
 			GetSystemPowerStatus(&powerStatus) &&
 			powerStatus.SystemStatusFlag
-		)
-	) ||
-	RegHelper::Get<DWORD>({ L"DisabledList" }, Utils::get_process_name(), 0);
+		) ||
+		RegHelper::Get<DWORD>({ L"DisabledList" }, Utils::get_process_name(), 0)
+	);
 }
 
 bool Api::IsStartAllBackTakingOver(std::wstring_view part)
 {
 	if (GetModuleHandleW(L"StartAllBackX64.dll"))
 	{
+		if (!_wcsicmp(part.data(), L"DropDown"))
+		{
+			return false;
+		}
+
 		if (part.empty() || !_wcsicmp(part.data(), L"Menu"))
 		{
 			auto immersiveMenus{ wil::reg::try_get_value_dword(HKEY_CURRENT_USER, L"SOFTWARE\\StartIsBack", L"ImmersiveMenus") };

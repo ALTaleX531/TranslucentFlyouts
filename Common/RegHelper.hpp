@@ -14,7 +14,7 @@ namespace TranslucentFlyouts
 #endif // _WIN64
 
 		template <typename T, bool reverse>
-		inline std::optional<T> GetValueInternal(std::wstring_view root, std::vector<std::wstring_view> keyTree, std::wstring_view valueName, size_t maxFallThrough)
+		inline std::optional<T> GetValueInternal(std::wstring_view root, std::vector<std::wstring_view> keyTree, std::wstring_view valueName, size_t maxFallThrough) try
 		{
 			std::optional<T> value{};
 			std::wstring keyName{ root };
@@ -22,15 +22,16 @@ namespace TranslucentFlyouts
 
 			if (!keyTree.empty())
 			{
-				for (auto index{ 0 }; index < keyTree.size(); index++)
+				for (auto i{ 1ull }; i <= keyTree.size(); i++)
 				{
 					keyName = root;
-					for (auto i{ keyTree.size() - 1 }; i >= index && maxFallThrough > 0; i--, maxFallThrough--)
+					for (auto j{ 0ull }; j < i && maxFallThrough >= 0; j++, maxFallThrough--)
 					{
-						if (!keyTree[i].empty())
+						auto index{ keyTree.size() - j - 1 };
+						if (!keyTree[index].empty())
 						{
 							keyName += L"\\";
-							keyName += keyTree[i];
+							keyName += keyTree[index];
 						}
 					}
 
@@ -98,6 +99,8 @@ namespace TranslucentFlyouts
 
 			return value;
 		}
+		catch(...) { return std::nullopt; }
+
 		template <typename T, bool reverse>
 		inline HRESULT SetValueInternal(std::wstring_view root, std::vector<std::wstring_view> keyTree, std::wstring_view valueName, T value, size_t maxFallThrough)
 		{

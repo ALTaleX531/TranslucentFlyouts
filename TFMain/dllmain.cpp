@@ -9,8 +9,10 @@
 using namespace TranslucentFlyouts;
 
 LPTOP_LEVEL_EXCEPTION_FILTER g_old{ nullptr };
-LONG NTAPI ExceptionFilter(EXCEPTION_POINTERS* exceptionInfo)
+LONG NTAPI TopLevelExceptionFilter(EXCEPTION_POINTERS* exceptionInfo)
 {
+	LONG result{ g_old ? g_old(exceptionInfo) : EXCEPTION_CONTINUE_SEARCH };
+
 	HRESULT hr = [exceptionInfo]()
 	{
 		CreateDirectoryW(Utils::make_current_folder_file_str(L"dumps").c_str(), nullptr);
@@ -47,11 +49,9 @@ LONG NTAPI ExceptionFilter(EXCEPTION_POINTERS* exceptionInfo)
 				fileHandle.get(),
 				static_cast<MINIDUMP_TYPE>(
 					MINIDUMP_TYPE::MiniDumpWithThreadInfo |
-					MINIDUMP_TYPE::MiniDumpWithFullMemoryInfo |
-					MINIDUMP_TYPE::MiniDumpWithFullMemory |
 					MINIDUMP_TYPE::MiniDumpWithUnloadedModules |
 					MINIDUMP_TYPE::MiniDumpWithHandleData
-				),
+					),
 				&minidumpExceptionInfo,
 				nullptr,
 				nullptr
@@ -60,27 +60,26 @@ LONG NTAPI ExceptionFilter(EXCEPTION_POINTERS* exceptionInfo)
 
 		return S_OK;
 	} ();
+		
 	if (SUCCEEDED(hr))
 	{
-		static WCHAR msg[32768 + 1]{};
-		LoadStringW(wil::GetModuleInstanceHandle(), IDS_STRING110, msg, 32768);
 		if (
 			MessageBoxW(
 				nullptr,
-				msg,
+				Utils::GetResWString<IDS_STRING110>().c_str(),
 				nullptr,
 				MB_ICONERROR | MB_SYSTEMMODAL | MB_SERVICE_NOTIFICATION | MB_SETFOREGROUND | MB_YESNO
 			) == IDYES
 		)
 		{
-			std::thread{ [&]
+			std::thread{ []
 			{
 				Application::StopService();
 			} }.detach();
 		}
 	}
 
-	return g_old ? g_old(exceptionInfo) : EXCEPTION_CONTINUE_SEARCH;
+	return result;
 }
 
 BOOL APIENTRY DllMain(
@@ -90,7 +89,7 @@ BOOL APIENTRY DllMain(
 )
 {
 	using namespace TranslucentFlyouts;
-	BOOL bResult{TRUE};
+	BOOL bResult{ TRUE };
 
 	switch (dwReason)
 	{
@@ -108,9 +107,9 @@ BOOL APIENTRY DllMain(
 			}
 			else if (Api::IsServiceRunning(Application::g_serviceName))
 			{
-				if (RegHelper::Get<DWORD>({ L"" }, L"EnableMiniDump", 1))
+				if (RegHelper::Get<DWORD>({}, L"EnableMiniDump", 1) || !_wcsicmp(Utils::get_process_name().c_str(), L"explorer.exe"))
 				{
-					g_old = SetUnhandledExceptionFilter(ExceptionFilter);
+					g_old = SetUnhandledExceptionFilter(TopLevelExceptionFilter);
 				}
 				Framework::Startup();
 			}

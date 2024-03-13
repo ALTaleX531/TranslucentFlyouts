@@ -392,14 +392,14 @@ namespace TranslucentFlyouts::FlyoutAnimation
 
 					D2D1_POINT_2F startPoint
 					{
-						static_cast<float>(min(max(0., static_cast<double>(clientPoint.x)), width)),
-						static_cast<float>(
-							abs(height - static_cast<double>(clientPoint.y)) >
-							abs(0. - static_cast<double>(clientPoint.y))
-							? 0. : height
-						)
+						static_cast<float>(static_cast<double>(clientPoint.x)),
+						static_cast<float>(static_cast<double>(clientPoint.y))
 					};
-					double maxRadius{ sqrt(width * width + height * height) };
+					double maxRadius{ 0.f };
+					maxRadius = max(maxRadius, sqrt(startPoint.x * startPoint.x + startPoint.y * startPoint.y));
+					maxRadius = max(maxRadius, sqrt((width - startPoint.x) * (width - startPoint.x) + startPoint.y * startPoint.y));
+					maxRadius = max(maxRadius, sqrt(startPoint.x * startPoint.x + (height - startPoint.y) * (height - startPoint.y)));
+					maxRadius = max(maxRadius, sqrt((width - startPoint.x) * (width - startPoint.x) + (height - startPoint.y) * (height - startPoint.y)));
 
 					wil::com_ptr<IDCompositionRectangleClip> clip{ nullptr };
 					THROW_IF_FAILED(dcompDevice->CreateRectangleClip(&clip));

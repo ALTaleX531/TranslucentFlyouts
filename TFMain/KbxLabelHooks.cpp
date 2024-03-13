@@ -142,4 +142,5 @@ void KbxLabelHooks::DisableHooks()
 	auto lock{ RibbonHooks::g_lock.lock_exclusive() };
 
 	g_hookDispatcher.DisableAllHooks();
+	g_hookDispatcher.moduleAddress = nullptr;
 }

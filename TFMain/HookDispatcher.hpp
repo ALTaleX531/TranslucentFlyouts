@@ -10,8 +10,8 @@ namespace TranslucentFlyouts::HookHelper
 	struct HookDispatcher
 	{
 		const HookDispatcherDependency<hookCount, possibleImportCount>& hookDependency{};
-		std::array<std::pair<OffsetStorage, std::optional<OffsetStorage>>, hookCount> hookInfoCache{};
-		std::array<std::pair<PVOID, std::optional<HMODULE>>, hookCount> hookTable{};
+		std::array<std::pair<OffsetStorage, std::optional<OffsetStorage>>, hookCount> hookInfoCache{}; // iat mem offset
+		std::array<std::pair<PVOID, std::optional<HMODULE>>, hookCount> hookTable{}; // iat org value
 		std::array<size_t, hookCount> hookRef{};
 		PVOID moduleAddress{};
 
@@ -184,7 +184,7 @@ namespace TranslucentFlyouts::HookHelper
 			{
 				auto& [functionAddressOffset, moduleHandleOffset] {hookInfoCache[i]};
 
-				if (hookTable[i].first)
+				if (hookTable[i].first && functionAddressOffset.IsValid())
 				{
 					HookHelper::WriteMemory(functionAddressOffset.To(moduleAddress), [&]
 					{
@@ -192,7 +192,7 @@ namespace TranslucentFlyouts::HookHelper
 						hookTable[i].first = nullptr;
 					});
 				}
-				if (moduleHandleOffset.has_value())
+				if (hookTable[i].second.has_value() && moduleHandleOffset.has_value())
 				{
 					HookHelper::WriteMemory(moduleHandleOffset.value().To(moduleAddress), [&]
 					{

@@ -19,7 +19,7 @@
     <RemoteDebuggerConnection>RemoteWithoutAuthentication</RemoteDebuggerConnection>
     <RemoteDebuggerDebuggerType>NativeOnly</RemoteDebuggerDebuggerType>
     <RemoteDebuggerAttach>true</RemoteDebuggerAttach>
-    <RemoteDebuggerServerName>192.168.209.134:4026</RemoteDebuggerServerName>
+    <RemoteDebuggerServerName>192.168.209.139:4026</RemoteDebuggerServerName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
@@ -40,6 +40,6 @@
     <RemoteDebuggerConnection>RemoteWithoutAuthentication</RemoteDebuggerConnection>
     <RemoteDebuggerDebuggerType>NativeOnly</RemoteDebuggerDebuggerType>
     <RemoteDebuggerAttach>true</RemoteDebuggerAttach>
-    <RemoteDebuggerServerName>192.168.209.134:4026</RemoteDebuggerServerName>
+    <RemoteDebuggerServerName>192.168.209.139:4026</RemoteDebuggerServerName>
   </PropertyGroup>
 </Project>

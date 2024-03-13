@@ -85,7 +85,7 @@ namespace TranslucentFlyouts::Utils
 		return std::wstring{filePath};
 	}
 
-	inline std::wstring get_process_name()
+	inline const std::wstring& get_process_name()
 	{
 		static const auto s_processName{ get_module_base_file_name(nullptr) };
 		return s_processName;
@@ -214,6 +214,36 @@ namespace TranslucentFlyouts::Utils
 		}
 
 		return classNameOK && windowTextOK;
+	}
+
+	inline bool IsCurrentThreadContainVisibleWindow()
+	{
+		bool contain{ false };
+		EnumThreadWindows(GetCurrentThreadId(), [](HWND hWnd, LPARAM lParam)
+		{
+			if (IsWindowVisible(hWnd))
+			{
+				*reinterpret_cast<bool*>(lParam) = true;
+				return FALSE;
+			}
+			return TRUE;
+		}, reinterpret_cast<LPARAM>(&contain));
+		return contain;
+	}
+
+	template <UINT id>
+	__forceinline const std::wstring_view GetResWStringView()
+	{
+		LPCWSTR buffer{ nullptr };
+		auto length{ LoadStringW(wil::GetModuleInstanceHandle(), id, reinterpret_cast<LPWSTR>(&buffer), 0)};
+		return { buffer, static_cast<size_t>(length) };
+	}
+	template <UINT id>
+	__forceinline std::wstring GetResWString()
+	{
+		LPCWSTR buffer{ nullptr };
+		auto length{ LoadStringW(wil::GetModuleInstanceHandle(), id, reinterpret_cast<LPWSTR>(&buffer), 0) };
+		return std::wstring{ buffer, static_cast<size_t>(length) };
 	}
 
 	static bool IsPopupMenu(HWND hWnd)

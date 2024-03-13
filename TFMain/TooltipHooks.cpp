@@ -394,6 +394,7 @@ void TooltipHooks::EnableHooks(bool enable)
 		return;
 	}
 
+	g_hookDispatcher.moduleAddress = g_comctl32Module;
 	g_hookDispatcher.EnableHook(0, enable);
 	g_hookDispatcher.EnableHook(1, enable);
 	g_hookDispatcher.EnableHook(2, enable);
@@ -416,4 +417,5 @@ void TooltipHooks::DisableHooks()
 	auto lock{ ExplorerFrameHooks::g_lock.lock_exclusive() };
 
 	g_hookDispatcher.DisableAllHooks();
+	g_hookDispatcher.moduleAddress = nullptr;
 }

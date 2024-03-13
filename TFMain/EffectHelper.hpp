@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "framework.h"
+#include "SystemHelper.hpp"
 
 namespace TranslucentFlyouts
 {
@@ -110,8 +111,15 @@ namespace TranslucentFlyouts
 
 		static void EnableWindowDarkMode(HWND hwnd, BOOL darkMode)
 		{
-			DwmSetWindowAttribute(hwnd, 19, &darkMode, sizeof(darkMode));
-			DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &darkMode, sizeof(darkMode));
+			if (SystemHelper::g_buildNumber < 22000)
+			{
+				constexpr DWORD DWMWA_USE_IMMERSIVE_DARK_MODE_WIN10{ 19 };
+				DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE_WIN10, &darkMode, sizeof(darkMode));
+			}
+			else
+			{
+				DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &darkMode, sizeof(darkMode));
+			}
 		}
 
 		static void EnableWindowNCRendering(HWND hwnd, BOOL ncRendering)
@@ -207,8 +215,14 @@ namespace TranslucentFlyouts
 				}
 			}
 
-			DwmSetWindowAttribute(hwnd, 1029, &mica, sizeof(mica));
-			DwmSetWindowAttribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, &backdropType, sizeof(DWM_SYSTEMBACKDROP_TYPE));
+			if (SystemHelper::g_buildNumber > 22000 && SystemHelper::g_buildNumber < 22621)
+			{
+				DwmSetWindowAttribute(hwnd, 1029, &mica, sizeof(mica));
+			}
+			if (SystemHelper::g_buildNumber >= 22621)
+			{
+				DwmSetWindowAttribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, &backdropType, sizeof(DWM_SYSTEMBACKDROP_TYPE));
+			}
 			DwmMakeWindowTransparent(hwnd, windowTransparent);
 			if (g_actualSetWindowCompositionAttribute) [[likely]]
 			{

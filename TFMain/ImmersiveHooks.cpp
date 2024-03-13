@@ -216,6 +216,11 @@ HRESULT WINAPI ImmersiveHooks::MyDwmSetWindowAttribute(
 
 bool ImmersiveHooks::EnableHooksInternal(PVOID baseAddress, bool enable)
 {
+	if (!baseAddress)
+	{
+		return false;
+	}
+
 	if (g_hookDispatcherMap.find(baseAddress) == g_hookDispatcherMap.end())
 	{
 		g_hookDispatcherMap.emplace(
@@ -264,6 +269,14 @@ void ImmersiveHooks::EnableHooks(PVOID baseAddress, bool enable)
 
 		baseAddress = GetModuleHandleW(L"shell32.dll");
 	}
+	if (GetModuleHandleW(L"twinui.pcshell.dll") == baseAddress)
+	{
+		if (GetModuleHandleW(L"explorer.exe") && SystemHelper::g_buildNumber >= 22000)
+		{
+			EnableHooksInternal(GetModuleHandleW(L"Taskbar.dll"), enable);
+			g_cachedOriginalFunction.fill(nullptr);
+		}
+	}
 
 	bool hookChanged{ EnableHooksInternal(baseAddress, enable) };
 	if (hookChanged)
@@ -289,5 +302,6 @@ void ImmersiveHooks::DisableHooks()
 	for (auto& [baseAddress, hookDispatcher] : g_hookDispatcherMap)
 	{
 		hookDispatcher.DisableAllHooks();
+		hookDispatcher.moduleAddress = nullptr;
 	}
 }

@@ -266,39 +266,15 @@ HRESULT Application::UninstallApp() try
 	auto CleanUp{ Utils::RoInit(&hr) };
 	THROW_IF_FAILED(hr);
 
-	{
-		com_ptr<ITaskService> taskService{ wil::CoCreateInstance<ITaskService>(CLSID_TaskScheduler) };
-		THROW_IF_FAILED(taskService->Connect(_variant_t{}, _variant_t{}, _variant_t{}, _variant_t{}));
-
-		com_ptr<ITaskFolder> rootFolder{ nullptr };
-		THROW_IF_FAILED(taskService->GetFolder(_bstr_t("\\"), &rootFolder));
-
-		BSTR name
-		{
-#ifdef _WIN64
-			const_cast<BSTR>(L"TranslucentFlyouts.Win32 Autorun Task")
-#else
-			const_cast<BSTR>(L"TranslucentFlyouts.Win32 Autorun Task (x86)")
-#endif
-		};
-		THROW_IF_FAILED(
-			rootFolder->DeleteTask(
-				name, 0
-			)
-		);
-	}
-
-	static WCHAR msg[32768 + 1]{};
-	THROW_LAST_ERROR_IF(!LoadStringW(wil::GetModuleInstanceHandle(), IDS_STRING105, msg, 32768));
 	if (
 		ShellMessageBoxW(
 			wil::GetModuleInstanceHandle(),
 			nullptr,
-			msg,
+			Utils::GetResWString<IDS_STRING105>().c_str(),
 			nullptr,
 			MB_ICONINFORMATION | MB_YESNO
 		) == IDYES
-	)
+		)
 	{
 		SHDeleteKeyW(
 			HKEY_LOCAL_MACHINE, L"SOFTWARE\\TranslucentFlyouts"
@@ -321,6 +297,27 @@ HRESULT Application::UninstallApp() try
 			HKEY_CURRENT_USER, L"SOFTWARE\\TranslucentFlyouts_Internals(x86)"
 		);
 #endif // _WIN64
+	}
+	{
+		com_ptr<ITaskService> taskService{ wil::CoCreateInstance<ITaskService>(CLSID_TaskScheduler) };
+		THROW_IF_FAILED(taskService->Connect(_variant_t{}, _variant_t{}, _variant_t{}, _variant_t{}));
+
+		com_ptr<ITaskFolder> rootFolder{ nullptr };
+		THROW_IF_FAILED(taskService->GetFolder(_bstr_t("\\"), &rootFolder));
+
+		BSTR name
+		{
+#ifdef _WIN64
+			const_cast<BSTR>(L"TranslucentFlyouts.Win32 Autorun Task")
+#else
+			const_cast<BSTR>(L"TranslucentFlyouts.Win32 Autorun Task (x86)")
+#endif
+		};
+		THROW_IF_FAILED(
+			rootFolder->DeleteTask(
+				name, 0
+			)
+		);
 	}
 
 	return S_OK;

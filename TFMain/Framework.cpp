@@ -58,32 +58,6 @@ namespace TranslucentFlyouts::Framework
 			} ()
 		};
 		
-		auto terminate = [](UINT id)
-		{
-			Application::UninstallHook();
-
-			static WCHAR msg[32768 + 1]{};
-			LoadStringW(wil::GetModuleInstanceHandle(), id, msg, 32768);
-			if (
-				MessageBoxW(
-					nullptr,
-					msg,
-					nullptr,
-					MB_ICONERROR | MB_SYSTEMMODAL | MB_SERVICE_NOTIFICATION | MB_SETFOREGROUND | MB_YESNO
-				) == IDNO
-			)
-			{
-				Application::InstallHook();
-			}
-			else
-			{
-				std::thread{ [&]
-				{
-					Application::StopService();
-				} }.detach();
-			}
-		};
-		
 		DWORD explorerPid{ 0 };
 		GetWindowThreadProcessId(GetShellWindow(), &explorerPid);
 
@@ -99,7 +73,26 @@ namespace TranslucentFlyouts::Framework
 
 			if (currentTimePoint < g_lastExplorerDied + std::chrono::seconds(30)) [[unlikely]]
 			{
-				terminate(IDS_STRING109);
+				Application::UninstallHook();
+
+				if (
+					MessageBoxW(
+						nullptr,
+						Utils::GetResWString<IDS_STRING109>().c_str(),
+						nullptr,
+						MB_ICONERROR | MB_SYSTEMMODAL | MB_SERVICE_NOTIFICATION | MB_SETFOREGROUND | MB_YESNO
+					) == IDNO
+				)
+				{
+					Application::InstallHook();
+				}
+				else
+				{
+					std::thread{ [&]
+					{
+						Application::StopService();
+					} }.detach();
+				}
 				return;
 			}
 
@@ -133,7 +126,8 @@ void CALLBACK Framework::HandleWinEvent(
 		idObject != OBJID_WINDOW ||
 		idChild != CHILDID_SELF ||
 		!hWnd || !IsWindow(hWnd) ||
-		processId != GetCurrentProcessId()
+		processId != GetCurrentProcessId() ||
+		dwEventThread != GetCurrentThreadId()
 	)
 	{
 		return;

@@ -1035,6 +1035,7 @@ void UxThemeHooks::EnableHooks(bool enable)
 	}
 
 	HMODULE uxthemeModule{ GetModuleHandleW(L"uxtheme.dll") };
+	g_hookDispatcher.moduleAddress = uxthemeModule;
 	
 	if (enable)
 	{
@@ -1150,6 +1151,7 @@ void UxThemeHooks::DisableHooksInternal()
 			g_hookTable.clear();
 		}
 		g_hookDispatcher.DisableAllHooks();
+		g_hookDispatcher.moduleAddress = nullptr;
 
 		HookHelper::Detours::Write([&]()
 		{

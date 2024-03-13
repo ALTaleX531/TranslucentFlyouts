@@ -264,4 +264,5 @@ void DropDownHooks::DisableHooks()
 	auto lock{ ExplorerFrameHooks::g_lock.lock_exclusive() };
 
 	g_hookDispatcher.DisableAllHooks();
+	g_hookDispatcher.moduleAddress = nullptr;
 }

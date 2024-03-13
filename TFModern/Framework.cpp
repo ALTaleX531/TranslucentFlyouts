@@ -55,7 +55,7 @@ void Framework::DoExplorerCrashCheck()
 			MB_ICONERROR | MB_SYSTEMMODAL | MB_SERVICE_NOTIFICATION | MB_SETFOREGROUND
 		);
 
-		std::thread{ [&]
+		std::thread{ []
 		{
 			Application::StopService();
 		} }.detach();
