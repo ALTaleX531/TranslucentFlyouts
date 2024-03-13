@@ -49,9 +49,9 @@ LONG NTAPI TopLevelExceptionFilter(EXCEPTION_POINTERS* exceptionInfo)
 				fileHandle.get(),
 				static_cast<MINIDUMP_TYPE>(
 					MINIDUMP_TYPE::MiniDumpWithThreadInfo |
-					MINIDUMP_TYPE::MiniDumpWithUnloadedModules |
-					MINIDUMP_TYPE::MiniDumpWithHandleData
-					),
+					(RegHelper::Get<DWORD>({}, L"MiniDumpIncludeFullMemory", 0) ? MINIDUMP_TYPE::MiniDumpWithFullMemory : MINIDUMP_TYPE::MiniDumpWithoutOptionalData) |
+					MINIDUMP_TYPE::MiniDumpWithUnloadedModules
+				),
 				&minidumpExceptionInfo,
 				nullptr,
 				nullptr
