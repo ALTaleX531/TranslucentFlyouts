@@ -22,10 +22,10 @@ namespace TranslucentFlyouts
 
 			if (!keyTree.empty())
 			{
-				for (auto i{ 1ull }; i <= keyTree.size(); i++)
+				for (size_t i{ 1 }; i <= keyTree.size(); i++)
 				{
 					keyName = root;
-					for (auto j{ 0ull }; j < i && maxFallThrough >= 0; j++, maxFallThrough--)
+					for (size_t j{ 0 }; j < i && maxFallThrough >= 0; j++, maxFallThrough--)
 					{
 						auto index{ keyTree.size() - j - 1 };
 						if (!keyTree[index].empty())
@@ -109,10 +109,10 @@ namespace TranslucentFlyouts
 
 			if (!keyTree.empty())
 			{
-				for (auto index{ 0 }; index < keyTree.size(); index++)
+				for (size_t index{ 0 }; index < keyTree.size(); index++)
 				{
 					keyName = root;
-					for (auto i{ keyTree.size() - 1 }; i >= index && maxFallThrough > 0; i--, maxFallThrough--)
+					for (size_t i{ keyTree.size() - 1 }; i >= index && maxFallThrough > 0; i--, maxFallThrough--)
 					{
 						if (!keyTree[i].empty())
 						{
