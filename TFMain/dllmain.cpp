@@ -95,8 +95,6 @@ BOOL APIENTRY DllMain(
 	{
 		case DLL_PROCESS_ATTACH:
 		{
-			DisableThreadLibraryCalls(hModule);
-
 			if (
 				Api::IsCurrentProcessInBlockList() ||
 				GetSystemMetrics(SM_CLEANBOOT) ||
