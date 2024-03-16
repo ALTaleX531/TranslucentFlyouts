@@ -109,7 +109,7 @@ BOOL WINAPI MenuHooks::MySetMenuInfo(
 	return reinterpret_cast<decltype(&MySetMenuInfo)>(std::get<0>(g_hookTable[reinterpret_cast<PVOID>(callerModule)]))(hMenu, menuInfo);
 }
 HRESULT WINAPI MenuHooks::MyGetBackgroundColorForAppUserModelId(
-	PCWSTR pszItem, 
+	PCWSTR /*pszItem*/, 
 	COLORREF* color
 )
 {
@@ -152,7 +152,7 @@ void MenuHooks::Prepare()
 	{
 		HRESULT hr{ S_OK };
 		SymbolResolver symbolResolver{ L"MenuHooks" };
-		hr = symbolResolver.Walk(L"shell32.dll", "*!*", [&](PSYMBOL_INFO symInfo, ULONG symbolSize) -> bool
+		hr = symbolResolver.Walk(L"shell32.dll", "*!*", [&](PSYMBOL_INFO symInfo, ULONG /*symbolSize*/) -> bool
 		{
 			auto functionName{ reinterpret_cast<const CHAR*>(symInfo->Name) };
 			CHAR unDecoratedFunctionName[MAX_PATH + 1]{};
@@ -348,7 +348,7 @@ void MenuHooks::EnableIconHooks(bool enable)
 
 		if (g_actualGetBackgroundColorForAppUserModelId)
 		{
-			HRESULT hr = HookHelper::Detours::Write([&]()
+			HookHelper::Detours::Write([&]()
 			{
 
 				HookHelper::Detours::Attach(&g_actualGetBackgroundColorForAppUserModelId, MenuHooks::MyGetBackgroundColorForAppUserModelId);
@@ -397,6 +397,7 @@ void MenuHooks::HookAttach(PVOID baseAddress, bool attach)
 		}
 		else
 		{
+			#pragma warning(suppress : 4456)
 			auto [originalModule, originalFunction] {HookHelper::WriteDelayloadIAT(baseAddress, "user32.dll", "SetMenuInfo", MenuHooks::MySetMenuInfo)};
 			g_hookTable[baseAddress] = std::make_pair(originalFunction, originalModule);
 		}
@@ -445,7 +446,7 @@ void MenuHooks::HookDetachAll()
 VOID CALLBACK MenuHooks::LdrDllNotification(
 	ULONG notificationReason,
 	HookHelper::PCLDR_DLL_NOTIFICATION_DATA notificationData,
-	PVOID context
+	PVOID /*context*/
 )
 {
 	if (notificationReason == HookHelper::LDR_DLL_NOTIFICATION_REASON_LOADED)

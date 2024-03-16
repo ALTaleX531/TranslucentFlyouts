@@ -1,5 +1,7 @@
 ﻿#pragma once
 #include "Utils.hpp"
+#pragma warning(push)
+#pragma warning(disable : 4505)
 
 namespace TranslucentFlyouts
 {
@@ -21,14 +23,14 @@ namespace TranslucentFlyouts
 			s_actualSetSystemVisualStyle(themeFileName, colorScheme, canonicalName, 0);
 		}
 
-		static bool IsHighContrast()
+		__forceinline bool IsHighContrast()
 		{
 			HIGHCONTRASTW hc{sizeof(hc)};
 			SystemParametersInfoW(SPI_GETHIGHCONTRAST, sizeof(HIGHCONTRAST), &hc, 0);
 			return hc.dwFlags & HCF_HIGHCONTRASTON;
 		}
 
-		static bool ShouldAppsUseDarkMode()
+		__forceinline bool ShouldAppsUseDarkMode()
 		{
 			static const auto s_actualShouldAppsUseDarkMode{reinterpret_cast<bool(WINAPI*)()>(GetProcAddress(GetModuleHandleW(L"UxTheme.dll"), MAKEINTRESOURCEA(132)))};
 
@@ -40,7 +42,7 @@ namespace TranslucentFlyouts
 			return false;
 		}
 
-		static bool ShouldSystemUseDarkMode()
+		__forceinline bool ShouldSystemUseDarkMode()
 		{
 			static const auto s_actualShouldSystemUseDarkMode{ reinterpret_cast<bool(WINAPI*)()>(GetProcAddress(GetModuleHandleW(L"UxTheme.dll"), MAKEINTRESOURCEA(138))) };
 
@@ -52,7 +54,7 @@ namespace TranslucentFlyouts
 			return false;
 		}
 
-		static bool IsDarkModeAllowedForApp()
+		__forceinline bool IsDarkModeAllowedForApp()
 		{
 			static const auto s_actualIsDarkModeAllowedForApp{ reinterpret_cast<bool(WINAPI*)()>(GetProcAddress(GetModuleHandleW(L"UxTheme.dll"), MAKEINTRESOURCEA(139))) };
 
@@ -64,7 +66,7 @@ namespace TranslucentFlyouts
 			return false;
 		}
 
-		static bool IsDarkModeAllowedForWindow(HWND hWnd)
+		__forceinline bool IsDarkModeAllowedForWindow(HWND hWnd)
 		{
 			static const auto s_actualIsDarkModeAllowedForWindow{ reinterpret_cast<bool(WINAPI*)(HWND)>(GetProcAddress(GetModuleHandleW(L"UxTheme.dll"), MAKEINTRESOURCEA(137))) };
 
@@ -76,7 +78,7 @@ namespace TranslucentFlyouts
 			return false;
 		}
 
-		static HRESULT GetThemeClass(HTHEME hTheme, LPCWSTR pszClassIdList, int cchClass)
+		__forceinline HRESULT GetThemeClass(HTHEME hTheme, LPCWSTR pszClassIdList, int cchClass)
 		{
 			static const auto s_actualGetThemeClass{reinterpret_cast<HRESULT(WINAPI*)(HTHEME, LPCWSTR, int)>(GetProcAddress(GetModuleHandleW(L"UxTheme"), MAKEINTRESOURCEA(74)))};
 
@@ -88,7 +90,7 @@ namespace TranslucentFlyouts
 			return E_FAIL;
 		}
 
-		static HRESULT DrawTextWithGlow(
+		__forceinline HRESULT DrawTextWithGlow(
 			HDC hdc,
 			LPCWSTR pszText,
 			int cchText,
@@ -168,7 +170,7 @@ namespace TranslucentFlyouts
 					callback(memoryDC, bufferedPaint, buffer, cxRow);
 				}
 
-				updateTarget = TRUE;
+				updateTarget = static_cast<BOOL>(update);
 			}
 
 			return S_OK;
@@ -245,7 +247,7 @@ namespace TranslucentFlyouts
 			return S_OK;
 		}
 
-		static bool IsOemBitmap(HBITMAP bitmap)
+		__forceinline bool IsOemBitmap(HBITMAP bitmap)
 		{
 			bool result{false};
 
@@ -308,3 +310,4 @@ namespace TranslucentFlyouts
 		}
 	}
 }
+#pragma warning(pop)

@@ -66,6 +66,7 @@ namespace TranslucentFlyouts::SystemHelper
 				UCHAR SEHValidationPolicy : 2;
 				UCHAR CurDirDevicesSkippedForDlls : 2;
 				UCHAR Reserved : 2;
+#pragma warning(suppress : 4201)
 			};
 		};
 		USHORT                        CyclesPerYield;
@@ -82,6 +83,7 @@ namespace TranslucentFlyouts::SystemHelper
 			{
 				UCHAR ArchStartedInEl2 : 1;
 				UCHAR QcSlIsSupported : 1;
+#pragma warning(suppress : 4201)
 			};
 		};
 		UCHAR                         Reserved12[2];
@@ -102,6 +104,7 @@ namespace TranslucentFlyouts::SystemHelper
 				ULONG DbgMultiUsersInSessionSku : 1;
 				ULONG DbgStateSeparationEnabled : 1;
 				ULONG SpareBits : 21;
+#pragma warning(suppress : 4201)
 			} DUMMYSTRUCTNAME2;
 		} DUMMYUNIONNAME2;
 		ULONG                         DataFlagsPad[1];
@@ -118,6 +121,7 @@ namespace TranslucentFlyouts::SystemHelper
 			{
 				ULONG ReservedTickCountOverlay[3];
 				ULONG TickCountPad[1];
+#pragma warning(suppress : 4201)
 			} DUMMYSTRUCTNAME;
 		} DUMMYUNIONNAME3;
 		ULONG                         Cookie;
@@ -149,6 +153,7 @@ namespace TranslucentFlyouts::SystemHelper
 			{
 				UCHAR QpcBypassEnabled;
 				UCHAR QpcShift;
+#pragma warning(suppress : 4201)
 			};
 		};
 		LARGE_INTEGER                 TimeZoneBiasEffectiveStart;

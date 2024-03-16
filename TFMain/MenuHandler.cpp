@@ -136,9 +136,9 @@ void MenuHandler::Update()
 }
 
 void CALLBACK MenuHandler::HandleWinEvent(
-	HWINEVENTHOOK hWinEventHook, DWORD dwEvent, HWND hWnd,
-	LONG idObject, LONG idChild,
-	DWORD dwEventThread, DWORD dwmsEventTime
+	HWINEVENTHOOK /*hWinEventHook*/, DWORD dwEvent, HWND hWnd,
+	LONG /*idObject*/, LONG /*idChild*/,
+	DWORD /*dwEventThread*/, DWORD /*dwmsEventTime*/
 )
 {
 	if (Api::IsPartDisabled(L"Menu")) [[unlikely]]
@@ -176,7 +176,7 @@ void MenuHandler::WalkMenuItems(HMENU hMenu, const std::function<bool(bool owner
 bool MenuHandler::IsImmersiveMenuDataStored(HWND hWnd)
 {
 	bool result{false};
-	EnumPropsExW(hWnd, [](HWND hWnd, LPWSTR lpString, HANDLE hData, ULONG_PTR lParam)
+	EnumPropsExW(hWnd, [](HWND /*hWnd*/, LPWSTR lpString, HANDLE /*hData*/, ULONG_PTR lParam)
 	{
 		if (HIWORD(lpString) && wcsstr(lpString, L"ImmersiveContextMenuArray_"))
 		{
@@ -206,6 +206,10 @@ bool MenuHandler::IsDarkModeActiveForImmeriveMenu(bool useDarkTheme, bool useSys
 
 MenuHandler::ContextMenuRenderingData* MenuHandler::GetContextMenuDataForItem(HWND hWnd, ULONG_PTR itemData, UINT itemID)
 {
+	if(!itemData)
+	{
+		return nullptr;
+	}
 	return reinterpret_cast<MenuHandler::ContextMenuRenderingData*>(
 		GetPropW(
 			hWnd,
@@ -229,7 +233,7 @@ MARGINS MenuHandler::GetPopupMenuNonClientMargins(HWND hWnd)
 	return { mbi.rcBar.left - windowRect.left, windowRect.right - mbi.rcBar.right, mbi.rcBar.top - windowRect.top, windowRect.bottom - mbi.rcBar.bottom };
 }
 
-LRESULT CALLBACK MenuHandler::MenuSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
+LRESULT CALLBACK MenuHandler::MenuSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR /*uIdSubclass*/, DWORD_PTR /*dwRefData*/)
 {
 	if (uMsg == WM_WINDOWPOSCHANGED)
 	{
@@ -412,8 +416,9 @@ LRESULT CALLBACK MenuHandler::MenuSubclassProc(HWND hWnd, UINT uMsg, WPARAM wPar
 				{
 					if (ownerDraw)
 					{
-						ContextMenuRenderingData* menuData{ nullptr };
-						if (itemData && (menuData = GetContextMenuDataForItem(menuOwner, itemData, itemID)))
+						ContextMenuRenderingData* menuData{ GetContextMenuDataForItem(menuOwner, itemData, itemID) };
+						
+						if (menuData)
 						{
 							g_menuContext.type = MenuContext::Type::Immersive;
 							g_menuContext.useDarkMode = IsDarkModeActiveForImmeriveMenu(menuData->useDarkTheme, menuData->useSystemPadding);
@@ -502,8 +507,8 @@ LRESULT CALLBACK MenuHandler::MenuSubclassProc(HWND hWnd, UINT uMsg, WPARAM wPar
 			// We have menu scroll arrows, make it redraw itself.
 			if (GetPopupMenuNonClientMargins(hWnd).cyTopHeight != MenuAppearance::nonClientMarginStandardSize)
 			{
-				PostMessageW(hWnd, MN_SELECTITEM, popupMenuArrowUp, 0);
-				PostMessageW(hWnd, MN_SELECTITEM, popupMenuArrowDown, 0);
+				PostMessageW(hWnd, MN_SELECTITEM, static_cast<WPARAM>(popupMenuArrowUp), 0);
+				PostMessageW(hWnd, MN_SELECTITEM, static_cast<WPARAM>(popupMenuArrowDown), 0);
 
 				SetWindowPos(
 					hWnd,
@@ -570,7 +575,7 @@ LRESULT CALLBACK MenuHandler::MenuOwnerSubclassProc(HWND hWnd, UINT uMsg, WPARAM
 	if (uMsg == WM_DRAWITEM)
 	{
 		g_drawItemStruct = reinterpret_cast<LPDRAWITEMSTRUCT>(lParam);
-		auto cleanUp = wil::scope_exit([&]
+		auto enterDrawItem = wil::scope_exit([&]
 		{
 			g_drawItemStruct = nullptr;
 		});

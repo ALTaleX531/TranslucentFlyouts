@@ -133,10 +133,10 @@ BOOL APIENTRY DllMain(
 }
 
 int WINAPI Main(
-	HWND hWnd,
+	HWND /*hWnd*/,
 	HINSTANCE hInstance,
 	LPCSTR    lpCmdLine,
-	int       nCmdShow
+	int       /*nCmdShow*/
 )
 {
 	using namespace TranslucentFlyouts;

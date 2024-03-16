@@ -24,7 +24,7 @@ namespace TranslucentFlyouts::HookHelper::Detours
 		offset = exception_pointers->ExceptionRecord->ExceptionInformation[1];
 		return EXCEPTION_EXECUTE_HANDLER;
 	};
-	size_t offset = -1;
+	size_t offset{ static_cast<size_t>(-1) };
 	__try { vtable_function(&FakeVtableContainer); }
 	__except (exception_handler(offset, GetExceptionInformation())) {}
 
@@ -728,7 +728,7 @@ void HookHelper::HwndRef::Clear(HWND hWnd, std::wstring_view propNamespace, std:
 void HookHelper::HwndRef::ClearAll(HWND hWnd, std::wstring_view propNamespace)
 {
 	auto propNameShort{ std::format(L"{}.{}.{}", HwndProp::propPrefix, propNamespace, propPrefix) };
-	EnumPropsExW(hWnd, [](HWND hwnd, LPWSTR lpString, HANDLE hData, ULONG_PTR lParam)
+	EnumPropsExW(hWnd, [](HWND hwnd, LPWSTR lpString, HANDLE, ULONG_PTR lParam)
 	{
 		if (HIWORD(lpString) && wcsstr(lpString, (*reinterpret_cast<std::wstring*>(lParam)).c_str()))
 		{
@@ -751,7 +751,7 @@ void HookHelper::HwndProp::Unset(HWND hWnd, std::wstring_view propNamespace, std
 void HookHelper::HwndProp::ClearAll(HWND hWnd, std::wstring_view propNamespace)
 {
 	auto propNameShort{ std::format(L"{}.{}", propPrefix, propNamespace) };
-	EnumPropsExW(hWnd, [](HWND hwnd, LPWSTR lpString, HANDLE hData, ULONG_PTR lParam)
+	EnumPropsExW(hWnd, [](HWND hwnd, LPWSTR lpString, HANDLE, ULONG_PTR lParam)
 	{
 		if (HIWORD(lpString) && wcsstr(lpString, (*reinterpret_cast<std::wstring*>(lParam)).c_str()))
 		{

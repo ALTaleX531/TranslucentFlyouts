@@ -37,7 +37,7 @@ namespace TranslucentFlyouts::FlyoutAnimation
 			endTimeStamp = startTimeStamp + duration.count();
 		}
 
-		virtual void Animator(ULONGLONG currentTimeStamp) {}
+		virtual void Animator(ULONGLONG /*currentTimeStamp*/) {}
 
 		HWND window{ nullptr };
 		std::chrono::milliseconds duration{ 0 };
@@ -858,7 +858,7 @@ namespace TranslucentFlyouts::FlyoutAnimation
 			}
 		}
 
-		static LRESULT CALLBACK SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
+		static LRESULT CALLBACK SubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR /*uIdSubclass*/, DWORD_PTR dwRefData)
 		{
 			PopupIn& popupInAnimation{ *reinterpret_cast<PopupIn*>(dwRefData) };
 
@@ -1278,7 +1278,7 @@ DWORD WINAPI FlyoutAnimation::AnimationWorker::ThreadProc(LPVOID lpThreadParamet
 	while (true)
 	{
 		{
-			auto cleanUp{ animationWorker.m_lock.lock_exclusive() };
+			auto lock{ animationWorker.m_lock.lock_exclusive() };
 			animationStorage.insert(animationStorage.end(), animationWorker.m_animationStorage.begin(), animationWorker.m_animationStorage.end());
 			animationWorker.m_animationStorage.clear();
 		}

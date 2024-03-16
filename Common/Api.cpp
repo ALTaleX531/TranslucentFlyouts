@@ -171,7 +171,7 @@ bool Api::InteractiveIO::OutputToConsole(
 		char input{ };
 		do
 		{
-			input = getchar();
+			input = static_cast<char>(getchar());
 			if (input == 'Y' || input == 'y')
 			{
 				return true;
@@ -271,7 +271,7 @@ bool Api::IsStartAllBackTakingOver(std::wstring_view part)
 		if (part.empty() || !_wcsicmp(part.data(), L"Tooltip"))
 		{
 			auto immersiveTooltips{ wil::reg::try_get_value_dword(HKEY_CURRENT_USER, L"SOFTWARE\\StartIsBack", L"NoDarkTooltips") };
-			if (immersiveTooltips && immersiveTooltips.value() == 0)
+			if (immersiveTooltips && immersiveTooltips.value() == 1)
 			{
 				return false;
 			}

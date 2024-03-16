@@ -223,8 +223,6 @@ HRESULT WINAPI TooltipHooks::MyDrawThemeTextEx(
 	WCHAR themeClassName[MAX_PATH + 1]{};
 	if (SUCCEEDED(ThemeHelper::GetThemeClass(hTheme, themeClassName, MAX_PATH)) && !_wcsicmp(themeClassName, L"TreeView"))
 	{
-		TooltipHandler::g_tooltipContext.useDarkMode = ThemeHelper::ShouldAppsUseDarkMode() && ThemeHelper::IsDarkModeAllowedForApp();
-
 		if (pOptions)
 		{
 			if (!(pOptions->dwFlags & (DTT_COMPOSITED)) && !(pOptions->dwFlags & (DTT_CALCRECT)))
@@ -292,6 +290,7 @@ HRESULT WINAPI TooltipHooks::MyGetThemeMargins(
 	WCHAR themeClassName[MAX_PATH + 1]{};
 	if (
 		g_hookDispatcher.IsHookEnabled(3) &&
+		!TooltipHandler::g_tooltipContext.noMarginsHandling &&
 		iStateId == 0 &&
 		iPropId == TMT_CONTENTMARGINS &&
 		prc == nullptr && 

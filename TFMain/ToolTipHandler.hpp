@@ -6,6 +6,7 @@ namespace TranslucentFlyouts::TooltipHandler
 	inline thread_local struct TooltipContext
 	{
 		bool useDarkMode;
+		bool noMarginsHandling;
 		HWND hwnd;
 
 		bool noSystemDropShadow;

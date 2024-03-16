@@ -102,11 +102,11 @@ int WINAPI KbxLabelHooks::MyDrawTextW(
 }
 BOOL WINAPI KbxLabelHooks::MyGdiGradientFill(
 	HDC        hdc,
-	PTRIVERTEX pVertex,
-	ULONG      nVertex,
-	PVOID      pMesh,
-	ULONG      nCount,
-	ULONG      ulMode
+	PTRIVERTEX /*pVertex*/,
+	ULONG      /*nVertex*/,
+	PVOID      /*pMesh*/,
+	ULONG      /*nCount*/,
+	ULONG      /*ulMode*/
 )
 {
 	RECT paintRect{};

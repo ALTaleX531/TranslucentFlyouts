@@ -41,7 +41,7 @@ namespace TranslucentFlyouts::DropDownHandler
 	LRESULT CALLBACK ListviewpopupSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
 }
 
-LRESULT CALLBACK DropDownHandler::DropDownSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
+LRESULT CALLBACK DropDownHandler::DropDownSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR, DWORD_PTR)
 {
 	if (uMsg == WM_NCPAINT)
 	{
@@ -52,7 +52,7 @@ LRESULT CALLBACK DropDownHandler::DropDownSubclassProc(HWND hWnd, UINT uMsg, WPA
 			SelectClipRgn(hdc.get(), reinterpret_cast<HRGN>(wParam));
 		}
 
-		MARGINS mr{ 0, 0, 0, 0 };
+		MARGINS mr{ 1, 1, 1, 1 };
 
 		RECT paintRect{};
 		GetWindowRect(hWnd, &paintRect);
@@ -91,7 +91,7 @@ LRESULT CALLBACK DropDownHandler::DropDownSubclassProc(HWND hWnd, UINT uMsg, WPA
 	return DefSubclassProc(hWnd, uMsg, wParam, lParam);
 }
 
-LRESULT CALLBACK DropDownHandler::ListviewpopupSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
+LRESULT CALLBACK DropDownHandler::ListviewpopupSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR, DWORD_PTR)
 {
 	if (uMsg == WM_PAINT)
 	{
@@ -193,9 +193,9 @@ void DropDownHandler::Update()
 }
 
 void CALLBACK DropDownHandler::HandleWinEvent(
-	HWINEVENTHOOK hWinEventHook, DWORD dwEvent, HWND hWnd,
-	LONG idObject, LONG idChild,
-	DWORD dwEventThread, DWORD dwmsEventTime
+	HWINEVENTHOOK, DWORD dwEvent, HWND hWnd,
+	LONG, LONG,
+	DWORD, DWORD
 )
 {
 	if (Api::IsPartDisabled(L"DropDown")) [[unlikely]]

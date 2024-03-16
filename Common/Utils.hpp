@@ -5,6 +5,7 @@
 #include <winrt/base.h>
 #pragma warning(push)
 #pragma warning(disable : 6388)
+#pragma warning(disable : 4505)
 
 namespace TranslucentFlyouts::Utils
 {
@@ -42,7 +43,7 @@ namespace TranslucentFlyouts::Utils
 		return rf.fake_ptr;
 	}
 
-	static auto to_error_wstring(HRESULT hr)
+	__forceinline auto to_error_wstring(HRESULT hr)
 	{
 		return winrt::hresult_error{hr}.message();
 	}
@@ -189,7 +190,7 @@ namespace TranslucentFlyouts::Utils
 		return std::wstring{};
 	}
 
-	static void CloakWindow(HWND hWnd, BOOL cloak)
+	__forceinline void CloakWindow(HWND hWnd, BOOL cloak)
 	{
 		DwmSetWindowAttribute(hWnd, DWMWA_CLOAK, &cloak, sizeof(cloak));
 		DwmTransitionOwnedWindow(hWnd, DWMTRANSITION_OWNEDWINDOW_REPOSITION);
@@ -322,7 +323,7 @@ namespace TranslucentFlyouts::Utils
 		return argb >> 24;
 	}
 
-	static std::array<UCHAR, 4> FromARGB(DWORD argb)
+	__forceinline std::array<UCHAR, 4> FromARGB(DWORD argb)
 	{
 		UCHAR* colorBits{ reinterpret_cast<UCHAR*>(&argb) };
 		return { colorBits[3], colorBits[2], colorBits[1], colorBits[0] };
@@ -331,42 +332,38 @@ namespace TranslucentFlyouts::Utils
 	inline bool IsBitmapSupportAlpha(HBITMAP bitmap)
 	{
 		bool hasAlpha{ false };
-		HRESULT hr
+		[&hasAlpha, bitmap]()
 		{
-			[&]()
+			RETURN_HR_IF_NULL_EXPECTED(E_INVALIDARG, bitmap);
+
+			BITMAPINFO bitmapInfo{ sizeof(bitmapInfo.bmiHeader) };
+			auto hdc{ wil::GetDC(nullptr) };
+			RETURN_LAST_ERROR_IF_NULL(hdc);
+
+			RETURN_HR_IF_EXPECTED(E_INVALIDARG, GetObjectType(bitmap) != OBJ_BITMAP);
+			RETURN_LAST_ERROR_IF(GetDIBits(hdc.get(), bitmap, 0, 0, nullptr, &bitmapInfo, DIB_RGB_COLORS) == 0);
+
+			bitmapInfo.bmiHeader.biCompression = BI_RGB;
+			auto pixelBits{ std::make_unique<UCHAR[]>(bitmapInfo.bmiHeader.biSizeImage) };
+
+			RETURN_LAST_ERROR_IF(GetDIBits(hdc.get(), bitmap, 0, bitmapInfo.bmiHeader.biHeight, pixelBits.get(), &bitmapInfo, DIB_RGB_COLORS) == 0);
+
+			if (bitmapInfo.bmiHeader.biBitCount != 32)
 			{
-				RETURN_HR_IF_NULL_EXPECTED(E_INVALIDARG, bitmap);
-
-				BITMAPINFO bitmapInfo{ sizeof(bitmapInfo.bmiHeader) };
-				auto hdc{ wil::GetDC(nullptr) };
-				RETURN_LAST_ERROR_IF_NULL(hdc);
-
-				RETURN_HR_IF_EXPECTED(E_INVALIDARG, GetObjectType(bitmap) != OBJ_BITMAP);
-				RETURN_LAST_ERROR_IF(GetDIBits(hdc.get(), bitmap, 0, 0, nullptr, &bitmapInfo, DIB_RGB_COLORS) == 0);
-
-				bitmapInfo.bmiHeader.biCompression = BI_RGB;
-				auto pixelBits{ std::make_unique<UCHAR[]>(bitmapInfo.bmiHeader.biSizeImage) };
-
-				RETURN_LAST_ERROR_IF(GetDIBits(hdc.get(), bitmap, 0, bitmapInfo.bmiHeader.biHeight, pixelBits.get(), &bitmapInfo, DIB_RGB_COLORS) == 0);
-
-				if (bitmapInfo.bmiHeader.biBitCount != 32)
-				{
-					return S_OK;
-				}
-
-				for (size_t i = 0; i < bitmapInfo.bmiHeader.biSizeImage; i += 4)
-				{
-					if (pixelBits[i + 3] != 0)
-					{
-						hasAlpha = true;
-						break;
-					}
-				}
-
 				return S_OK;
 			}
-			()
-		};
+
+			for (size_t i = 0; i < bitmapInfo.bmiHeader.biSizeImage; i += 4)
+			{
+				if (pixelBits[i + 3] != 0)
+				{
+					hasAlpha = true;
+					break;
+				}
+			}
+
+			return S_OK;
+		}();
 
 		return hasAlpha;
 	}

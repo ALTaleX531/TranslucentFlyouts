@@ -20,6 +20,9 @@ namespace TranslucentFlyouts
 			std::wstring keyName{ root };
 			maxFallThrough += 1;
 
+#ifdef _DEBUG
+			OutputDebugStringW(std::format(L"GetValueInternal = Begin\n", keyName).c_str());
+#endif
 			if (!keyTree.empty())
 			{
 				for (size_t i{ 1 }; i <= keyTree.size(); i++)
@@ -35,6 +38,9 @@ namespace TranslucentFlyouts
 						}
 					}
 
+#ifdef _DEBUG
+					OutputDebugStringW(std::format(L"GetValueInternal: {}\n", keyName).c_str());
+#endif
 					if constexpr (reverse)
 					{
 						value = wil::reg::try_get_value<T>(HKEY_LOCAL_MACHINE, keyName.c_str(), valueName.data());
@@ -67,6 +73,10 @@ namespace TranslucentFlyouts
 			}
 			else
 			{
+
+#ifdef _DEBUG
+				OutputDebugStringW(std::format(L"GetValueInternal - {}\n", keyName).c_str());
+#endif
 				if constexpr (reverse)
 				{
 					value = wil::reg::try_get_value<T>(HKEY_LOCAL_MACHINE, keyName.c_str(), valueName.data());
@@ -96,6 +106,9 @@ namespace TranslucentFlyouts
 					}
 				}
 			}
+#ifdef _DEBUG
+			OutputDebugStringW(std::format(L"GetValueInternal = End\n", keyName).c_str());
+#endif
 
 			return value;
 		}
@@ -107,20 +120,27 @@ namespace TranslucentFlyouts
 			std::wstring keyName{ root };
 			maxFallThrough += 1;
 
+#ifdef _DEBUG
+			OutputDebugStringW(std::format(L"SetValueInternal = Begin\n", keyName).c_str());
+#endif
 			if (!keyTree.empty())
 			{
-				for (size_t index{ 0 }; index < keyTree.size(); index++)
+				for (size_t i{ 1 }; i <= keyTree.size(); i++)
 				{
 					keyName = root;
-					for (size_t i{ keyTree.size() - 1 }; i >= index && maxFallThrough > 0; i--, maxFallThrough--)
+					for (size_t j{ 1 }; j <= keyTree.size() - i + 1 && maxFallThrough >= 0; j++, maxFallThrough--)
 					{
-						if (!keyTree[i].empty())
+						auto index{ keyTree.size() - j };
+						if (!keyTree[index].empty())
 						{
 							keyName += L"\\";
-							keyName += keyTree[i];
+							keyName += keyTree[index];
 						}
 					}
 
+#ifdef _DEBUG
+					OutputDebugStringW(std::format(L"SetValueInternal - {}\n", keyName).c_str());
+#endif
 					if constexpr (reverse)
 					{
 						if (FAILED(wil::reg::set_value_nothrow<T>(HKEY_LOCAL_MACHINE, keyName.c_str(), valueName.data(), value)))
@@ -142,6 +162,9 @@ namespace TranslucentFlyouts
 			}
 			else
 			{
+#ifdef _DEBUG
+				OutputDebugStringW(std::format(L"SetValueInternal - {}\n", keyName).c_str());
+#endif
 				if constexpr (reverse)
 				{
 					if (FAILED(wil::reg::set_value_nothrow<T>(HKEY_LOCAL_MACHINE, keyName.c_str(), valueName.data(), value)))
@@ -158,6 +181,9 @@ namespace TranslucentFlyouts
 					}
 				}
 			}
+#ifdef _DEBUG
+			OutputDebugStringW(std::format(L"SetValueInternal = End\n", keyName).c_str());
+#endif
 
 			return S_OK;
 		}

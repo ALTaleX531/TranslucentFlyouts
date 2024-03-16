@@ -288,17 +288,17 @@ HRESULT WINAPI UxThemeHooks::MyDrawThemeBackground(
 			// I don't know how this value come from
 			constexpr int immersiveContextMenuSeparatorPadding{ 8 };
 
-			RECT clipRect{};
-			GetClipBox(hdc, &clipRect);
+			RECT clipBoxRect{};
+			GetClipBox(hdc, &clipBoxRect);
 
 			if (iPartId == MENU_POPUPSEPARATOR)
 			{
-				SetRect(const_cast<LPRECT>(pRect), clipRect.left + immersiveContextMenuSeparatorPadding, pRect->top, clipRect.right - immersiveContextMenuSeparatorPadding, pRect->bottom);
+				SetRect(const_cast<LPRECT>(pRect), clipBoxRect.left + immersiveContextMenuSeparatorPadding, pRect->top, clipBoxRect.right - immersiveContextMenuSeparatorPadding, pRect->bottom);
 			}
 
 			if (iPartId == MENU_POPUPCHECK)
 			{
-				OffsetRect(const_cast<LPRECT>(pRect), clipRect.left + immersiveContextMenuSeparatorPadding - pRect->left, 0);
+				OffsetRect(const_cast<LPRECT>(pRect), clipBoxRect.left + immersiveContextMenuSeparatorPadding - pRect->left, 0);
 			}
 
 			if (iPartId == MENU_POPUPCHECKBACKGROUND)
@@ -724,7 +724,7 @@ void UxThemeHooks::Prepare()
 	{
 		HRESULT hr{ S_OK };
 		SymbolResolver symbolResolver{ L"UxThemeHooks" };
-		hr = symbolResolver.Walk(L"uxtheme.dll", "*!*", [&](PSYMBOL_INFO symInfo, ULONG symbolSize) -> bool
+		hr = symbolResolver.Walk(L"uxtheme.dll", "*!*", [&](PSYMBOL_INFO symInfo, ULONG /*symbolSize*/) -> bool
 		{
 			auto functionName{ reinterpret_cast<const CHAR*>(symInfo->Name) };
 			CHAR unDecoratedFunctionName[MAX_PATH + 1]{};
@@ -1137,8 +1137,6 @@ void UxThemeHooks::DisableHooksInternal()
 {
 	if (g_hookRef)
 	{
-		HMODULE uxthemeModule{ GetModuleHandleW(L"uxtheme.dll") };
-
 		if (!g_compatibleMode)
 		{
 			for (auto& [offsetAddress, originalOffset] : g_hookTable)

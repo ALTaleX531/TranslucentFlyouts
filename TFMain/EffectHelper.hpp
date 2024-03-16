@@ -109,7 +109,7 @@ namespace TranslucentFlyouts
 			MicaAlt
 		};
 
-		static void EnableWindowDarkMode(HWND hwnd, BOOL darkMode)
+		__forceinline void EnableWindowDarkMode(HWND hwnd, BOOL darkMode)
 		{
 			if (SystemHelper::g_buildNumber < 22000)
 			{
@@ -122,7 +122,7 @@ namespace TranslucentFlyouts
 			}
 		}
 
-		static void EnableWindowNCRendering(HWND hwnd, BOOL ncRendering)
+		static void TriggerWindowNCRendering(HWND hwnd)
 		{
 			// NOTICE WINDOWS THAT WE HAVE ACTIVATED THE WINDOW
 			DefWindowProcW(hwnd, WM_NCACTIVATE, TRUE, 0);
@@ -131,6 +131,7 @@ namespace TranslucentFlyouts
 
 		// Set specific backdrop effect for a window,
 		// please remember don't call this function when you received WM_NC** messages...(eg. WM_NCCREATE, WM_NCDESTROY)
+		#pragma warning(suppress : 4505)
 		static void SetWindowBackdrop(HWND hwnd, BOOL dropShadow, DWORD tintColor, DWORD effectType)
 		{
 			ACCENT_POLICY accentPolicy
@@ -228,7 +229,10 @@ namespace TranslucentFlyouts
 			{
 				g_actualSetWindowCompositionAttribute(hwnd, &data);
 			}
-			EnableWindowNCRendering(hwnd, ncRendering);
+			if (ncRendering)
+			{
+				TriggerWindowNCRendering(hwnd);
+			}
 		}
 	}
 }

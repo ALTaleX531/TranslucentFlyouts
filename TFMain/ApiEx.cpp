@@ -18,6 +18,7 @@ void Api::ApplyEffect(HWND hWnd, bool darkMode, const WindowBackdropEffectContex
 
 void Api::ApplyBorderEffect(HWND hWnd, bool darkMode, const BorderContext& border)
 {
+	EffectHelper::EnableWindowDarkMode(hWnd, darkMode);
 	if (SystemHelper::g_buildNumber >= 22000)
 	{
 		if (border.cornerType != DWM_WINDOW_CORNER_PREFERENCE::DWMWCP_DEFAULT)

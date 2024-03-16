@@ -41,7 +41,7 @@ bool MenuRendering::HandleCustomRendering(HDC hdc, int partId, int stateId, cons
 	auto renderTarget{ lazyD2D.GetRenderTarget() };
 
 	Utils::unique_ext_hdc dc{ hdc };
-	IntersectClipRect(dc.get(), paintRect.left, paintRect.top, paintRect.right, paintRect.bottom);
+	IntersectClipRect(dc.get(), clipRect.left, clipRect.top, clipRect.right, clipRect.bottom);
 	PatBlt(dc.get(), paintRect.left, paintRect.top, paintRect.right - paintRect.left, paintRect.bottom - paintRect.top, BLACKNESS);
 
 	if (partId == MENU_POPUPSEPARATOR)

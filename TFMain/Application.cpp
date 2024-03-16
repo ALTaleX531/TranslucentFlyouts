@@ -20,13 +20,14 @@ HRESULT Application::InstallHook()
 	RETURN_HR_IF(HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS), serviceInfo->hook != nullptr);
 
 	serviceInfo->hook = SetWinEventHook(
-		EVENT_OBJECT_CREATE, EVENT_OBJECT_SELECTION,
+		EVENT_OBJECT_CREATE, EVENT_OBJECT_HIDE,
 		wil::GetModuleInstanceHandle(),
 		Framework::HandleWinEvent,
 		0, 0,
 		WINEVENT_INCONTEXT
 	);
 	RETURN_LAST_ERROR_IF_NULL(serviceInfo->hook);
+	SendNotifyMessageW(HWND_BROADCAST, WM_NULL, 0, 0);
 
 	return S_OK;
 }
@@ -39,6 +40,7 @@ HRESULT Application::UninstallHook()
 	RETURN_HR_IF_NULL(HRESULT_FROM_WIN32(ERROR_HOOK_NOT_INSTALLED), serviceInfo->hook);
 	RETURN_IF_WIN32_BOOL_FALSE(UnhookWinEvent(serviceInfo->hook));
 	serviceInfo->hook = nullptr;
+	SendNotifyMessageW(HWND_BROADCAST, WM_NULL, 0, 0);
 
 	return S_OK;
 }
@@ -75,7 +77,7 @@ HRESULT Application::StartService()
 	RETURN_LAST_ERROR_IF_NULL(serviceInfo->hostWindow);
 	RETURN_IF_WIN32_BOOL_FALSE(ChangeWindowMessageFilterEx(serviceInfo->hostWindow, TFM_STOP, MSGFLT_ALLOW, nullptr));
 
-	auto callback = [](HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData) -> LRESULT
+	auto callback = [](HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR, DWORD_PTR) -> LRESULT
 	{
 		if (uMsg == WM_ENDSESSION || uMsg == TFM_STOP)
 		{

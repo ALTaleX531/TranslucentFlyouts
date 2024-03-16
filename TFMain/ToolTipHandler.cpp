@@ -29,6 +29,10 @@ bool TooltipHandler::ShouldTooltipUseDarkMode(HWND hWnd)
 	{
 		return ThemeHelper::ShouldSystemUseDarkMode();
 	}
+	if (Utils::IsWindowClass(reinterpret_cast<HWND>(GetWindowLongPtrW(hWnd, GWLP_HWNDPARENT)), L"SysTreeView32"))
+	{
+		return ThemeHelper::ShouldAppsUseDarkMode() && ThemeHelper::IsDarkModeAllowedForApp();
+	}
 
 	return ThemeHelper::ShouldAppsUseDarkMode() && ThemeHelper::IsDarkModeAllowedForApp();
 }
@@ -73,7 +77,7 @@ void TooltipHandler::TooltipContext::Update(HWND hWnd, std::optional<bool> darkM
 	Api::ApplyEffect(g_tooltipContext.hwnd, g_tooltipContext.useDarkMode, g_tooltipContext.backdropEffect, g_tooltipContext.border);
 }
 
-LRESULT CALLBACK TooltipHandler::TooltipSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
+LRESULT CALLBACK TooltipHandler::TooltipSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR /*uIdSubclass*/, DWORD_PTR /*dwRefData*/)
 {
 	if (uMsg == WM_WINDOWPOSCHANGED)
 	{
@@ -98,8 +102,21 @@ LRESULT CALLBACK TooltipHandler::TooltipSubclassProc(HWND hWnd, UINT uMsg, WPARA
 	{
 		TooltipHooks::EnableHooks(true);
 
+		auto renderingContext{ g_tooltipContext.renderingContext };
 		g_tooltipContext.Update(hWnd);
-		SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
+		if (memcmp(&renderingContext.marginsType, &g_tooltipContext.renderingContext.marginsType, sizeof(renderingContext) - sizeof(renderingContext.color)) != 0)
+		{
+			SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
+			PostMessageW(hWnd, TTM_UPDATE, 0, 0);
+			for (auto hwnd : HookHelper::Subclass::Storage<TooltipSubclassProc>::s_windowList)
+			{
+				if (hWnd != hwnd)
+				{
+					PostMessageW(hwnd, WM_THEMECHANGED, 0, 0);
+					PostMessageW(hwnd, TTM_UPDATE, 0, 0);
+				}
+			}
+		}
 
 		auto result{DefSubclassProc(hWnd, uMsg, wParam, lParam)};
 
@@ -112,6 +129,7 @@ LRESULT CALLBACK TooltipHandler::TooltipSubclassProc(HWND hWnd, UINT uMsg, WPARA
 	{
 		g_tooltipContext.Update(hWnd);
 		SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
+		SendMessageW(hWnd, TTM_UPDATE, 0, 0);
 
 		return 0;
 	}
@@ -120,10 +138,10 @@ LRESULT CALLBACK TooltipHandler::TooltipSubclassProc(HWND hWnd, UINT uMsg, WPARA
 		if (wParam == 0)
 		{
 			Api::DropEffect(L"Tooltip", hWnd);
-
-			TooltipHooks::EnableMarginHooks(false);
+			g_tooltipContext.noMarginsHandling = true;
 			SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
-			TooltipHooks::EnableMarginHooks(true);
+			SendMessageW(hWnd, TTM_UPDATE, 0, 0);
+			g_tooltipContext.noMarginsHandling = false;
 		}
 
 		return 0;
@@ -131,7 +149,7 @@ LRESULT CALLBACK TooltipHandler::TooltipSubclassProc(HWND hWnd, UINT uMsg, WPARA
 
 	return DefSubclassProc(hWnd, uMsg, wParam, lParam);
 }
-LRESULT CALLBACK TooltipHandler::KbxLabelSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
+LRESULT CALLBACK TooltipHandler::KbxLabelSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR /*uIdSubclass*/, DWORD_PTR /*dwRefData*/)
 {
 	if (uMsg == WM_PAINT)
 	{
@@ -161,9 +179,9 @@ LRESULT CALLBACK TooltipHandler::KbxLabelSubclassProc(HWND hWnd, UINT uMsg, WPAR
 }
 
 void CALLBACK TooltipHandler::HandleWinEvent(
-	HWINEVENTHOOK hWinEventHook, DWORD dwEvent, HWND hWnd,
-	LONG idObject, LONG idChild,
-	DWORD dwEventThread, DWORD dwmsEventTime
+	HWINEVENTHOOK /*hWinEventHook*/, DWORD dwEvent, HWND hWnd,
+	LONG /*idObject*/, LONG /*idChild*/,
+	DWORD /*dwEventThread*/, DWORD /*dwmsEventTime*/
 )
 {
 	if (Api::IsPartDisabled(L"Tooltip")) [[unlikely]]
@@ -222,5 +240,21 @@ void TooltipHandler::Update()
 		return;
 	}
 
-	TooltipHooks::EnableMarginHooks(true);
+	decltype(g_tooltipContext.renderingContext) renderingContext{};
+	Api::QueryTooltipRenderingContext(renderingContext, g_tooltipContext.useDarkMode);
+
+	if (
+		renderingContext.marginsType == 0  &&
+		renderingContext.margins.cxLeftWidth == 0 &&
+		renderingContext.margins.cxRightWidth == 0 &&
+		renderingContext.margins.cyTopHeight == 0 &&
+		renderingContext.margins.cyBottomHeight == 0
+	)
+	{
+		TooltipHooks::EnableMarginHooks(false);
+	}
+	else
+	{
+		TooltipHooks::EnableMarginHooks(true);
+	}
 }

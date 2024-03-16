@@ -8,7 +8,7 @@
 using namespace TranslucentFlyouts;
 
 BOOL CALLBACK SymbolResolver::SymCallback(
-	HANDLE hProcess,
+	HANDLE /*hProcess*/,
 	ULONG ActionCode,
 	ULONG64 CallbackData,
 	ULONG64 UserContext
@@ -112,7 +112,7 @@ HRESULT SymbolResolver::Walk(std::wstring_view dllName, std::string_view mask, s
 	WCHAR filePath[MAX_PATH + 1]{}, symFile[MAX_PATH + 1]{};
 	MODULEINFO modInfo{};
 
-	auto cleanUp = wil::scope_exit([&]
+	auto symCleanUp = wil::scope_exit([&]
 	{
 		if (dllBase != 0)
 		{
