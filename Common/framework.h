@@ -34,7 +34,6 @@
 #pragma comment(lib, "version.lib")
 
 #pragma comment(lib, "delayimp.lib")
-#pragma comment(lib, "DbgHelp.lib")
 #pragma comment(lib, "Imagehlp.lib")
 #pragma comment(lib, "Psapi.lib")
 

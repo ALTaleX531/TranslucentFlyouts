@@ -141,6 +141,14 @@ HRESULT Application::InstallApp() try
 	using namespace wil;
 	using namespace TranslucentFlyouts;
 
+	THROW_IF_FAILED(
+		CopyFile2(
+			Utils::make_current_folder_file_str(L"dbghelp-for-tf.dll").c_str(),
+			(wil::GetSystemDirectoryW<std::wstring>() + L"\\dbghelp-for-tf.dll").c_str(),
+			nullptr
+		)
+	);
+
 	HRESULT hr{ S_OK };
 	auto CleanUp{ Utils::RoInit(&hr) };
 	THROW_IF_FAILED(hr);
@@ -303,6 +311,21 @@ HRESULT Application::UninstallApp() try
 			HKEY_CURRENT_USER, L"SOFTWARE\\TranslucentFlyouts_Internals(x86)"
 		);
 #endif // _WIN64
+	}
+
+	if (
+		!DeleteFileW(
+			(wil::GetSystemDirectoryW<std::wstring>() + L"\\dbghelp-for-tf.dll").c_str()
+		)
+	)
+	{
+		THROW_IF_WIN32_BOOL_FALSE(
+			MoveFileExW(
+				(wil::GetSystemDirectoryW<std::wstring>() + L"\\dbghelp-for-tf.dll").c_str(), 
+				nullptr, 
+				MOVEFILE_DELAY_UNTIL_REBOOT
+			)
+		);
 	}
 	{
 		com_ptr<ITaskService> taskService{ wil::CoCreateInstance<ITaskService>(CLSID_TaskScheduler) };

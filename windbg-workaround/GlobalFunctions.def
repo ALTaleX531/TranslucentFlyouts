@@ -1,0 +1,14 @@
+﻿LIBRARY
+EXPORTS
+	SymInitialize
+	SymSetOptions
+	SymRegisterCallbackW64
+	SymSetSearchPathW
+	SymCleanup
+	SymUnloadModule64
+	SymGetSymbolFileW
+	SymLoadModuleExW
+	SymEnumSymbols
+	ImageDirectoryEntryToData
+	MiniDumpWriteDump
+	UnDecorateSymbolName
