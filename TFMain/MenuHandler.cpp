@@ -535,11 +535,11 @@ LRESULT CALLBACK MenuHandler::MenuSubclassProc(HWND hWnd, UINT uMsg, WPARAM wPar
 		return result;
 	}
 
-	if (uMsg == HookHelper::TFM_ATTACH)
+	if (uMsg == HookHelper::GetAttachMsg())
 	{
 		return 0;
 	}
-	if (uMsg == HookHelper::TFM_DETACH)
+	if (uMsg == HookHelper::GetDetachMsg())
 	{
 		if (HookHelper::HwndProp::Get(hWnd, HookHelper::Subclass::GetNamespace<MenuSubclassProc>(), uxHooksAttached))
 		{
@@ -632,7 +632,7 @@ LRESULT CALLBACK MenuHandler::MenuOwnerSubclassProc(HWND hWnd, UINT uMsg, WPARAM
 		}
 	}
 
-	if (uMsg == HookHelper::TFM_ATTACH)
+	if (uMsg == HookHelper::GetAttachMsg())
 	{
 		if (g_menuContext.type == MenuContext::Type::Immersive)
 		{
@@ -644,7 +644,7 @@ LRESULT CALLBACK MenuHandler::MenuOwnerSubclassProc(HWND hWnd, UINT uMsg, WPARAM
 		}
 		return 0;
 	}
-	if (uMsg == HookHelper::TFM_DETACH)
+	if (uMsg == HookHelper::GetDetachMsg())
 	{
 		if (g_menuContext.type == MenuContext::Type::Immersive)
 		{

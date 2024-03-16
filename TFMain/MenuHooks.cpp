@@ -312,7 +312,7 @@ void MenuHooks::EnableHooks(bool enable)
 
 	if (enable && !g_menuHooksEnabled)
 	{
-		HookHelper::g_actualLdrRegisterDllNotification(0, LdrDllNotification, nullptr, &g_cookie);
+		HookHelper::LdrRegisterDllNotification(0, LdrDllNotification, nullptr, &g_cookie);
 
 		HookAttachAll();
 
@@ -322,7 +322,7 @@ void MenuHooks::EnableHooks(bool enable)
 	{
 		HookDetachAll();
 
-		HookHelper::g_actualLdrUnregisterDllNotification(g_cookie);
+		HookHelper::LdrUnregisterDllNotification(g_cookie);
 		g_cookie = nullptr;
 
 		g_menuHooksEnabled = false;

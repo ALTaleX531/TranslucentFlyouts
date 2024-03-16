@@ -81,13 +81,6 @@ namespace TranslucentFlyouts
 			DWORD dwAnimationId;
 		};
 
-		inline const auto g_actualSetWindowCompositionAttribute
-		{
-			reinterpret_cast<BOOL(WINAPI*)(HWND, WINDOWCOMPOSITIONATTRIBUTEDATA*)>(
-				DetourFindFunction("user32", "SetWindowCompositionAttribute")
-			)
-		};
-
 		static void DwmMakeWindowTransparent(HWND hwnd, BOOL enable)
 		{
 			DWM_BLURBEHIND bb{ DWM_BB_ENABLE | static_cast<DWORD>(enable ? (DWM_BB_BLURREGION | DWM_BB_TRANSITIONONMAXIMIZED) : 0), enable, CreateRectRgn(0, 0, -1, -1), TRUE };
@@ -134,6 +127,12 @@ namespace TranslucentFlyouts
 		#pragma warning(suppress : 4505)
 		static void SetWindowBackdrop(HWND hwnd, BOOL dropShadow, DWORD tintColor, DWORD effectType)
 		{
+			static const auto s_actualSetWindowCompositionAttribute
+			{
+				reinterpret_cast<BOOL(WINAPI*)(HWND, WINDOWCOMPOSITIONATTRIBUTEDATA*)>(
+					DetourFindFunction("user32", "SetWindowCompositionAttribute")
+				)
+			};
 			ACCENT_POLICY accentPolicy
 			{
 				static_cast<DWORD>(ACCENT_STATE::ACCENT_DISABLED),
@@ -225,9 +224,9 @@ namespace TranslucentFlyouts
 				DwmSetWindowAttribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, &backdropType, sizeof(DWM_SYSTEMBACKDROP_TYPE));
 			}
 			DwmMakeWindowTransparent(hwnd, windowTransparent);
-			if (g_actualSetWindowCompositionAttribute) [[likely]]
+			if (s_actualSetWindowCompositionAttribute) [[likely]]
 			{
-				g_actualSetWindowCompositionAttribute(hwnd, &data);
+				s_actualSetWindowCompositionAttribute(hwnd, &data);
 			}
 			if (ncRendering)
 			{

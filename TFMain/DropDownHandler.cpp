@@ -79,11 +79,11 @@ LRESULT CALLBACK DropDownHandler::DropDownSubclassProc(HWND hWnd, UINT uMsg, WPA
 		return 0;
 	}
 
-	if (uMsg == HookHelper::TFM_ATTACH)
+	if (uMsg == HookHelper::GetAttachMsg())
 	{
 		return 0;
 	}
-	if (uMsg == HookHelper::TFM_DETACH)
+	if (uMsg == HookHelper::GetDetachMsg())
 	{
 		return 0;
 	}
@@ -127,7 +127,7 @@ LRESULT CALLBACK DropDownHandler::ListviewpopupSubclassProc(HWND hWnd, UINT uMsg
 		}
 	}
 
-	if (uMsg == HookHelper::TFM_ATTACH)
+	if (uMsg == HookHelper::GetAttachMsg())
 	{
 		HWND root{GetAncestor(hWnd, GA_ROOT)};
 
@@ -155,7 +155,7 @@ LRESULT CALLBACK DropDownHandler::ListviewpopupSubclassProc(HWND hWnd, UINT uMsg
 
 		return 0;
 	}
-	if (uMsg == HookHelper::TFM_DETACH)
+	if (uMsg == HookHelper::GetDetachMsg())
 	{
 		return 0;
 	}

@@ -3,6 +3,7 @@
 #include "Utils.hpp"
 #include "RegHelper.hpp"
 #include "Framework.hpp"
+#include "DwmThumbnailAPI.hpp"
 #include "Application.hpp"
 #include "MenuHandler.hpp"
 #include "TooltipHandler.hpp"
@@ -146,6 +147,7 @@ void Framework::Startup()
 		return;
 	}
 
+	LOG_IF_FAILED(DwmThumbnailAPI::Initialize());
 	for (auto startup : g_startupRoutines)
 	{
 		startup();

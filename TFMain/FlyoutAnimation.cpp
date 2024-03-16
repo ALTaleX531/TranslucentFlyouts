@@ -17,7 +17,11 @@ namespace TranslucentFlyouts::FlyoutAnimation
 {
 	struct AnimationInfo
 	{
-		static UINT TFM_ANIMATIONFINISHED;
+		static UINT GetAnimationFinishedMsg()
+		{
+			static UINT TFM_ANIMATIONFINISHED{ RegisterWindowMessageW(L"TranslucentFlyouts.FlyoutAnimation.Finished") };
+			return TFM_ANIMATIONFINISHED;
+		}
 
 		AnimationInfo() = default;
 		AnimationInfo(std::chrono::milliseconds animationDuration) : duration{ animationDuration }, endTimeStamp{ startTimeStamp + duration.count() }
@@ -44,7 +48,6 @@ namespace TranslucentFlyouts::FlyoutAnimation
 		ULONGLONG startTimeStamp{ GetTickCount64() };
 		ULONGLONG endTimeStamp{ startTimeStamp + duration.count() };
 	};
-	UINT AnimationInfo::TFM_ANIMATIONFINISHED{ RegisterWindowMessageW(L"TranslucentFlyouts.FlyoutAnimation.Finished") };
 
 	class AnimationWorker
 	{
@@ -912,7 +915,7 @@ namespace TranslucentFlyouts::FlyoutAnimation
 			}
 
 			// ~PopupIn() sends TFM_ANIMATIONFINISHED to the SubclassProc
-			if (uMsg == TFM_ANIMATIONFINISHED)
+			if (uMsg == GetAnimationFinishedMsg())
 			{
 				popupInAnimation.Detach();
 			}
@@ -1054,7 +1057,7 @@ namespace TranslucentFlyouts::FlyoutAnimation
 			if (m_menuWindow)
 			{
 				// DO NOT USE SendMessage HERE OTHERWISE IT WILL CAUSE DEAD LOCK
-				SendNotifyMessageW(m_menuWindow, TFM_ANIMATIONFINISHED, 0, 0);
+				SendNotifyMessageW(m_menuWindow, GetAnimationFinishedMsg(), 0, 0);
 				m_menuWindow = nullptr;
 			}
 			if (window)
@@ -1084,7 +1087,7 @@ namespace TranslucentFlyouts::FlyoutAnimation
 			if (m_menuWindow)
 			{
 				// DO NOT USE SendMessage HERE OTHERWISE IT WILL CAUSE DEAD LOCK
-				SendNotifyMessageW(m_menuWindow, TFM_ANIMATIONFINISHED, 0, 0);
+				SendNotifyMessageW(m_menuWindow, GetAnimationFinishedMsg(), 0, 0);
 				m_menuWindow = nullptr;
 			}
 			if (window)

@@ -58,9 +58,39 @@ namespace TranslucentFlyouts
 		constexpr UINT LDR_DLL_NOTIFICATION_REASON_LOADED{ 1 };
 		constexpr UINT LDR_DLL_NOTIFICATION_REASON_UNLOADED{ 2 };
 
-		inline const auto g_actualLdrRegisterDllNotification{ reinterpret_cast<NTSTATUS(NTAPI*)(ULONG, HookHelper::PLDR_DLL_NOTIFICATION_FUNCTION, PVOID, PVOID*)>(GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "LdrRegisterDllNotification")) };
-		inline const auto g_actualLdrUnregisterDllNotification{ reinterpret_cast<NTSTATUS(NTAPI*)(PVOID)>(GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "LdrUnregisterDllNotification")) };
+		__forceinline NTSTATUS NTAPI LdrRegisterDllNotification(
+			ULONG flags,
+			PLDR_DLL_NOTIFICATION_FUNCTION notificationFunction,
+			PVOID context,
+			PVOID* cookie
+		)
+		{
+			static const auto s_actualLdrRegisterDllNotification{ reinterpret_cast<NTSTATUS(NTAPI*)(ULONG, HookHelper::PLDR_DLL_NOTIFICATION_FUNCTION, PVOID, PVOID*)>(GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "LdrRegisterDllNotification")) };
+			if (s_actualLdrRegisterDllNotification) [[likely]]
+			{
+				return s_actualLdrRegisterDllNotification(
+					flags,
+					notificationFunction,
+					context,
+					cookie
+				);
+			}
 
+			return 0xC000000F;
+		}
+		__forceinline NTSTATUS NTAPI LdrUnregisterDllNotification(PVOID cookie)
+		{
+			static const auto s_actualLdrUnregisterDllNotification{ reinterpret_cast<NTSTATUS(NTAPI*)(PVOID)>(GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "LdrUnregisterDllNotification")) };
+			if (s_actualLdrUnregisterDllNotification) [[likely]]
+			{
+				return s_actualLdrUnregisterDllNotification(
+					cookie
+				);
+			}
+
+			return 0xC000000F;
+		}
+		
 		void WriteMemory(PVOID memoryAddress, const std::function<void()>&& callback);
 		PVOID InjectCallbackToThread(DWORD threadId, const std::function<void()>& callback);
 		HMODULE GetProcessModule(HANDLE processHandle, std::wstring_view dllPath);
@@ -134,9 +164,21 @@ namespace TranslucentFlyouts
 			void Detach(PVOID* realFuncAddr, PVOID hookFuncAddr) noexcept(false);
 		}
 
-		inline UINT TFM_REMOVESUBCLASS{ RegisterWindowMessageW(L"TranslucentFlyouts.RemoveWindowSublcass") };
-		inline UINT TFM_ATTACH{ RegisterWindowMessageW(L"TranslucentFlyouts.Attach") };
-		inline UINT TFM_DETACH{ RegisterWindowMessageW(L"TranslucentFlyouts.Detach") };
+		__forceinline UINT GetRemoveSubclassMsg()
+		{
+			static UINT TFM_REMOVESUBCLASS{ RegisterWindowMessageW(L"TranslucentFlyouts.RemoveWindowSublcass") };
+			return TFM_REMOVESUBCLASS;
+		}
+		__forceinline UINT GetAttachMsg()
+		{
+			static UINT TFM_ATTACH{ RegisterWindowMessageW(L"TranslucentFlyouts.Attach") };
+			return TFM_ATTACH;
+		}
+		__forceinline UINT GetDetachMsg()
+		{
+			static UINT TFM_DETACH{ RegisterWindowMessageW(L"TranslucentFlyouts.Detach") };
+			return TFM_DETACH;
+		}
 		inline constexpr std::wstring_view subclassPropPrefix{ L"TranslucentFlyouts.Token" };
 
 		namespace HwndProp
@@ -198,7 +240,7 @@ namespace TranslucentFlyouts
 						if (SetWindowSubclass(hwnd, Storage<subclassProc>::Wrapper, 0, 0))
 						{
 							windowList.push_back(hwnd);
-							Storage<subclassProc>::Wrapper(hwnd, TFM_ATTACH, 0, 0, 0, 0);
+							Storage<subclassProc>::Wrapper(hwnd, GetAttachMsg(), 0, 0, 0, 0);
 						}
 					};
 
@@ -217,7 +259,7 @@ namespace TranslucentFlyouts
 				{
 					if (threadId == GetCurrentThreadId())
 					{
-						Storage<subclassProc>::Wrapper(hwnd, TFM_DETACH, windowDestroyed, 0, 0, 0);
+						Storage<subclassProc>::Wrapper(hwnd, GetDetachMsg(), windowDestroyed, 0, 0, 0);
 						if (RemoveWindowSubclass(hwnd, Storage<subclassProc>::Wrapper, 0))
 						{
 							windowList.erase(std::remove(windowList.begin(), windowList.end(), hwnd), windowList.end());
@@ -226,7 +268,7 @@ namespace TranslucentFlyouts
 					}
 					else
 					{
-						SendMessageW(hwnd, TFM_REMOVESUBCLASS, 0, 0);
+						SendMessageW(hwnd, GetRemoveSubclassMsg(), 0, 0);
 					}
 				}
 			}
@@ -250,7 +292,7 @@ namespace TranslucentFlyouts
 					DWORD_PTR dwRefData
 				)
 				{
-					if (uMsg == TFM_REMOVESUBCLASS)
+					if (uMsg == GetRemoveSubclassMsg())
 					{
 						Attach<subclassProc>(hWnd, false);
 						return 0;
@@ -294,12 +336,12 @@ namespace TranslucentFlyouts
 					if (value)
 					{
 						windowList.push_back(hwnd);
-						Storage<subclassProc>::Wrapper(hwnd, TFM_ATTACH, windowDestroyed, 0);
+						Storage<subclassProc>::Wrapper(hwnd, GetAttachMsg(), windowDestroyed, 0);
 					}
 				}
 				if (!attach && refCount == 0)
 				{
-					Storage<subclassProc>::Wrapper(hwnd, TFM_DETACH, windowDestroyed, 0);
+					Storage<subclassProc>::Wrapper(hwnd, GetDetachMsg(), windowDestroyed, 0);
 					if (SetWindowLongPtrW(hwnd, GWLP_WNDPROC, HwndProp::Get<LONG_PTR>(hwnd, GetNamespace<subclassProc>(), propName)))
 					{
 						windowList.erase(std::remove(windowList.begin(), windowList.end(), hwnd), windowList.end());

@@ -153,7 +153,7 @@ bool Api::InteractiveIO::OutputToConsole(
 	}
 
 	auto outputString{std::format(L"{}{}{}", prefixStr, std::wstring_view{ buffer, static_cast<size_t>(length) }, additionalStr)};
-	std::wcout << outputString;
+	wprintf_s(outputString.c_str());
 #ifdef _DEBUG
 	OutputDebugStringW(outputString.c_str());
 #endif
@@ -199,15 +199,10 @@ void Api::InteractiveIO::Startup()
 {
 	if (GetConsoleWindow() || AttachConsole(ATTACH_PARENT_PROCESS) || AllocConsole())
 	{
-		FILE* fpstdin{ stdin }, * fpstdout{ stdout }, * fpstderr{ stderr };
+		FILE* fpstdin{ stdin }, * fpstdout{ stdout };
 		_wfreopen_s(&fpstdin, L"CONIN$", L"r", stdin);
-		_wfreopen_s(&fpstdout, L"CONOUT$", L"w", stdout);
-		_wfreopen_s(&fpstderr, L"CONOUT$", L"w", stderr);
-
-		std::ios_base::sync_with_stdio(false);
-		std::wcin.tie(0);
-
-		std::wcout.imbue(std::locale("chs"));
+		_wfreopen_s(&fpstdout, L"CONOUT$", L"w+t", stdout);
+		_wsetlocale(LC_ALL, L"");
 	}
 }
 

@@ -125,7 +125,7 @@ LRESULT CALLBACK TooltipHandler::TooltipSubclassProc(HWND hWnd, UINT uMsg, WPARA
 		return result;
 	}
 
-	if (uMsg == HookHelper::TFM_ATTACH)
+	if (uMsg == HookHelper::GetAttachMsg())
 	{
 		g_tooltipContext.Update(hWnd);
 		SendMessageW(hWnd, WM_THEMECHANGED, 0, 0);
@@ -133,7 +133,7 @@ LRESULT CALLBACK TooltipHandler::TooltipSubclassProc(HWND hWnd, UINT uMsg, WPARA
 
 		return 0;
 	}
-	if (uMsg == HookHelper::TFM_DETACH)
+	if (uMsg == HookHelper::GetDetachMsg())
 	{
 		if (wParam == 0)
 		{
@@ -160,12 +160,12 @@ LRESULT CALLBACK TooltipHandler::KbxLabelSubclassProc(HWND hWnd, UINT uMsg, WPAR
 		return result;
 	}
 
-	if (uMsg == HookHelper::TFM_ATTACH)
+	if (uMsg == HookHelper::GetAttachMsg())
 	{
 		g_tooltipContext.Update(hWnd, ThemeHelper::ShouldAppsUseDarkMode() && ThemeHelper::IsDarkModeAllowedForApp());
 		return 0;
 	}
-	if (uMsg == HookHelper::TFM_DETACH)
+	if (uMsg == HookHelper::GetDetachMsg())
 	{
 		if (wParam == 0)
 		{

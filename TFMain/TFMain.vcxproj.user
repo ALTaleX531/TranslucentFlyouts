@@ -23,7 +23,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommand>C:\WINDOWS\system32\Rundll32.exe</LocalDebuggerCommand>
+    <LocalDebuggerCommand>C:\Windows\System32\Rundll32.exe</LocalDebuggerCommand>
     <LocalDebuggerCommandArguments>$(SolutionDir)Build\$(PlatformShortName)\$(Configuration)\$(ProjectName)$(PlatformArchitecture).dll,Main /start</LocalDebuggerCommandArguments>
     <RemoteDebuggerCommand>C:\Windows\System32\Rundll32.exe</RemoteDebuggerCommand>
     <RemoteDebuggerWorkingDirectory>C:\Users\ALTaleX\Desktop\TF3</RemoteDebuggerWorkingDirectory>
@@ -31,6 +31,7 @@
     <RemoteDebuggerConnection>RemoteWithoutAuthentication</RemoteDebuggerConnection>
     <RemoteDebuggerCommandArguments>"C:\Users\ALTaleX\Desktop\TF3\TFMain64.dll", Main /start</RemoteDebuggerCommandArguments>
     <RemoteDebuggerDebuggerType>NativeOnly</RemoteDebuggerDebuggerType>
+    <LocalDebuggerDebuggerType>Auto</LocalDebuggerDebuggerType>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <DebuggerFlavor>WindowsRemoteDebugger</DebuggerFlavor>

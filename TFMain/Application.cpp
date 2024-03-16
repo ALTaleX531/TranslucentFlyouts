@@ -9,7 +9,11 @@ using namespace TranslucentFlyouts;
 
 namespace TranslucentFlyouts::Application
 {
-	const UINT TFM_STOP{ RegisterWindowMessageW(L"TranslucentFlyouts.Win32.Stop") };
+	UINT GetStopMsg()
+	{
+		const UINT TFM_STOP{ RegisterWindowMessageW(L"TranslucentFlyouts.Win32.Stop") };
+		return TFM_STOP;
+	}
 }
 
 HRESULT Application::InstallHook()
@@ -75,11 +79,11 @@ HRESULT Application::StartService()
 		nullptr, nullptr, wil::GetModuleInstanceHandle(), nullptr
 	);
 	RETURN_LAST_ERROR_IF_NULL(serviceInfo->hostWindow);
-	RETURN_IF_WIN32_BOOL_FALSE(ChangeWindowMessageFilterEx(serviceInfo->hostWindow, TFM_STOP, MSGFLT_ALLOW, nullptr));
+	RETURN_IF_WIN32_BOOL_FALSE(ChangeWindowMessageFilterEx(serviceInfo->hostWindow, GetStopMsg(), MSGFLT_ALLOW, nullptr));
 
 	auto callback = [](HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR, DWORD_PTR) -> LRESULT
 	{
-		if (uMsg == WM_ENDSESSION || uMsg == TFM_STOP)
+		if (uMsg == WM_ENDSESSION || uMsg == GetStopMsg())
 		{
 			DestroyWindow(hWnd);
 		}
@@ -116,7 +120,7 @@ HRESULT Application::StopService()
 	RETURN_LAST_ERROR_IF_NULL(serviceInfo);
 	RETURN_HR_IF_NULL(HRESULT_FROM_WIN32(ERROR_SERVICE_START_HANG), serviceInfo->hostWindow);
 	RETURN_HR_IF(HRESULT_FROM_WIN32(ERROR_INVALID_WINDOW_HANDLE), !IsWindow(serviceInfo->hostWindow));
-	RETURN_LAST_ERROR_IF(!SendNotifyMessageW(serviceInfo->hostWindow, TFM_STOP, 0, 0));
+	RETURN_LAST_ERROR_IF(!SendNotifyMessageW(serviceInfo->hostWindow, GetStopMsg(), 0, 0));
 
 	UINT frameCount{ 0 };
 	constexpr UINT maxWaitFrameCount{ 1500 };

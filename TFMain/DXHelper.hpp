@@ -55,7 +55,7 @@ namespace TranslucentFlyouts
 				std::vector<LazyDX*> dxList;
 				decltype(FreeLibrary)* actualFreeLibrary{nullptr};
 			};
-			static InternalHook g_internalHook;
+			static InternalHook& GetInternalHook();
 		};
 
 		class LazyD3D : public LazyDX

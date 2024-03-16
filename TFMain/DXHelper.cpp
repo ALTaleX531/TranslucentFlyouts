@@ -8,19 +8,17 @@
 using namespace TranslucentFlyouts;
 using namespace TranslucentFlyouts::DXHelper;
 
-LazyDX::InternalHook LazyDX::g_internalHook{};
-
 BOOL WINAPI LazyDX::InternalHook::FreeLibrary(
 	HMODULE hLibModule
 )
 {
-	auto actualFreeLibrary{ g_internalHook.actualFreeLibrary };
+	auto actualFreeLibrary{ GetInternalHook().actualFreeLibrary };
 
 	if (hLibModule == wil::GetModuleInstanceHandle())
 	{
 		auto f = [](PTP_CALLBACK_INSTANCE pci, PVOID)
 		{
-			auto dxList{ g_internalHook.dxList };
+			auto dxList{ GetInternalHook().dxList };
 
 			for (auto it = dxList.begin(); it != dxList.end(); it++)
 			{
@@ -49,7 +47,7 @@ BOOL WINAPI LazyDX::InternalHook::FreeLibrary(
 
 void LazyDX::NotifyDeviceLost()
 {
-	auto& dxList{g_internalHook.dxList};
+	auto& dxList{ GetInternalHook().dxList };
 	for (auto it = dxList.begin(); it != dxList.end(); it++)
 	{
 		auto& lazyDX{*it};
@@ -100,13 +98,19 @@ void LazyDX::InternalHook::ShutdownHook()
 
 LazyDX::LazyDX()
 {
-	g_internalHook.dxList.push_back(this);
+	GetInternalHook().dxList.push_back(this);
 }
 
 LazyDX::~LazyDX()
 {
-	auto& dxList{ g_internalHook.dxList };
+	auto& dxList{ GetInternalHook().dxList};
 	dxList.erase(std::find(dxList.begin(), dxList.end(), this));
+}
+
+LazyDX::InternalHook& LazyDX::GetInternalHook()
+{
+	static InternalHook s_internalHook{};
+	return s_internalHook;
 }
 
 /* ======================================================================================== */

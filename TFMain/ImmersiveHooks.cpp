@@ -75,17 +75,6 @@ namespace TranslucentFlyouts::ImmersiveHooks
 	};
 	std::unordered_map<PVOID, HookHelper::THookDispatcher<decltype(g_hookDependency)>::type> g_hookDispatcherMap{};
 
-	std::array<PVOID, 3> g_cachedOriginalFunction{};
-	template <typename T, size_t index>
-	__forceinline auto GetOrg(PVOID callerModuleAddress = reinterpret_cast<PVOID>(DetourGetContainingModule(_ReturnAddress()))) 
-	{
-		if (g_cachedOriginalFunction[index]) [[likely]]
-		{
-			return reinterpret_cast<T>(g_cachedOriginalFunction[index]);
-		}
-		return g_hookDispatcherMap.at(callerModuleAddress).GetOrg<T, index>();
-	}
-
 	bool EnableHooksInternal(PVOID baseAddress, bool enable);
 }
 
@@ -128,7 +117,7 @@ int WINAPI ImmersiveHooks::MyDrawTextW(
 	};
 	if (!handler())
 	{
-		result = GetOrg<decltype(&ImmersiveHooks::MyDrawTextW), 0>()(hdc, lpchText, cchText, lprc, format);
+		result = g_hookDispatcherMap.at(DetourGetContainingModule(_ReturnAddress())).GetOrg<decltype(&ImmersiveHooks::MyDrawTextW), 0>()(hdc, lpchText, cchText, lprc, format);
 	}
 
 	return result;
@@ -144,7 +133,7 @@ HRESULT WINAPI ImmersiveHooks::MyDrawThemeBackground(
 )
 {
 	HRESULT hr{S_OK};
-	auto actualDrawThemeBackground{ GetOrg<decltype(&ImmersiveHooks::MyDrawThemeBackground), 1>() };
+	auto actualDrawThemeBackground{ g_hookDispatcherMap.at(DetourGetContainingModule(_ReturnAddress())).GetOrg<decltype(&ImmersiveHooks::MyDrawThemeBackground), 1>() };
 	
 
 	auto handler = [&]() -> bool
@@ -206,7 +195,7 @@ HRESULT WINAPI ImmersiveHooks::MyDwmSetWindowAttribute(
 		}
 	}
 
-	return GetOrg<decltype(&ImmersiveHooks::MyDwmSetWindowAttribute), 2>()(
+	return g_hookDispatcherMap.at(DetourGetContainingModule(_ReturnAddress())).GetOrg<decltype(&ImmersiveHooks::MyDwmSetWindowAttribute), 2>()(
 		hwnd,
 		dwAttribute,
 		pvAttribute,
@@ -263,7 +252,6 @@ void ImmersiveHooks::EnableHooks(PVOID baseAddress, bool enable)
 		{
 			EnableHooksInternal(GetModuleHandleW(L"shell32.dll"), enable);
 			EnableHooksInternal(GetModuleHandleW(L"explorer.exe"), enable);
-			g_cachedOriginalFunction.fill(nullptr);
 			return;
 		}
 
@@ -274,25 +262,10 @@ void ImmersiveHooks::EnableHooks(PVOID baseAddress, bool enable)
 		if (GetModuleHandleW(L"explorer.exe") && SystemHelper::g_buildNumber >= 22000)
 		{
 			EnableHooksInternal(GetModuleHandleW(L"Taskbar.dll"), enable);
-			g_cachedOriginalFunction.fill(nullptr);
 		}
 	}
 
-	bool hookChanged{ EnableHooksInternal(baseAddress, enable) };
-	if (hookChanged)
-	{
-		if (enable)
-		{
-			const auto& hookDispatcher{ g_hookDispatcherMap.at(baseAddress) };
-			g_cachedOriginalFunction[0] = hookDispatcher.GetOrg<0>();
-			g_cachedOriginalFunction[1] = hookDispatcher.GetOrg<1>();
-			g_cachedOriginalFunction[2] = hookDispatcher.GetOrg<2>();
-		}
-		else
-		{
-			g_cachedOriginalFunction.fill(nullptr);
-		}
-	}
+	EnableHooksInternal(baseAddress, enable);
 }
 
 void ImmersiveHooks::DisableHooks()
