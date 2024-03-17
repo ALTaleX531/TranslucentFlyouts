@@ -12,6 +12,9 @@
 #define IDS_STRING108                   108
 #define IDS_STRING109                   109
 #define IDS_STRING110                   110
+#define IDS_STRING111                   111
+#define IDS_STRING112                   112
+#define IDS_STRING113                   113
 
 // Next default values for new objects
 // 

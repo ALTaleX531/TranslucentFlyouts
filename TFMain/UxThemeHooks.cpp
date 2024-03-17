@@ -76,6 +76,27 @@ namespace TranslucentFlyouts::UxThemeHooks
 	HookHelper::OffsetStorage g_CThemeMenuPopup_DrawNonClientArea_DrawThemeBackground_E8Offset_Offset_1{ 0 };
 #pragma data_seg()
 #pragma comment(linker,"/SECTION:.shared,RWS")
+	bool IsE8OffsetAllReady()
+	{
+		if (
+			g_CThemeMenu_DrawItemBitmap_Offset.IsValid() &&
+			g_CThemeMenuPopup_DrawItem_DrawThemeText_E8Offset_Offset_1.IsValid() &&
+			g_CThemeMenuPopup_DrawItem_DrawThemeText_E8Offset_Offset_2.IsValid() &&
+			g_CThemeMenuPopup_DrawItem_DrawThemeBackground_E8Offset_Offset_1.IsValid() &&
+			g_CThemeMenuPopup_DrawItem_DrawThemeBackground_E8Offset_Offset_2.IsValid() &&
+			g_CThemeMenuPopup_DrawItem_DrawThemeBackground_E8Offset_Offset_3.IsValid() &&
+			g_CThemeMenuPopup_DrawItem_DrawThemeBackground_E8Offset_Offset_4.IsValid() &&
+			g_CThemeMenuPopup_DrawItemCheck_DrawThemeBackground_E8Offset_Offset_1.IsValid() &&
+			g_CThemeMenuPopup_DrawItemCheck_DrawThemeBackground_E8Offset_Offset_2.IsValid() &&
+			g_CThemeMenuPopup_DrawClientArea_DrawThemeBackground_E8Offset_Offset_1.IsValid() &&
+			g_CThemeMenuPopup_DrawNonClientArea_DrawThemeBackground_E8Offset_Offset_1.IsValid()
+		)
+		{
+			return true;
+		}
+
+		return false;
+	}
 	
 	class TrampolinePool
 	{
@@ -672,19 +693,7 @@ void __thiscall UxThemeHooks::CThemeMenu::MyDrawItemBitmap2(HWND hWnd, HDC hdc, 
 void UxThemeHooks::Prepare()
 {
 	g_useCompatibleMode = static_cast<bool>(RegHelper::Get<DWORD>({ L"Menu" }, L"EnableCompatibilityMode", 0));
-	if (
-		g_CThemeMenu_DrawItemBitmap_Offset.IsValid() && 
-		g_CThemeMenuPopup_DrawItem_DrawThemeText_E8Offset_Offset_1.IsValid() &&
-		g_CThemeMenuPopup_DrawItem_DrawThemeText_E8Offset_Offset_2.IsValid() &&
-		g_CThemeMenuPopup_DrawItem_DrawThemeBackground_E8Offset_Offset_1.IsValid() &&
-		g_CThemeMenuPopup_DrawItem_DrawThemeBackground_E8Offset_Offset_2.IsValid() &&
-		g_CThemeMenuPopup_DrawItem_DrawThemeBackground_E8Offset_Offset_3.IsValid() &&
-		g_CThemeMenuPopup_DrawItem_DrawThemeBackground_E8Offset_Offset_4.IsValid() &&
-		g_CThemeMenuPopup_DrawItemCheck_DrawThemeBackground_E8Offset_Offset_1.IsValid() &&
-		g_CThemeMenuPopup_DrawItemCheck_DrawThemeBackground_E8Offset_Offset_2.IsValid() &&
-		g_CThemeMenuPopup_DrawClientArea_DrawThemeBackground_E8Offset_Offset_1.IsValid() &&
-		g_CThemeMenuPopup_DrawNonClientArea_DrawThemeBackground_E8Offset_Offset_1.IsValid()
-	)
+	if (IsE8OffsetAllReady())
 	{
 		return;
 	}
@@ -1039,7 +1048,7 @@ void UxThemeHooks::EnableHooks(bool enable)
 	
 	if (enable)
 	{
-		if (!g_compatibleMode)
+		if (!g_compatibleMode && IsE8OffsetAllReady())
 		{
 			g_hookTable[g_CThemeMenuPopup_DrawItem_DrawThemeText_E8Offset_Offset_1.To<LONG*>(uxthemeModule)] =
 				ReplaceE8Call(

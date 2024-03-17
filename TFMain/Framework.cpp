@@ -111,7 +111,6 @@ void CALLBACK Framework::HandleWinEvent(
 {
 	if (Api::IsHostProcess(Application::g_serviceName))
 	{
-		Prepare();
 		DoExplorerCrashCheck();
 		return;
 	}

@@ -17,8 +17,11 @@ namespace TranslucentFlyouts::Application
 	// Service
 	extern "C" bool IsServiceRunning();
 	HRESULT StopService();
-	HRESULT StartService();
+	HRESULT KillService();
+	HRESULT StartService(HWND hWnd = nullptr);
 	// Installer.
 	HRESULT InstallApp();
 	HRESULT UninstallApp();
+
+	void ClearCache();
 }

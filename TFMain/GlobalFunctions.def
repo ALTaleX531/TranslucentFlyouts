@@ -1,8 +1,9 @@
 ﻿LIBRARY
 EXPORTS
 	Main   PRIVATE
-	IsServiceRunning   PRIVATE
-	StopService   PRIVATE
-	StartService   PRIVATE
-	InstallApp   PRIVATE
-	UninstallApp   PRIVATE
+	IsServiceRunning
+	StopService
+	KillService
+	StartService
+	InstallApp
+	UninstallApp

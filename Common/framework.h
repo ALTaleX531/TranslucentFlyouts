@@ -14,6 +14,8 @@
 #include <TlHelp32.h>
 #include <delayimp.h>
 
+#include <Propvarutil.h>
+#include <propkey.h>
 #include <appmodel.h>
 #include <oleacc.h>
 #include <taskschd.h>

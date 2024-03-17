@@ -135,7 +135,7 @@ namespace TranslucentFlyouts::HookHelper
 
 				hookTable[index] = std::make_pair(
 					*iatFunctionAddress,
-					moduleHandleOffset.has_value() ? 
+					iatModuleAddress.has_value() ?
 					std::make_optional(*reinterpret_cast<HMODULE*>(iatModuleAddress.value())) :
 					std::nullopt
 				);

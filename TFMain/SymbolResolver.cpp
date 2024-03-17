@@ -63,23 +63,24 @@ HMODULE WINAPI SymbolResolver::MyLoadLibraryExW(
 	DWORD   dwFlags
 )
 {
-	if (_wcsicmp(lpLibFileName, std::format(L"{}\\symsrv.dll", wil::GetSystemDirectoryW<std::wstring, MAX_PATH + 1>()).c_str()) != 0)
+	static auto s_symsrvSysFullPath{ std::format(L"{}\\symsrv.dll", wil::GetSystemDirectoryW<std::wstring, MAX_PATH + 1>()) };
+	static auto s_symsrvCurFullPath{ Utils::make_current_folder_file_str(L"symsrv.dll") };
+	if (
+		_wcsicmp(lpLibFileName, s_symsrvSysFullPath.c_str()) != 0 &&
+		_wcsicmp(lpLibFileName, s_symsrvCurFullPath.c_str()) != 0
+	)
 	{
 		return LoadLibraryExW(lpLibFileName, hFile, dwFlags);
 	}
 
-	WCHAR curDir[MAX_PATH + 1]{};
-	THROW_LAST_ERROR_IF(GetModuleFileName(wil::GetModuleInstanceHandle(), curDir, MAX_PATH) == 0);
-	THROW_IF_FAILED(PathCchRemoveFileSpec(curDir, MAX_PATH));
-	THROW_IF_FAILED(PathCchAppend(curDir, MAX_PATH, L"symsrv.dll"));
-	return LoadLibraryW(curDir);
+	return LoadLibraryW(Utils::make_current_folder_file_str(L"symsrv-for-tf.dll").c_str());
 }
 
 SymbolResolver::SymbolResolver(std::wstring_view sessionName) : m_sessionName{ sessionName }
 {
 	try
 	{
-		m_LoadLibraryExW_Org = HookHelper::WriteIAT(GetModuleHandleW(L"dbghelp.dll"), "api-ms-win-core-libraryloader-l1-1-0.dll", "LoadLibraryExW", MyLoadLibraryExW);
+		m_LoadLibraryExW_Org = HookHelper::WriteIAT(GetModuleHandleW(L"dbghelp-for-tf.dll"), "api-ms-win-core-libraryloader-l1-1-0.dll", "LoadLibraryExW", MyLoadLibraryExW);
 
 		THROW_IF_WIN32_BOOL_FALSE(SymInitialize(GetCurrentProcess(), nullptr, FALSE));
 
@@ -103,7 +104,7 @@ SymbolResolver::SymbolResolver(std::wstring_view sessionName) : m_sessionName{ s
 SymbolResolver::~SymbolResolver() noexcept
 {
 	SymCleanup(GetCurrentProcess());
-	m_LoadLibraryExW_Org = HookHelper::WriteIAT(GetModuleHandleW(L"dbghelp.dll"), "api-ms-win-core-libraryloader-l1-1-0.dll", "LoadLibraryExW", m_LoadLibraryExW_Org);
+	m_LoadLibraryExW_Org = HookHelper::WriteIAT(GetModuleHandleW(L"dbghelp-for-tf.dll"), "api-ms-win-core-libraryloader-l1-1-0.dll", "LoadLibraryExW", m_LoadLibraryExW_Org);
 }
 
 HRESULT SymbolResolver::Walk(std::wstring_view dllName, std::string_view mask, std::function<bool(PSYMBOL_INFO, ULONG)> callback) try

@@ -62,6 +62,13 @@ BEGIN
     IDS_STRING108           "½âÎöµÄ½á¹ûÒÑ¾­±»»º´æµ½×¢²á±íÖĞ¡£"
     IDS_STRING109           "Windows ×ÊÔ´¹ÜÀíÆ÷ÔÚ¹ıÈ¥30ÃëÄÚÒÑÁ¬Ğø±ÀÀ£Á½´Î£¡¿´ÆğÀ´ËÆºõ´æÔÚ×ÅÒ»¸öÑÏÖØµÄ¼æÈİĞÔÎÊÌâ£¡³öÓÚ°²È«¿¼Á¿£¬ÊÇ·ñÇ¿ÖÆÖĞÖ¹TranslucentFlyouts.Win32£¿\n£¨Èç¹û¸ÃÎÊÌâ³ÖĞø³öÏÖ£¬Çë¿¼ÂÇ±¨¸æÄãµÄÏµÍ³°æ±¾¸ø¿ª·¢Õß£¡£©"
     IDS_STRING110           "ºÜ±§Ç¸£¬¸ÃÓ¦ÓÃÅ×³öÁËÎ´²¶»ñµÄÒì³££¬¼´½«±ÀÀ£¡£µ«Çë×¢Òâ£¬±ÀÀ£¿ÉÄÜ²»ÊÇÓÉTranslucentFlyoutsÔì³ÉµÄ£¬Ò²ÓĞ¿ÉÄÜÊÇÓ¦ÓÃ³ÌĞò±¾Éí¡£\nÎÒÃÇÒÑ¾­ÔÚTranslucentFlyoutsËùÔÚÎÄ¼ş¼ĞµÄdumpsÄ¿Â¼Éú³ÉÁËÒ»¸öÒÔµ±Ç°½ø³ÌÃûÎª¹Ø¼ü´ÊÃüÃûµÄÄÚ´æ×ª´¢ÎÄ¼ş£¬ÆäÖĞ²»°üº¬ÄúµÄÈÎºÎÒşË½ĞÅÏ¢¡£Èç¹ûÄãÈÏÎª¸Ã±ÀÀ£ÎÊÌâÊÇTFÔì³ÉµÄ£¬Ï£ÍûÄúÄÜÔÚGithubÉÏÌá³öissue²¢ÉÏ´«¸ÃÎÄ¼ş£¬ÕâÄÜ°ïÖúÎÒÃÇ¸ü¿ìµØ·¢ÏÖ²¢ĞŞ¸´BUG¡£\nÎªÁË·ÀÖ¹Ó¦ÓÃ²»¶ÏµØ±ÀÀ££¬ÊÇ·ñÇ¿ÖÆÖĞÖ¹TranslucentFlyouts.Win32£¿"
+    IDS_STRING111           "Äã¿´µ½´ËÏûÏ¢µÄÔ­ÒòÊÇÄãÕıÔÚ³¢ÊÔ°²×°¿ªÔ´Èí¼şTranslucentFlyouts.Win32£¬ÔÚ°²×°²Ù×÷½øĞĞÖ®Ç°£¬ÎÒ¾õµÃÓĞ±ØÒª½øĞĞÒ»Ğ©±ØÒªµÄËµÃ÷¡£\n\nTranslucentFlyouts.Win32µÄÔË×÷Ô­ÀíÊÇÍ¨¹ıÒ»¸ö·şÎñ½ø³ÌÉèÖÃÈ«¾Ö¹³×Ó´Ó¶ø½«×ÔÉíµÄDLL×¢Èëµ½¾ø´ó²¿·ÖµÄ½ø³ÌÖ®ÖĞ£¬Í¨¹ı·ÖÎö¡¢À¹½ØºÍÖØ¶¨ÏòÏà¹ØÏµÍ³×é¼şµÄäÖÈ¾´úÂëÊµÏÖÍ¸Ã÷Ğ§¹û£¬¹ı³ÌÖĞÎªÁËÏìÓ¦ÄãÉè¶¨µÄÅäÖÃĞÅÏ¢»¹»á¶Ô×¢²á±íÏîÄ¿½øĞĞ¶ÁÈ¡¡£ÕâÒâÎ¶×Å£¬¸ÃÓ¦ÓÃÔÚ²»Ö§³ÖµÄÏµÍ³ÉÏÔËĞĞ¿ÉÄÜ»áÔì³ÉÆäËüÓ¦ÓÃÒì³£±ÀÀ££¬´Ó¶øµ¼ÖÂÄãµÄµçÄÔÎŞ·¨Õı³£Ê¹ÓÃ¡£¼ÌĞø°²×°½«ÊÓÎªÄãÔ¸ÒâÊÚÓè´ËÓ¦ÓÃÖ´ĞĞÉÏÊö²Ù×÷Ëù¶ÔÓ¦µÄÈ¨ÏŞ£¬²¢Ô¸Òâ³Ğµ£ÏàÓ¦µÄ·çÏÕ¡£\n\n°²×°²Ù×÷»á´´½¨Ò»¸ö¼Æ»®ÈÎÎñÊ¹ÄãµÄµçÄÔ¿ª»úÔËĞĞÒ»¸ö·şÎñ½ø³Ì£¬²¢ÇÒ¸´ÖÆdbghelp-for-tf.dllµ½system32ÎÄ¼ş¼ĞÈ·±£ÔÚDLLÔÚ×¢Èëµ½²¿·ÖÌØÊâ½ø³ÌºóÒ²ÄÜÕı³£³õÊ¼»¯¡£\n\nµã»÷¡°ÊÇ¡±½«¼ÌĞø°²×°£¬¶øµã»÷¡°·ñ¡±½«ÖĞÖ¹°²×°£¬ÄãµÄµçÄÔ²»»áÊÜµ½ÈÎºÎ¸ü¸Ä¡£"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_STRING112           "ÄãºÃ£¬"
+    IDS_STRING113           "Õ¼Î»·û"
 END
 
 #endif    // ÖĞÎÄ(¼òÌå£¬ÖĞ¹ú) resources
@@ -92,6 +99,13 @@ BEGIN
     IDS_STRING108           "The results of resolved symbols have been saved into the registry."
     IDS_STRING109           "Windows Explorer crashed twice in the last 30 seconds! It seems like there is a severe compatibility issue! For security reasons, do you want to terminate TranslucentFlyouts.Win32 now?\n(PS: Please consider reporting your OS information to the developer if you encounter this situation again!)"
     IDS_STRING110           "Sorry, this application has thrown an uncaught exception and is about to crash. Note, however, that the crash may not be caused by TranslucentFlyouts, or it may be the application itself.\nWe have generated a memory dump file in the dumps directory of the folder where TranslucentFlyouts is located named after the current process name as a keyword, which does not contain any of your private information. If you think the crash issue is caused by TF, then we hope you can raise an issue on Github and upload the file, which will help us find and fix the bug quicker.\nTo prevent the app from crashing constantly, do you want to terminate TranslucentFlyouts.Win32 now?"
+    IDS_STRING111           "The reason you are seeing this message is that you are attempting to install the open-source software TranslucentFlyouts.Win32. Before proceeding with the installation, I feel it is necessary to provide some clarification.\n\nTranslucentFlyouts.Win32 works by setting global hooks through a service process to inject its own DLLs into most of the processes. It achieves transparency effects by analyzing, intercepting, and redirecting the rendering code of relevant system components, which also includes reading registry items in response to the configuration information you set. This means that running this application on unsupported system may cause other applications to crash, making your computer unusable. Proceeding with the installation will be considered as granting the application the permissions to perform the above operations at your own risk.\n\nThe installation will create a scheduled task to run a service process when your computer starts, and it will copy dbghelp-for-tf.dll to the system32 folder to ensure that the DLL can properly initialize even after being injected into some special processes.\n\nClicking “Yes” will continue the installation, while clicking “No” will abort the installation without introducing any changes to your computer."
+END
+
+STRINGTABLE
+BEGIN
+    IDS_STRING112           "Hello "
+    IDS_STRING113           "PLACEHOLDER"
 END
 
 #endif    // Ó¢Óï(ÖĞĞÔ) resources

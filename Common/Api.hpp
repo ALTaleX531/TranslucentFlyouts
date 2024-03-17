@@ -6,6 +6,7 @@ namespace TranslucentFlyouts::Api
 {
 	struct ServiceInfo
 	{
+		bool serviceRunning{ false };
 		HWND hostWindow{ nullptr };
 		HWINEVENTHOOK hook{ nullptr };
 	};
@@ -43,6 +44,7 @@ namespace TranslucentFlyouts::Api
 		);
 		void Startup();
 		void Shutdown();
+		void SetConsoleInitializationCallback(const std::function<void()>&& callback);
 	}
 
 	bool IsPartDisabled(std::wstring_view part);

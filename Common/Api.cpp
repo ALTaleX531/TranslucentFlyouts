@@ -5,6 +5,10 @@
 #include "Api.hpp"
 
 using namespace TranslucentFlyouts;
+namespace TranslucentFlyouts::Api::InteractiveIO
+{
+	std::function<void()> g_callback{};
+}
 
 bool Api::IsServiceRunning(std::wstring_view serviceName)
 {
@@ -197,12 +201,22 @@ bool Api::InteractiveIO::OutputToConsole(
 
 void Api::InteractiveIO::Startup()
 {
-	if (GetConsoleWindow() || AttachConsole(ATTACH_PARENT_PROCESS) || AllocConsole())
+	HWND hwnd{ GetConsoleWindow() };
+	if (!hwnd)
 	{
-		FILE* fpstdin{ stdin }, * fpstdout{ stdout };
-		_wfreopen_s(&fpstdin, L"CONIN$", L"r", stdin);
-		_wfreopen_s(&fpstdout, L"CONOUT$", L"w+t", stdout);
-		_wsetlocale(LC_ALL, L"");
+		if (AttachConsole(ATTACH_PARENT_PROCESS) || AllocConsole())
+		{
+			hwnd = GetConsoleWindow();
+			FILE* fpstdin{ stdin }, * fpstdout{ stdout };
+			_wfreopen_s(&fpstdin, L"CONIN$", L"r", stdin);
+			_wfreopen_s(&fpstdout, L"CONOUT$", L"w+t", stdout);
+			_wsetlocale(LC_ALL, L"");
+
+			if (g_callback)
+			{
+				g_callback();
+			}
+		}
 	}
 }
 
@@ -216,6 +230,11 @@ void Api::InteractiveIO::Shutdown()
 
 		FreeConsole();
 	}
+}
+
+void Api::InteractiveIO::SetConsoleInitializationCallback(const std::function<void()>&& callback)
+{
+	g_callback = callback;
 }
 
 bool Api::IsPartDisabled(std::wstring_view part)

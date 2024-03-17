@@ -16,6 +16,25 @@ namespace TranslucentFlyouts::Application
 	}
 }
 
+void Application::ClearCache()
+{
+#ifdef _WIN64
+	SHDeleteKeyW(
+		HKEY_LOCAL_MACHINE, L"SOFTWARE\\TranslucentFlyouts_Internals"
+	);
+	SHDeleteKeyW(
+		HKEY_CURRENT_USER, L"SOFTWARE\\TranslucentFlyouts_Internals"
+	);
+#else
+	SHDeleteKeyW(
+		HKEY_LOCAL_MACHINE, L"SOFTWARE\\TranslucentFlyouts_Internals(x86)"
+	);
+	SHDeleteKeyW(
+		HKEY_CURRENT_USER, L"SOFTWARE\\TranslucentFlyouts_Internals(x86)"
+	);
+#endif // _WIN64
+}
+
 HRESULT Application::InstallHook()
 {
 	RETURN_HR_IF(HRESULT_FROM_WIN32(ERROR_SERVICE_NOT_ACTIVE), !Api::IsServiceRunning(g_serviceName));
@@ -49,7 +68,7 @@ HRESULT Application::UninstallHook()
 	return S_OK;
 }
 
-HRESULT Application::StartService()
+HRESULT Application::StartService(HWND hWnd)
 {
 	RETURN_HR_IF(HRESULT_FROM_WIN32(ERROR_SERVICE_ALREADY_RUNNING), Api::IsServiceRunning(g_serviceName));
 	auto [serviceHandle, serviceInfo]
@@ -57,6 +76,24 @@ HRESULT Application::StartService()
 		Api::CreateService(g_serviceName)
 	};
 	RETURN_LAST_ERROR_IF_NULL(serviceInfo);
+
+	if (!hWnd)
+	{
+		serviceInfo->hostWindow = CreateWindowExW(
+			WS_EX_NOREDIRECTIONBITMAP | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW,
+			L"Static",
+			nullptr,
+			WS_POPUP,
+			0, 0, 0, 0,
+			nullptr, nullptr, wil::GetModuleInstanceHandle(), nullptr
+		);
+		RETURN_LAST_ERROR_IF_NULL(serviceInfo->hostWindow);
+	}
+	else
+	{
+		serviceInfo->hostWindow = hWnd;
+	}
+	RETURN_IF_WIN32_BOOL_FALSE(ChangeWindowMessageFilterEx(serviceInfo->hostWindow, GetStopMsg(), MSGFLT_ALLOW, nullptr));
 
 	Framework::Prepare();
 	Api::InteractiveIO::OutputToConsole(
@@ -69,17 +106,7 @@ HRESULT Application::StartService()
 	);
 	Api::InteractiveIO::Shutdown();
 	RETURN_IF_FAILED(Application::InstallHook());
-
-	serviceInfo->hostWindow = CreateWindowExW(
-		WS_EX_NOREDIRECTIONBITMAP | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW,
-		L"Static",
-		nullptr,
-		WS_POPUP,
-		0, 0, 0, 0,
-		nullptr, nullptr, wil::GetModuleInstanceHandle(), nullptr
-	);
-	RETURN_LAST_ERROR_IF_NULL(serviceInfo->hostWindow);
-	RETURN_IF_WIN32_BOOL_FALSE(ChangeWindowMessageFilterEx(serviceInfo->hostWindow, GetStopMsg(), MSGFLT_ALLOW, nullptr));
+	serviceInfo->serviceRunning = true;
 
 	auto callback = [](HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR, DWORD_PTR) -> LRESULT
 	{
@@ -104,7 +131,8 @@ HRESULT Application::StartService()
 
 	serviceInfo->hostWindow = nullptr;
 
-	Application::UninstallHook();
+	LOG_IF_FAILED(Application::UninstallHook());
+	serviceInfo->serviceRunning = false;
 	return S_OK;
 }
 
@@ -118,7 +146,7 @@ HRESULT Application::StopService()
 	RETURN_HR_IF(HRESULT_FROM_WIN32(ERROR_SERVICE_NOT_ACTIVE), !Api::IsServiceRunning(g_serviceName));
 	auto serviceInfo{ Api::GetServiceInfo(g_serviceName, false) };
 	RETURN_LAST_ERROR_IF_NULL(serviceInfo);
-	RETURN_HR_IF_NULL(HRESULT_FROM_WIN32(ERROR_SERVICE_START_HANG), serviceInfo->hostWindow);
+	RETURN_HR_IF(HRESULT_FROM_WIN32(ERROR_SERVICE_START_HANG), !serviceInfo->serviceRunning);
 	RETURN_HR_IF(HRESULT_FROM_WIN32(ERROR_INVALID_WINDOW_HANDLE), !IsWindow(serviceInfo->hostWindow));
 	RETURN_LAST_ERROR_IF(!SendNotifyMessageW(serviceInfo->hostWindow, GetStopMsg(), 0, 0));
 
@@ -133,6 +161,19 @@ HRESULT Application::StopService()
 		}
 	}
 
+	return S_OK;
+}
+HRESULT Application::KillService()
+{
+	RETURN_HR_IF(HRESULT_FROM_WIN32(ERROR_SERVICE_NOT_ACTIVE), !Api::IsServiceRunning(g_serviceName));
+	auto serviceInfo{ Api::GetServiceInfo(g_serviceName, false) };
+	RETURN_LAST_ERROR_IF_NULL(serviceInfo);
+	RETURN_HR_IF(HRESULT_FROM_WIN32(ERROR_INVALID_WINDOW_HANDLE), !IsWindow(serviceInfo->hostWindow));
+	DWORD processId{0};
+	RETURN_LAST_ERROR_IF(GetWindowThreadProcessId(serviceInfo->hostWindow, &processId) == 0);
+	wil::unique_handle processHandle{ OpenProcess(PROCESS_TERMINATE, FALSE, processId) };
+	RETURN_LAST_ERROR_IF_NULL(processHandle);
+	RETURN_IF_WIN32_BOOL_FALSE(TerminateProcess(processHandle.get(), E_ABORT));
 	return S_OK;
 }
 
@@ -288,7 +329,7 @@ HRESULT Application::UninstallApp() try
 			nullptr,
 			MB_ICONINFORMATION | MB_YESNO
 		) == IDYES
-		)
+	)
 	{
 		SHDeleteKeyW(
 			HKEY_LOCAL_MACHINE, L"SOFTWARE\\TranslucentFlyouts"
@@ -296,21 +337,7 @@ HRESULT Application::UninstallApp() try
 		SHDeleteKeyW(
 			HKEY_CURRENT_USER, L"SOFTWARE\\TranslucentFlyouts"
 		);
-#ifdef _WIN64
-		SHDeleteKeyW(
-			HKEY_LOCAL_MACHINE, L"SOFTWARE\\TranslucentFlyouts_Internals"
-		);
-		SHDeleteKeyW(
-			HKEY_CURRENT_USER, L"SOFTWARE\\TranslucentFlyouts_Internals"
-		);
-#else
-		SHDeleteKeyW(
-			HKEY_LOCAL_MACHINE, L"SOFTWARE\\TranslucentFlyouts_Internals(x86)"
-		);
-		SHDeleteKeyW(
-			HKEY_CURRENT_USER, L"SOFTWARE\\TranslucentFlyouts_Internals(x86)"
-		);
-#endif // _WIN64
+		ClearCache();
 	}
 
 	if (
