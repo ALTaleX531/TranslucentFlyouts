@@ -95,7 +95,7 @@ int WINAPI KbxLabelHooks::MyDrawTextW(
 	};
 	if (!handler())
 	{
-		result = g_hookDispatcher.GetOrg<decltype(&MyDrawTextW), 0>()(hdc, lpchText, cchText, lprc, format);
+		result = g_hookDispatcher.GetOrg<0, decltype(&MyDrawTextW)>()(hdc, lpchText, cchText, lprc, format);
 	}
 
 	return result;

@@ -519,7 +519,7 @@ HRESULT WINAPI UxThemeHooks::MyDwmSetWindowAttribute(
 		}
 	}
 
-	return g_hookDispatcher.GetOrg<decltype(&MyDwmSetWindowAttribute), 1>()(
+	return g_hookDispatcher.GetOrg<1, decltype(&MyDwmSetWindowAttribute)>()(
 		hwnd,
 		dwAttribute,
 		pvAttribute,
@@ -588,7 +588,7 @@ BOOL WINAPI UxThemeHooks::MyStretchBlt(
 	};
 	if (!handler())
 	{
-		result = g_hookDispatcher.GetOrg<decltype(&MyStretchBlt), 0>()(
+		result = g_hookDispatcher.GetOrg<0, decltype(&MyStretchBlt)>()(
 			hdcDest,
 			xDest, yDest,
 			wDest, hDest,

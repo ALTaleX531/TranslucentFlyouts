@@ -75,7 +75,6 @@ bool Api::IsCurrentProcessInBlockList()
 		L"sihost.exe"sv,
 		L"WSHost.exe"sv,
 		L"spoolsv.exe"sv,
-		L"dllhost.exe"sv,
 		L"svchost.exe"sv,
 		L"taskhostw.exe"sv,
 		L"searchhost.exe"sv,
@@ -102,7 +101,8 @@ bool Api::IsCurrentProcessInBlockList()
 	{
 		for (auto item : list)
 		{
-			if (GetModuleHandleW(item.data()))
+			auto processInRegistryBlockList{ RegHelper::TryGet<DWORD>({L"BlockList"}, item) };
+			if (GetModuleHandleW(item.data()) && !(processInRegistryBlockList.has_value() && !processInRegistryBlockList.value()))
 			{
 				return true;
 			}

@@ -119,7 +119,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ModuleDefinitionFile>GlobalFunctions.def</ModuleDefinitionFile>
-      <AdditionalLibraryDirectories>$(SolutionDir)Build\$(PlatformShortName)\$(Configuration)\;$(SolutionDir)Build\import\$(PlatformShortName)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)Build\$(PlatformShortName)\$(Configuration)\import\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>dbghelp-for-tf.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -147,7 +147,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
       <ModuleDefinitionFile>GlobalFunctions.def</ModuleDefinitionFile>
-      <AdditionalLibraryDirectories>$(SolutionDir)Build\$(PlatformShortName)\$(Configuration)\;$(SolutionDir)Build\import\$(PlatformShortName)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)Build\$(PlatformShortName)\$(Configuration)\import\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>dbghelp-for-tf.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -165,7 +165,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ModuleDefinitionFile>GlobalFunctions.def</ModuleDefinitionFile>
-      <AdditionalLibraryDirectories>$(SolutionDir)Build\$(PlatformShortName)\$(Configuration)\;$(SolutionDir)Build\import\$(PlatformShortName)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)Build\$(PlatformShortName)\$(Configuration)\import\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>dbghelp-for-tf.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -193,7 +193,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
       <ModuleDefinitionFile>GlobalFunctions.def</ModuleDefinitionFile>
-      <AdditionalLibraryDirectories>$(SolutionDir)Build\$(PlatformShortName)\$(Configuration)\;$(SolutionDir)Build\import\$(PlatformShortName)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)Build\$(PlatformShortName)\$(Configuration)\import\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>dbghelp-for-tf.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>

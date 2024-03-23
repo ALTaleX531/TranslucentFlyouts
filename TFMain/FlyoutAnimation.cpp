@@ -95,19 +95,13 @@ namespace TranslucentFlyouts::FlyoutAnimation
 			RECT windowRect{};
 			THROW_IF_WIN32_BOOL_FALSE(GetWindowRect(hWnd, &windowRect));
 
-			window = CreateWindowExW(
-				WS_EX_NOREDIRECTIONBITMAP | WS_EX_NOACTIVATE | WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
-				L"Static",
-				L"FadeOut Animation",
-				WS_POPUP,
-				-GetSystemMetrics(SM_CXVIRTUALSCREEN),
-				-GetSystemMetrics(SM_CYVIRTUALSCREEN),
-				0,
-				0,
+			window = Utils::SHCreateWorkerWindowW(
+				DefWindowProcW,
 				Utils::GetCurrentMenuOwner(),
+				WS_EX_NOREDIRECTIONBITMAP | WS_EX_NOACTIVATE | WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
+				WS_POPUP,
 				nullptr,
-				nullptr,
-				nullptr
+				0
 			);
 			THROW_LAST_ERROR_IF_NULL(window);
 
@@ -951,35 +945,23 @@ namespace TranslucentFlyouts::FlyoutAnimation
 
 			Utils::CloakWindow(m_menuWindow, TRUE);
 
-			m_backdropWindow = CreateWindowExW(
-				WS_EX_NOREDIRECTIONBITMAP | WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
-				L"Static",
-				L"PopupIn Animation Backdrop",
-				WS_POPUP,
-				-GetSystemMetrics(SM_CXVIRTUALSCREEN),
-				-GetSystemMetrics(SM_CYVIRTUALSCREEN),
-				0,
-				0,
+			m_backdropWindow = Utils::SHCreateWorkerWindowW(
+				DefWindowProcW,
 				ownerWindow,
+				WS_EX_NOREDIRECTIONBITMAP | WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
+				WS_POPUP,
 				nullptr,
-				nullptr,
-				nullptr
+				0
 			);
 			THROW_LAST_ERROR_IF_NULL(m_backdropWindow);
 
-			window = CreateWindowExW(
-				WS_EX_NOREDIRECTIONBITMAP | WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
-				L"Static",
-				L"PopupIn Animation",
-				WS_POPUP,
-				-GetSystemMetrics(SM_CXVIRTUALSCREEN),
-				-GetSystemMetrics(SM_CYVIRTUALSCREEN),
-				1,
-				1,
+			window = Utils::SHCreateWorkerWindowW(
+				DefWindowProcW,
 				ownerWindow,
+				WS_EX_NOREDIRECTIONBITMAP | WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
+				WS_POPUP,
 				nullptr,
-				nullptr,
-				nullptr
+				0
 			);
 			THROW_LAST_ERROR_IF_NULL(window);
 

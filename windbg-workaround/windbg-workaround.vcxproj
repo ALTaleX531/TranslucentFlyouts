@@ -241,22 +241,22 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <TargetName>dbghelp-for-tf</TargetName>
-    <OutDir>$(SolutionDir)Build\import\$(PlatformShortName)\$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)Build\$(PlatformShortName)\$(Configuration)\import\</OutDir>
     <IntDir>$(SolutionDir)Cache\$(ProjectName)\$(PlatformShortName)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <TargetName>dbghelp-for-tf</TargetName>
-    <OutDir>$(SolutionDir)Build\import\$(PlatformShortName)\$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)Build\$(PlatformShortName)\$(Configuration)\import\</OutDir>
     <IntDir>$(SolutionDir)Cache\$(ProjectName)\$(PlatformShortName)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <TargetName>dbghelp-for-tf</TargetName>
-    <OutDir>$(SolutionDir)Build\import\$(PlatformShortName)\$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)Build\$(PlatformShortName)\$(Configuration)\import\</OutDir>
     <IntDir>$(SolutionDir)Cache\$(ProjectName)\$(PlatformShortName)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <TargetName>dbghelp-for-tf</TargetName>
-    <OutDir>$(SolutionDir)Build\import\$(PlatformShortName)\$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)Build\$(PlatformShortName)\$(Configuration)\import\</OutDir>
     <IntDir>$(SolutionDir)Cache\$(ProjectName)\$(PlatformShortName)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -544,7 +544,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <None Include="cpp.hint" />
     <None Include="GlobalFunctions.def" />
   </ItemGroup>
   <ItemGroup>

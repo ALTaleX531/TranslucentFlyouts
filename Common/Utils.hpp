@@ -92,6 +92,32 @@ namespace TranslucentFlyouts::Utils
 		return s_processName;
 	}
 
+	__forceinline HWND SHCreateWorkerWindowW(
+		WNDPROC WndProc,
+		HWND hWndParent,
+		DWORD dwExStyle,
+		DWORD dwStyle,
+		HMENU hMenu,
+		LONG_PTR dwUserData
+	)
+	{
+		static const auto s_actualSHCreateWorkerWindowW{ reinterpret_cast<HWND(WINAPI*)(WNDPROC,HWND,DWORD,DWORD,HMENU,LONG_PTR)>(GetProcAddress(GetModuleHandleW(L"Shlwapi.dll"), "SHCreateWorkerWindowW"))};
+
+		if (s_actualSHCreateWorkerWindowW) [[likely]]
+		{
+			return s_actualSHCreateWorkerWindowW(
+				WndProc,
+				hWndParent,
+				dwExStyle,
+				dwStyle,
+				hMenu,
+				dwUserData
+			);
+		}
+
+		return nullptr;
+	}
+
 	inline bool IsRunningAsAdministrator()
 	{
 		wil::unique_handle token{ nullptr };

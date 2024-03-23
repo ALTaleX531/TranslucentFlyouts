@@ -100,7 +100,7 @@ int WINAPI TraverseLogHooks::MyDrawTextW(
 	};
 	if (!handler())
 	{
-		result = g_hookDispatcher.GetOrg<decltype(&MyDrawTextW), 0>()(hdc, lpchText, cchText, lprc, format);
+		result = g_hookDispatcher.GetOrg<0, decltype(&MyDrawTextW)>()(hdc, lpchText, cchText, lprc, format);
 	}
 
 	return result;
@@ -116,7 +116,7 @@ HRESULT WINAPI TraverseLogHooks::MyDrawThemeBackground(
 )
 {
 	HRESULT hr{ S_OK };
-	auto actualDrawThemeBackground{ g_hookDispatcher.GetOrg<decltype(&MyDrawThemeBackground), 1>() };
+	auto actualDrawThemeBackground{ g_hookDispatcher.GetOrg<1, decltype(&MyDrawThemeBackground)>() };
 
 	auto handler = [&]() -> bool
 	{

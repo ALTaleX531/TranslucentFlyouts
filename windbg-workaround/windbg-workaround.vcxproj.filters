@@ -15,7 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="cpp.hint" />
     <None Include="GlobalFunctions.def">
       <Filter>源文件</Filter>
     </None>

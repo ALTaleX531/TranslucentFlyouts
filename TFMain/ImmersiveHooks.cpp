@@ -117,7 +117,8 @@ int WINAPI ImmersiveHooks::MyDrawTextW(
 	};
 	if (!handler())
 	{
-		result = g_hookDispatcherMap.at(DetourGetContainingModule(_ReturnAddress())).GetOrg<decltype(&ImmersiveHooks::MyDrawTextW), 0>()(hdc, lpchText, cchText, lprc, format);
+		auto& dispatcher{ g_hookDispatcherMap.at(DetourGetContainingModule(_ReturnAddress())) };
+		result = dispatcher.GetOrg<0, decltype(&ImmersiveHooks::MyDrawTextW)>()(hdc, lpchText, cchText, lprc, format);
 	}
 
 	return result;
@@ -133,7 +134,8 @@ HRESULT WINAPI ImmersiveHooks::MyDrawThemeBackground(
 )
 {
 	HRESULT hr{S_OK};
-	auto actualDrawThemeBackground{ g_hookDispatcherMap.at(DetourGetContainingModule(_ReturnAddress())).GetOrg<decltype(&ImmersiveHooks::MyDrawThemeBackground), 1>() };
+	auto& dispatcher{ g_hookDispatcherMap.at(DetourGetContainingModule(_ReturnAddress())) };
+	auto actualDrawThemeBackground{ dispatcher.GetOrg<1, decltype(&ImmersiveHooks::MyDrawThemeBackground)>() };
 	
 
 	auto handler = [&]() -> bool
@@ -195,7 +197,7 @@ HRESULT WINAPI ImmersiveHooks::MyDwmSetWindowAttribute(
 		}
 	}
 
-	return g_hookDispatcherMap.at(DetourGetContainingModule(_ReturnAddress())).GetOrg<decltype(&ImmersiveHooks::MyDwmSetWindowAttribute), 2>()(
+	return g_hookDispatcherMap.at(DetourGetContainingModule(_ReturnAddress())).GetOrg<2, decltype(&ImmersiveHooks::MyDwmSetWindowAttribute)>()(
 		hwnd,
 		dwAttribute,
 		pvAttribute,

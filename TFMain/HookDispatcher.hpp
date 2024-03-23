@@ -13,6 +13,7 @@ namespace TranslucentFlyouts::HookHelper
 		std::array<std::pair<OffsetStorage, std::optional<OffsetStorage>>, hookCount> hookInfoCache{}; // iat mem offset
 		std::array<std::pair<PVOID, std::optional<HMODULE>>, hookCount> hookTable{}; // iat org value
 		std::array<size_t, hookCount> hookRef{};
+		mutable wil::srwlock hookLock{};
 		PVOID moduleAddress{};
 
 		void CacheHookData()
@@ -91,13 +92,15 @@ namespace TranslucentFlyouts::HookHelper
 				}
 			}
 		}
-		bool IsHookEnabled(size_t index) const { return hookRef[index] > 0; }
+		bool IsHookEnabled(size_t index) const { auto lock{ hookLock.lock_shared() }; return hookRef[index] > 0; }
 		bool EnableHook(size_t index, bool enable)
 		{
 			if (!moduleAddress)
 			{
 				return false;
 			}
+
+			auto lock{ hookLock.lock_exclusive()};
 
 			hookRef[index] += enable ? 1 : -1;
 			bool hookChanged{ false };
@@ -180,33 +183,35 @@ namespace TranslucentFlyouts::HookHelper
 				return;
 			}
 
+			auto lock{ hookLock.lock_exclusive() };
 			for (size_t i = 0; i < hookInfoCache.size(); i++)
 			{
-				auto& [functionAddressOffset, moduleHandleOffset] {hookInfoCache[i]};
+				if (hookRef[i])
+				{
+					auto& [functionAddressOffset, moduleHandleOffset] {hookInfoCache[i]};
 
-				if (hookTable[i].first && functionAddressOffset.IsValid())
-				{
-					HookHelper::WriteMemory(functionAddressOffset.To(moduleAddress), [&]
+					if (functionAddressOffset.IsValid())
 					{
-						*reinterpret_cast<PVOID*>(functionAddressOffset.To(moduleAddress)) = hookTable[i].first;
-						hookTable[i].first = nullptr;
-					});
-				}
-				if (hookTable[i].second.has_value() && moduleHandleOffset.has_value())
-				{
-					HookHelper::WriteMemory(moduleHandleOffset.value().To(moduleAddress), [&]
+						HookHelper::WriteMemory(functionAddressOffset.To(moduleAddress), [&]
+						{
+							*reinterpret_cast<PVOID*>(functionAddressOffset.To(moduleAddress)) = hookTable[i].first;
+						});
+					}
+					if (moduleHandleOffset.has_value() && moduleHandleOffset.value().IsValid())
 					{
-						*reinterpret_cast<PVOID*>(moduleHandleOffset.value().To(moduleAddress)) = hookTable[i].second.value();
-						hookTable[i].second = std::nullopt;
-					});
+						HookHelper::WriteMemory(moduleHandleOffset.value().To(moduleAddress), [&]
+						{
+							*reinterpret_cast<PVOID*>(moduleHandleOffset.value().To(moduleAddress)) = hookTable[i].second.value();
+						});
+					}
+
+					hookRef[i] = 0;
 				}
-				hookRef[i] = 0;
 			}
 		}
-		template <typename T, size_t index>
-		__forceinline auto GetOrg() const { return reinterpret_cast<T>(hookTable[index].first); }
-		template <size_t index>
-		__forceinline auto GetOrg() const { return reinterpret_cast<PVOID>(hookTable[index].first); }
+		template <size_t index, typename T = PVOID>
+		[[nodiscard]] __forceinline auto GetOrg() const { auto lock{ hookLock.lock_shared() }; return reinterpret_cast<T>(hookTable[index].first); }
+
 		HookDispatcher(
 			const HookDispatcherDependency<hookCount, possibleImportCount>& dependency,
 			PVOID targetDll = nullptr

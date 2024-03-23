@@ -145,7 +145,7 @@ int WINAPI TooltipHooks::MyDrawTextW(
 	};
 	if (!handler())
 	{
-		result = g_hookDispatcher.GetOrg<decltype(&MyDrawTextW), 0>()(hdc, lpchText, cchText, lprc, format);
+		result = g_hookDispatcher.GetOrg<0, decltype(&MyDrawTextW)>()(hdc, lpchText, cchText, lprc, format);
 	}
 
 	return result;
@@ -194,7 +194,7 @@ HRESULT WINAPI TooltipHooks::MyDrawThemeBackground(
 	};
 	if (!handler())
 	{
-		hr = g_hookDispatcher.GetOrg<decltype(&MyDrawThemeBackground), 1>()(
+		hr = g_hookDispatcher.GetOrg<1, decltype(&MyDrawThemeBackground)>()(
 			hTheme,
 			hdc,
 			iPartId,
@@ -218,7 +218,7 @@ HRESULT WINAPI TooltipHooks::MyDrawThemeTextEx(
 	const DTTOPTS* pOptions
 )
 {
-	const auto actualDrawThemeTextEx{ g_hookDispatcher.GetOrg<decltype(&MyDrawThemeTextEx), 2>()};
+	const auto actualDrawThemeTextEx{ g_hookDispatcher.GetOrg<2, decltype(&MyDrawThemeTextEx)>()};
 
 	WCHAR themeClassName[MAX_PATH + 1]{};
 	if (SUCCEEDED(ThemeHelper::GetThemeClass(hTheme, themeClassName, MAX_PATH)) && !_wcsicmp(themeClassName, L"TreeView"))
@@ -276,7 +276,7 @@ HRESULT WINAPI TooltipHooks::MyGetThemeMargins(
 {
 	HRESULT hr
 	{
-		g_hookDispatcher.GetOrg<decltype(&MyGetThemeMargins), 3>()(
+		g_hookDispatcher.GetOrg<3, decltype(&MyGetThemeMargins)>()(
 			hTheme,
 			hdc,
 			iPartId,

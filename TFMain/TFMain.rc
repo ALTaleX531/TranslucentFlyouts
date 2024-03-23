@@ -104,7 +104,7 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_STRING112           "Hello "
+    IDS_STRING112           "Hello, "
     IDS_STRING113           "PLACEHOLDER"
 END
 
