@@ -88,7 +88,7 @@ It really looks like the default menu, isn't it?
 But it's rendering procedure is completely different from the defualt one, making TranslucentFlyout hard to modify its visual content.  
 #### **3. StartAllBack**
 `StartAllBack` has built-in support for translucent popup menu, and its rendering procedure priority is higher than TranslucentFlyouts.  
-> [Note!]:  
+> [!Note]:  
 > For this reason, `v2.0.0-alpha.4` and higher versions of TranslucentFlyouts will automatically disable itself when `StartAllBack` was detected, unless there is a way to fully disable `StartAllBack`' s handling procedure.  
 > However, TranslucentFlyouts is still available for other applications except `Explorer`.
 
