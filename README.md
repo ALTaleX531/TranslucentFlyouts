@@ -60,7 +60,7 @@ Windows 11
 2. Unzip it to a location such as "`C:\Program Files`".
 3. Run "`install.cmd`" as administrator.
 
-> [Note!]:   
+> [!Note]:   
 > **Downloading symbol files from Microsoft server is required at the first time or after a windows update, otherwise some functionalities will be unavailable!**  
 
 ### Uninstall
