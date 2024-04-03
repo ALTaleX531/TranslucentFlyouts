@@ -126,6 +126,24 @@ Type: <b>DWORD</b>
 <tr>
 <td width="10%">
 <dl>
+<dt><b>EnableMiniDump</b></dt>
+<dt>Default Value: 1</dt>
+</dl>
+</td>
+<td width="20%">
+<dl>
+<dt>Disable: 0</dt>
+<dt>Enable: 1</dt>
+</dl>
+</td>
+<td width="30%">
+<dt>Hook all unhandled exceptions from other applications and redirect crash dumps to the install directory, in the event that a crash may be related to TranslucentFlyouts.</dt>
+</td>
+</tr>
+
+<tr>
+<td width="10%">
+<dl>
 <dt><b>EnableThemeColorization</b></dt>
 <dt>Default Value: 0</dt>
 </dl>
