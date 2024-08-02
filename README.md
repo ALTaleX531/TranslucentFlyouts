@@ -1,4 +1,6 @@
-> [!NOTE] The project is no longer active!   
+> [!NOTE] 
+> The project is no longer active! 
+>   
 > Dear Users,
 > 
 > It is with a heavy heart that I announce that the TranslucentFlyouts project is no longer actively developed and receive updates.   
@@ -10,7 +12,7 @@
 > 3. Microsoft is further trampling on msstyle, which makes full coverage of vanilla rendering a necessity, yet libraries that do high-quality 2D rendering almost always introduce multithreading issues.
 > 4. The current implementation of injecting into global applications is seriously buggy, it causes .NET applications to crash however the memory dump file generated is useless and I can't even figure out why it crashes. In addition to this, it crashes some games that have strict anti-cheat features. Unfortunately, I haven't found a stable and reliable way to inject globally.  
 > 
-> There are actually much more issues than you think, but I don't have a nice way to present them all.   
+> There are actually much more issues than you think, but I don't have a nice way to present them all. But I'd say the most important reason is that I don't have that much time to develop it anymore.   
 >   
 > Currently TranslucentFlyouts still works without problems on most systems, only a few settings need to be [tweaked](https://github.com/ALTaleX531/TranslucentFlyouts/files/14159185/disable_internet_connection.zip), such as preventing TranslucentFlyouts from downloading symbols that may cause failures, these symbol files are mostly referenced by features that you are unlikely to use.   
 > 
