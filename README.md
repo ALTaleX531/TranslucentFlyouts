@@ -1,4 +1,23 @@
-# TranslucentFlyouts V2
+> [!NOTE] The project is no longer active!   
+> Dear Users,
+> 
+> It is with a heavy heart that I announce that the TranslucentFlyouts project is no longer actively developed and receive updates.   
+> 
+> Why?   
+> 
+> 1. TranslucentFlyouts has so many features that it is very expensive to maintain. However, there are still more requests for more features.
+> 2. Since users will mostly use TranslucentFlyouts in combination with other appearance tweaks, this means that I can't use an implementation as invasive as StartAllBack.
+> 3. Microsoft is further trampling on msstyle, which makes full coverage of vanilla rendering a necessity, yet libraries that do high-quality 2D rendering almost always introduce multithreading issues.
+> 4. The current implementation of injecting into global applications is seriously buggy, it causes .NET applications to crash however the memory dump file generated is useless and I can't even figure out why it crashes. In addition to this, it crashes some games that have strict anti-cheat features. Unfortunately, I haven't found a stable and reliable way to inject globally.  
+> 
+> There are actually much more issues than you think, but I don't have a nice way to present them all.   
+>   
+> Currently TranslucentFlyouts still works without problems on most systems, only a few settings need to be [tweaked](https://github.com/ALTaleX531/TranslucentFlyouts/files/14159185/disable_internet_connection.zip), such as preventing TranslucentFlyouts from downloading symbols that may cause failures, these symbol files are mostly referenced by features that you are unlikely to use.   
+> 
+> I may create a lighter and more stable project to take over TranslucentFlyouts in the future, but who knows when...?
+>  
+> I want to express my deepest gratitude for your support and for choosing TranslucentFlyouts. Your enthusiasm and feedback have been invaluable throughout this journey. It has been an immense honor for me to contribute to a project that aimed to enhance your user experience. If TranslucentFlyouts has caused any inconvenience or disruption to your Windows setup, I sincerely apologize.
+# TranslucentFlyouts
 An application that makes most of the win32 popup menus translucent/transparent on Windows 10/11, providing more options to tweak it to meet your need.
 
 Compared to V1, TranslucentFlyouts V2 has better compatibility and the ability to customize.   
